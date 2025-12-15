@@ -16,28 +16,42 @@ exports.handler = async (event, context) => {
     });
 
     // Netlify Functions - Stripe wymaga surowego body (string) do weryfikacji podpisu
-    // Jeśli body jest już sparsowane jako obiekt, musimy użyć rawBody lub zdekodować
-    let body = event.body;
+    // WAŻNE: Netlify może parsować JSON, co psuje weryfikację podpisu
+    // Musimy użyć surowego body jako stringa
     
-    // Jeśli body jest obiektem (Netlify sparsował JSON), próbujemy użyć rawBody
-    if (typeof body === 'object' && event.rawBody) {
+    let body;
+    
+    // Sprawdź czy mamy rawBody (surowe body przed parsowaniem)
+    if (event.rawBody) {
         body = event.rawBody;
+        console.log('Using rawBody');
     } 
-    // Jeśli body jest obiektem i nie ma rawBody, konwertujemy z powrotem na string
-    // UWAGA: To może nie zadziałać poprawnie z weryfikacją podpisu Stripe!
-    else if (typeof body === 'object') {
-        console.warn('Body is object, converting to string. This may cause signature verification to fail!');
-        body = JSON.stringify(body);
+    // Jeśli body jest już stringiem, użyj go bezpośrednio
+    else if (typeof event.body === 'string') {
+        body = event.body;
+        console.log('Using event.body as string');
     }
-    
     // Jeśli body jest base64 encoded, dekodujemy
-    if (event.isBase64Encoded && typeof body === 'string') {
-        body = Buffer.from(body, 'base64').toString('utf-8');
+    else if (event.isBase64Encoded && typeof event.body === 'string') {
+        body = Buffer.from(event.body, 'base64').toString('utf-8');
+        console.log('Decoded base64 body');
     }
-    
-    // Upewnijmy się, że body jest stringiem
-    if (typeof body !== 'string') {
-        console.error('Body is not a string:', typeof body);
+    // Jeśli body jest obiektem (Netlify sparsował JSON), to jest problem
+    // Nie możemy użyć sparsowanego JSON do weryfikacji podpisu!
+    else if (typeof event.body === 'object') {
+        console.error('CRITICAL: Body is already parsed as object. Stripe signature verification will fail!');
+        console.error('Netlify parsed the JSON before it reached the function.');
+        console.error('Solution: Configure Netlify to pass raw body or use a different approach.');
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ 
+                error: 'Body was parsed as JSON before reaching function',
+                message: 'Netlify Functions parsed the request body. Stripe signature verification requires raw body.'
+            })
+        };
+    }
+    else {
+        console.error('Unknown body format:', typeof event.body);
         return {
             statusCode: 400,
             body: JSON.stringify({ error: 'Invalid request body format' })
