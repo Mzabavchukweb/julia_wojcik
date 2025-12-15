@@ -1,3 +1,32 @@
 [build]
   functions = "netlify/functions"
+  publish = "."
 
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["ebooks/**"]
+
+# Webhook endpoint - nie parsuj body jako JSON
+[[headers]]
+  for = "/.netlify/functions/stripe-webhook"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Stripe-Signature"
+
+# Download endpoint
+[[headers]]
+  for = "/.netlify/functions/download-ebook"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+# Redirects for cleaner URLs (opcjonalnie)
+[[redirects]]
+  from = "/api/webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/download"
+  to = "/.netlify/functions/download-ebook"
+  status = 200
