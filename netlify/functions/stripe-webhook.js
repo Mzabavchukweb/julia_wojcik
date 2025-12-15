@@ -1,6 +1,8 @@
 // Netlify Function - Webhook Stripe do automatycznej wysyłki e-booka
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Resend } = require('resend');
+const { getStore } = require('@netlify/blobs');
+const crypto = require('crypto');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -154,72 +156,41 @@ exports.handler = async (event, context) => {
 
         if (isEbookPurchase && session.customer_email) {
             try {
-                // Pobierz PDF e-booka
-                let pdfBuffer;
+                // Generuj unikalny 64-znakowy token
+                const token = crypto.randomBytes(32).toString('hex');
                 
-                // Opcja 1: Z lokalnego pliku (dla Netlify/Vercel)
-                if (process.env.EBOOK_PATH) {
-                    const fs = require('fs');
-                    const path = require('path');
-                    const ebookPath = path.join(process.cwd(), process.env.EBOOK_PATH);
-                    
-                    if (fs.existsSync(ebookPath)) {
-                        pdfBuffer = fs.readFileSync(ebookPath);
-                    } else {
-                        console.error('E-book PDF not found at:', ebookPath);
-                    }
-                }
+                // Oblicz datę wygaśnięcia (7 dni od teraz)
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
                 
-                // Opcja 2: Z URL (jeśli PDF jest w chmurze)
-                if (!pdfBuffer && process.env.EBOOK_URL) {
-                    const https = require('https');
-                    const http = require('http');
-                    const url = require('url');
-                    
-                    pdfBuffer = await new Promise((resolve, reject) => {
-                        const parsedUrl = url.parse(process.env.EBOOK_URL);
-                        const client = parsedUrl.protocol === 'https:' ? https : http;
-                        
-                        client.get(process.env.EBOOK_URL, (res) => {
-                            const chunks = [];
-                            res.on('data', (chunk) => chunks.push(chunk));
-                            res.on('end', () => resolve(Buffer.concat(chunks)));
-                            res.on('error', reject);
-                        }).on('error', reject);
-                    });
-                }
+                // Przygotuj dane do zapisania w Netlify Blobs
+                const tokenData = {
+                    email: session.customer_email,
+                    sessionId: session.id,
+                    createdAt: new Date().toISOString(),
+                    expiresAt: expiresAt.toISOString(),
+                    downloadCount: 0,
+                    maxDownloads: 5
+                };
                 
-                // Opcja 3: Domyślna ścieżka (ebooks/original-ebook.pdf)
-                if (!pdfBuffer) {
-                    const fs = require('fs');
-                    const path = require('path');
-                    
-                    // Spróbuj kilka możliwych ścieżek
-                    const possiblePaths = [
-                        path.join(process.cwd(), 'ebooks', 'original-ebook.pdf'),
-                        path.join(process.cwd(), 'PRACUJ (1).pdf'),
-                        path.join(__dirname, '..', '..', 'ebooks', 'original-ebook.pdf'),
-                        path.join(__dirname, '..', '..', 'PRACUJ (1).pdf')
-                    ];
-                    
-                    for (const ebookPath of possiblePaths) {
-                        if (fs.existsSync(ebookPath)) {
-                            pdfBuffer = fs.readFileSync(ebookPath);
-                            console.log('Found PDF at:', ebookPath);
-                            break;
-                        }
-                    }
-                }
+                // Zapisz token w Netlify Blobs
+                // Użyj context.netlify jeśli dostępne (automatyczne uwierzytelnianie w Netlify Functions)
+                const store = getStore({
+                    name: 'ebook-tokens',
+                    ...(context.netlify ? { context: context.netlify } : {
+                        siteID: process.env.NETLIFY_SITE_ID,
+                        token: process.env.NETLIFY_BLOB_STORE_TOKEN
+                    })
+                });
                 
-                if (!pdfBuffer) {
-                    console.error('E-book PDF not found. Check EBOOK_PATH or EBOOK_URL environment variables.');
-                    return {
-                        statusCode: 500,
-                        body: JSON.stringify({ error: 'E-book file not found' })
-                    };
-                }
-
-                // Wyślij email z PDF
+                await store.set(token, JSON.stringify(tokenData));
+                console.log('Token saved to Blobs:', token);
+                
+                // Utwórz URL do pobrania
+                const baseUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://juliawojcikszkolenia.pl';
+                const downloadUrl = `${baseUrl}/.netlify/functions/download-ebook?token=${token}`;
+                
+                // Wyślij email z linkiem do pobrania
                 const emailResult = await resend.emails.send({
                     from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
                     to: session.customer_email,
@@ -236,6 +207,7 @@ exports.handler = async (event, context) => {
                                 .content { background: #f9f8f6; padding: 30px; }
                                 .button { display: inline-block; background: #212121; color: white; padding: 15px 30px; text-decoration: none; border-radius: 0; margin: 20px 0; }
                                 .footer { text-align: center; padding: 20px; color: #6b6b6b; font-size: 12px; }
+                                .info-box { background: #fff; border-left: 4px solid #C5A572; padding: 15px; margin: 20px 0; }
                             </style>
                         </head>
                         <body>
@@ -246,8 +218,18 @@ exports.handler = async (event, context) => {
                                 <div class="content">
                                     <p>Witaj!</p>
                                     <p>Dziękujemy za zakup e-booka <strong>"Korekta bez skrótów"</strong>.</p>
-                                    <p>W załączniku znajdziesz Twój e-book w formacie PDF. Możesz go pobrać i zapisać na swoim urządzeniu.</p>
-                                    <p><strong>Dostęp masz na zawsze</strong> - możesz wracać do treści i schematów tak często, jak tylko potrzebujesz.</p>
+                                    <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
+                                    <div style="text-align: center;">
+                                        <a href="${downloadUrl}" class="button">Pobierz e-book</a>
+                                    </div>
+                                    <div class="info-box">
+                                        <p><strong>Ważne informacje:</strong></p>
+                                        <ul>
+                                            <li>Link jest ważny przez <strong>7 dni</strong> od zakupu</li>
+                                            <li>Możesz pobrać e-book maksymalnie <strong>5 razy</strong></li>
+                                            <li>Po pobraniu zapisz plik na swoim urządzeniu - będziesz mieć do niego dostęp na zawsze</li>
+                                        </ul>
+                                    </div>
                                     <p>Jeśli masz jakiekolwiek pytania, napisz do mnie na Instagramie <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a> lub na TikToku <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a>.</p>
                                     <p>Życzę Ci owocnej pracy!</p>
                                     <p>Pozdrawiam,<br><strong>Julia Wójcik</strong></p>
@@ -259,31 +241,26 @@ exports.handler = async (event, context) => {
                             </div>
                         </body>
                         </html>
-                    `,
-                    attachments: [
-                        {
-                            filename: 'E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf',
-                            content: pdfBuffer
-                        }
-                    ]
+                    `
                 });
 
-                console.log('Email sent successfully:', emailResult);
+                console.log('Email sent successfully with download link:', emailResult);
 
                 return {
                     statusCode: 200,
                     body: JSON.stringify({ 
                         received: true,
                         emailSent: true,
-                        emailId: emailResult.id
+                        emailId: emailResult.id,
+                        tokenGenerated: true
                     })
                 };
             } catch (error) {
-                console.error('Error sending email:', error);
+                console.error('Error processing ebook purchase:', error);
                 return {
                     statusCode: 500,
                     body: JSON.stringify({ 
-                        error: 'Failed to send email',
+                        error: 'Failed to process ebook purchase',
                         message: error.message
                     })
                 };
