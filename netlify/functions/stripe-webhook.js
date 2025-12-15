@@ -5,16 +5,72 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.handler = async (event, context) => {
-    // Stripe webhook signature verification
-    const sig = event.headers['stripe-signature'];
-    let stripeEvent;
+    try {
+    // Log incoming request for debugging
+    console.log('Webhook received:', {
+        method: event.httpMethod,
+        hasBody: !!event.body,
+        bodyType: typeof event.body,
+        isBase64Encoded: event.isBase64Encoded,
+        headers: Object.keys(event.headers || {})
+    });
 
+    // Netlify Functions - Stripe wymaga surowego body (string) do weryfikacji podpisu
+    // Jeśli body jest już sparsowane jako obiekt, musimy użyć rawBody lub zdekodować
+    let body = event.body;
+    
+    // Jeśli body jest obiektem (Netlify sparsował JSON), próbujemy użyć rawBody
+    if (typeof body === 'object' && event.rawBody) {
+        body = event.rawBody;
+    } 
+    // Jeśli body jest obiektem i nie ma rawBody, konwertujemy z powrotem na string
+    // UWAGA: To może nie zadziałać poprawnie z weryfikacją podpisu Stripe!
+    else if (typeof body === 'object') {
+        console.warn('Body is object, converting to string. This may cause signature verification to fail!');
+        body = JSON.stringify(body);
+    }
+    
+    // Jeśli body jest base64 encoded, dekodujemy
+    if (event.isBase64Encoded && typeof body === 'string') {
+        body = Buffer.from(body, 'base64').toString('utf-8');
+    }
+    
+    // Upewnijmy się, że body jest stringiem
+    if (typeof body !== 'string') {
+        console.error('Body is not a string:', typeof body);
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid request body format' })
+        };
+    }
+    
+    // Stripe webhook signature verification
+    const sig = event.headers['stripe-signature'] || event.headers['Stripe-Signature'];
+    
+    if (!sig) {
+        console.error('Missing Stripe signature header');
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Missing Stripe signature' })
+        };
+    }
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Webhook secret not configured' })
+        };
+    }
+
+    let stripeEvent;
     try {
         stripeEvent = stripe.webhooks.constructEvent(
-            event.body,
+            body,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET
         );
+        console.log('Webhook verified successfully. Event type:', stripeEvent.type);
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
         return {
@@ -24,22 +80,63 @@ exports.handler = async (event, context) => {
     }
 
     // Handle the event
+    console.log('Processing event type:', stripeEvent.type);
+    
     if (stripeEvent.type === 'checkout.session.completed') {
         const session = stripeEvent.data.object;
+        
+        console.log('Checkout session completed:', {
+            sessionId: session.id,
+            customerEmail: session.customer_email,
+            amountTotal: session.amount_total,
+            currency: session.currency
+        });
         
         // Sprawdź czy to zakup e-booka (sprawdź metadata produktu)
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
             expand: ['data.price.product']
         });
 
+        console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
+
         // Sprawdź czy którykolwiek produkt ma metadata product_type: 'ebook'
-        const isEbookPurchase = lineItems.data.some(item => {
+        // LUB sprawdź czy Payment Link zawiera "ebook" w nazwie/metadata
+        let isEbookPurchase = false;
+        
+        // Metoda 1: Sprawdź metadata produktu
+        isEbookPurchase = lineItems.data.some(item => {
             const product = item.price?.product;
-            if (typeof product === 'object' && product.metadata?.product_type === 'ebook') {
-                return true;
+            if (typeof product === 'object') {
+                console.log('Product metadata:', product.metadata);
+                if (product.metadata?.product_type === 'ebook') {
+                    return true;
+                }
+                // Sprawdź też czy nazwa produktu zawiera "ebook" lub "e-book"
+                if (product.name && (product.name.toLowerCase().includes('ebook') || product.name.toLowerCase().includes('e-book'))) {
+                    return true;
+                }
             }
             return false;
         });
+        
+        // Metoda 2: Sprawdź metadata sesji checkout
+        if (!isEbookPurchase && session.metadata?.product_type === 'ebook') {
+            isEbookPurchase = true;
+        }
+        
+        // Metoda 3: Sprawdź czy Payment Link ID wskazuje na ebook (jeśli masz dedykowany link)
+        if (!isEbookPurchase && session.payment_link) {
+            // Możesz dodać sprawdzenie Payment Link metadata
+            console.log('Payment Link ID:', session.payment_link);
+        }
+        
+        // Metoda 4: Dla testów - jeśli kwota to 300 zł, traktuj jako ebook
+        if (!isEbookPurchase && session.amount_total === 30000 && session.currency === 'pln') {
+            console.log('Detected ebook purchase by amount (300 PLN)');
+            isEbookPurchase = true;
+        }
+
+        console.log('Is ebook purchase?', isEbookPurchase);
 
         if (isEbookPurchase && session.customer_email) {
             try {
@@ -181,9 +278,30 @@ exports.handler = async (event, context) => {
     }
 
     // Return a response to acknowledge receipt of the event
+    console.log('Event processed, returning 200 OK');
     return {
         statusCode: 200,
-        body: JSON.stringify({ received: true })
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            received: true,
+            eventType: stripeEvent?.type || 'unknown'
+        })
     };
+    } catch (error) {
+        // Global error handler - upewnij się, że zawsze zwracamy odpowiedź
+        console.error('Unexpected error in webhook handler:', error);
+        return {
+            statusCode: 500,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                error: 'Internal server error',
+                message: error.message 
+            })
+        };
+    }
 };
 

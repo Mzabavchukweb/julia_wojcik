@@ -69,8 +69,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ===== INTERSECTION OBSERVER =====
     const observerOptions = {
-        threshold: 0.15,
-        rootMargin: '0px 0px -100px 0px'
+        threshold: 0.1,
+        rootMargin: '0px 0px 0px 0px'
     };
 
     const observer = new IntersectionObserver(function(entries) {
@@ -101,6 +101,31 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }, observerOptions);
+    
+    // Funkcja do sprawdzania, czy element jest już widoczny na początku
+    function checkInitialVisibility() {
+        const elementsToCheck = document.querySelectorAll('.section-label, .section-subtitle, .intro-title, .features-title, .gallery-title, .testimonials-title, .intro-image-wrapper, .intro-content, .intro-lead, .intro-paragraphs, .intro-highlight, .feature-card, .students-gallery-item, .portfolio-item, .testimonial-item, .ebook-cta-content');
+        
+        elementsToCheck.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+            
+            if (isVisible && !el.classList.contains('visible')) {
+                // Jeśli element jest widoczny, pokaż go od razu
+                if (el.classList.contains('intro-title') || 
+                    el.classList.contains('features-title') || 
+                    el.classList.contains('gallery-title') ||
+                    el.classList.contains('testimonials-title')) {
+                    animateTitleWords(el);
+                }
+                el.classList.add('visible');
+            }
+        });
+    }
+    
+    // Sprawdź widoczność natychmiast i po krótkim opóźnieniu
+    checkInitialVisibility();
+    setTimeout(checkInitialVisibility, 100);
 
     // Observe all elements that need animation
     const elementsToObserve = [
@@ -469,7 +494,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Check for success message from FormSubmit
-        const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('success') === 'true') {
             const formMessage = document.getElementById('form-message');
             if (formMessage) {
@@ -746,6 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Scroll-based logic here
         });
     }, { passive: true });
+
 
 
     // ===== ENHANCED SMOOTH SCROLL =====

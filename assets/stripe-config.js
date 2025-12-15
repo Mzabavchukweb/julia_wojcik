@@ -95,8 +95,7 @@ const ebook = {
     id: 'ebook_1',
     name: 'E-book - Kompletny przewodnik po stylizacji paznokci',
     price: 300, // Cena w złotych
-    priceId: 'price_1Seg6hHvQAfHQpRp8iXtRfi9', // Price ID z Stripe
-    paymentLink: null, // Używamy Price ID zamiast Payment Link
+    paymentLink: 'https://buy.stripe.com/test_3cI00j1Wo3nC7ihghh8IU00',
     description: 'Kompleksowy przewodnik po stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki.',
     format: 'PDF',
     access: 'na zawsze',
@@ -117,11 +116,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const priceValue = document.querySelector('.price-value');
     
     if (ebookBuyBtn && ebookBuySection) {
-        // Sprawdź czy mamy Price ID lub Payment Link
-        const hasPriceId = ebook.priceId && ebook.priceId.startsWith('price_');
         const hasPaymentLink = ebook.paymentLink && !ebook.paymentLink.includes('YOUR_EBOOK_PAYMENT_LINK_URL');
         
-        if (hasPriceId || hasPaymentLink) {
+        if (hasPaymentLink) {
             // E-book jest dostępny do zakupu
             if (priceValue) {
                 priceValue.textContent = `${ebook.price} zł`;
@@ -133,32 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             ebookBuyBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                
-                if (hasPriceId) {
-                    // Użyj Stripe Checkout z Price ID
-                    if (typeof Stripe !== 'undefined') {
-                        const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-                        stripe.redirectToCheckout({
-                            lineItems: [{
-                                price: ebook.priceId,
-                                quantity: 1,
-                            }],
-                            mode: 'payment',
-                            successUrl: window.location.origin + '/pages/ebook.html?success=true',
-                            cancelUrl: window.location.origin + '/pages/ebook.html?canceled=true',
-                        }).then(function (result) {
-                            if (result.error) {
-                                alert(result.error.message);
-                            }
-                        });
-                    } else {
-                        // Fallback: użyj Payment Link jeśli dostępny
-                        if (hasPaymentLink) {
-                            window.open(ebook.paymentLink, '_blank');
-                        }
-                    }
-                } else if (hasPaymentLink) {
-                    // Otwórz Payment Link w nowej karcie
+                if (ebook.paymentLink) {
+                    // Otwórz w nowej karcie, żeby użytkownik mógł wrócić
                     window.open(ebook.paymentLink, '_blank');
                 }
             });
