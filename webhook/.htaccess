@@ -1,0 +1,25 @@
+# Zabezpieczenie folderu webhook
+# Tylko POST requests z Stripe są dozwolone
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Zezwól tylko na POST requests
+    RewriteCond %{REQUEST_METHOD} !^POST$
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Opcjonalnie: Zezwól tylko z IP Stripe (sprawdź aktualne IP Stripe)
+    # RewriteCond %{REMOTE_ADDR} !^54\.187\.174\.169$
+    # RewriteCond %{REMOTE_ADDR} !^54\.187\.205\.235$
+    # RewriteRule ^(.*)$ - [F,L]
+</IfModule>
+
+# Wyłącz wyświetlanie listy plików
+Options -Indexes
+
+# Zabezpiecz przed bezpośrednim dostępem do config.php
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
