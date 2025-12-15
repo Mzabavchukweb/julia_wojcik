@@ -1,12 +1,33 @@
-// Konfiguracja Stripe - Payment Links (działa na statycznych stronach bez backendu)
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SPWPwHvQAfHQpRpUHNaKsezd0bPrqfTS1veqzZrP6bcmQSKEOWfU4qDPWc4GEilBSodrnK8yxrnjNGArD5Mb8HD001l7jF61l';
+/**
+ * KONFIGURACJA STRIPE - Payment Links
+ * 
+ * ⚠️ WAŻNE - PRZED URUCHOMIENIEM PRODUKCYJNYM:
+ * 1. Zamień klucz TESTOWY (pk_test_...) na LIVE (pk_live_...)
+ *    Stripe Dashboard → Developers → API keys → Reveal live key
+ * 
+ * 2. Utwórz Payment Links dla szkoleń:
+ *    - Stripe Dashboard → Products → Payment links → Create payment link
+ *    - Dla każdego szkolenia utwórz osobny link
+ *    - Skopiuj URL (format: https://buy.stripe.com/...)
+ *    - Wklej poniżej zamiast 'YOUR_PAYMENT_LINK_URL_X'
+ * 
+ * 3. Ustaw zmienne środowiskowe w Netlify:
+ *    - STRIPE_SECRET_KEY (sk_live_... dla produkcji)
+ *    - STRIPE_WEBHOOK_SECRET (whsec_...)
+ *    - RESEND_API_KEY (re_...)
+ *    - EMAIL_FROM (Julia Wójcik <ebook@juliawojcikszkolenia.pl>)
+ *    - EBOOK_PATH (./ebooks/original-ebook.pdf)
+ */
 
+// Klucz publiczny Stripe (obecnie TESTOWY - zamień na LIVE przed produkcją)
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SPWPwHvQAfHQpRpUHNaKsezd0bPrqfTS1veqzZrP6bcmQSKEOWfU4qDPWc4GEilBSodrnK8yxrnjNGArD5Mb8HD001l7jF61l';
+// Tylko jedno szkolenie z Payment Link
 const courses = [
     {
         id: 'course_1',
         name: 'Podstawowy Kurs Stylizacji Paznokci',
         price: 899,
-        paymentLink: 'YOUR_PAYMENT_LINK_URL_1', // Zastąp linkiem Payment Link ze Stripe
+        paymentLink: 'https://buy.stripe.com/test_8x24gz1Wo2jy1XX4yz8IU01',
         description: 'Kompleksowy kurs podstaw stylizacji paznokci. Idealny dla początkujących.',
         features: [
             '8 godzin praktycznych zajęć',
@@ -14,37 +35,6 @@ const courses = [
             'Certyfikat ukończenia',
             'Maksymalnie 6 osób w grupie',
             'Wsparcie po kursie'
-        ]
-    },
-    {
-        id: 'course_2',
-        name: 'Zaawansowany Kurs Korekty i Perfekcyjnego Kwadratu',
-        price: 1299,
-        paymentLink: 'YOUR_PAYMENT_LINK_URL_2', // Zastąp linkiem Payment Link ze Stripe
-        description: 'Skup się na perfekcyjnym kwadracie i profesjonalnej korekcie - moim koniku!',
-        features: [
-            '10 godzin intensywnych zajęć',
-            'Praca nad detalami',
-            'Analiza błędów',
-            'Indywidualne podejście',
-            'Materiały premium wliczone',
-            'Certyfikat zaawansowany'
-        ]
-    },
-    {
-        id: 'course_3',
-        name: 'Kurs Master - Pełna Metamorfoza',
-        price: 1999,
-        paymentLink: 'YOUR_PAYMENT_LINK_URL_3', // Zastąp linkiem Payment Link ze Stripe
-        description: 'Najbardziej kompleksowy kurs. Twórz metamorfozy nie do poznania!',
-        features: [
-            '16 godzin szkolenia',
-            'Wszystkie techniki i schematy',
-            'Opcja powtórki gratis',
-            'Premium materiały',
-            'Maksymalnie 4 osoby w grupie',
-            'Certyfikat Master',
-            'Dożywotnie wsparcie'
         ]
     }
 ];
