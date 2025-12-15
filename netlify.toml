@@ -1,8 +1,3 @@
 [build]
   functions = "netlify/functions"
 
-[[functions]]
-  name = "stripe-webhook"
-  # Netlify powinien przekazywać surowe body dla webhooków Stripe
-  # To jest ważne dla weryfikacji podpisu
-
