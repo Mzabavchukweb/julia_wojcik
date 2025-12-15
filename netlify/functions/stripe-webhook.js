@@ -1,5 +1,5 @@
 // Netlify Function - Webhook Stripe do automatycznej wysyłki e-booka
-// Netlify Functions (Background Function kompatybilny z v1 i v2)
+// WAŻNE: Netlify Functions v1 - używa exports.handler
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Resend } = require('resend');
@@ -8,46 +8,96 @@ const crypto = require('crypto');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Prosty in-memory store jako fallback gdy Blobs nie działa
-// W produkcji tokeny będą w pamięci funkcji (wystarczające dla jednorazowych linków)
 const tokenStore = new Map();
 
 exports.handler = async function(event, context) {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     console.log('HTTP Method:', event.httpMethod);
-    console.log('Headers:', JSON.stringify(event.headers, null, 2));
+    console.log('Is Base64:', event.isBase64Encoded);
+    console.log('Body type:', typeof event.body);
+    console.log('Body length:', event.body?.length);
     
     // Tylko POST
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ error: 'Method not allowed' })
         };
     }
 
     try {
         // Stripe webhook signature verification
-        const sig = event.headers['stripe-signature'];
+        // Sprawdź header w różnych formatach (lowercase/uppercase)
+        const sig = event.headers['stripe-signature'] || 
+                   event.headers['Stripe-Signature'] ||
+                   event.headers['stripe-signature'] ||
+                   (event.multiValueHeaders && (
+                       event.multiValueHeaders['stripe-signature']?.[0] ||
+                       event.multiValueHeaders['Stripe-Signature']?.[0]
+                   ));
         
         if (!sig) {
-            console.error('Missing Stripe signature header');
+            console.error('❌ Missing Stripe signature header');
+            console.error('Available headers:', Object.keys(event.headers || {}));
             return {
                 statusCode: 400,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ error: 'Missing Stripe signature' })
             };
         }
 
         if (!process.env.STRIPE_WEBHOOK_SECRET) {
-            console.error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+            console.error('❌ Missing STRIPE_WEBHOOK_SECRET environment variable');
             return {
                 statusCode: 500,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ error: 'Webhook secret not configured' })
             };
         }
 
-        // W Netlify Functions v1, event.body jest już stringiem (rawBody)
-        const body = event.body;
-        console.log('Body type:', typeof body);
-        console.log('Body length:', body?.length);
+        // Pobierz raw body - Stripe wymaga surowego stringa do weryfikacji podpisu
+        let body = event.body;
+        
+        // Jeśli body jest base64 encoded, dekoduj
+        if (event.isBase64Encoded && typeof body === 'string') {
+            body = Buffer.from(body, 'base64').toString('utf-8');
+            console.log('✅ Decoded base64 body');
+        }
+        
+        // Jeśli body jest obiektem (Netlify sparsował JSON), to jest problem!
+        if (typeof body === 'object') {
+            console.error('❌ CRITICAL: Body is already parsed as object!');
+            console.error('This will cause Stripe signature verification to fail!');
+            console.error('Body:', JSON.stringify(body).substring(0, 200));
+            
+            // Spróbuj odtworzyć string z obiektu (nie idealne, ale może zadziałać)
+            try {
+                body = JSON.stringify(body);
+                console.log('⚠️ Attempting to stringify body for verification');
+            } catch (e) {
+                return {
+                    statusCode: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        error: 'Body was parsed as JSON before reaching function',
+                        message: 'Netlify parsed the request body. Stripe signature verification requires raw body string.'
+                    })
+                };
+            }
+        }
+        
+        // Upewnij się, że body jest stringiem
+        if (typeof body !== 'string') {
+            console.error('❌ Body is not a string:', typeof body);
+            return {
+                statusCode: 400,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ error: 'Invalid request body format' })
+            };
+        }
+
+        console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
         let stripeEvent;
         try {
@@ -59,9 +109,14 @@ exports.handler = async function(event, context) {
             console.log('✅ Webhook verified successfully. Event type:', stripeEvent.type);
         } catch (err) {
             console.error('❌ Webhook signature verification failed:', err.message);
+            console.error('Error details:', err);
             return {
                 statusCode: 400,
-                body: JSON.stringify({ error: `Webhook Error: ${err.message}` })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    error: `Webhook Error: ${err.message}`,
+                    hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
+                })
             };
         }
 
@@ -84,6 +139,7 @@ exports.handler = async function(event, context) {
                 expand: ['data.price.product']
             });
 
+            console.log('Line items count:', lineItems.data.length);
             console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
 
             // Sprawdź czy którykolwiek produkt jest e-bookiem
@@ -120,11 +176,10 @@ exports.handler = async function(event, context) {
                 isEbookPurchase = true;
             }
             
-            // Metoda 3: Dla testów - jeśli kwota to 300 zł lub mniej, traktuj jako ebook
-            // (Dostosuj tę kwotę do swojej ceny e-booka)
+            // Metoda 3: Dla testów - jeśli kwota to 300 zł, traktuj jako ebook
             if (!isEbookPurchase) {
                 const amountInPLN = session.amount_total / 100;
-                if (session.currency === 'pln' && amountInPLN <= 500) {
+                if (session.currency === 'pln' && amountInPLN === 300) {
                     console.log(`✅ Detected ebook by amount (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
                 }
@@ -169,7 +224,7 @@ exports.handler = async function(event, context) {
                     }
                     
                     // Utwórz URL do pobrania
-                    const baseUrl = process.env.URL || 'https://juliawojcikszkolenia.pl';
+                    const baseUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://juliawojcikszkolenia.pl';
                     const downloadUrl = `${baseUrl}/.netlify/functions/download-ebook?token=${token}`;
                     
                     console.log('Download URL:', downloadUrl);
@@ -179,6 +234,7 @@ exports.handler = async function(event, context) {
                         console.error('❌ RESEND_API_KEY not configured!');
                         return {
                             statusCode: 500,
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ error: 'Email service not configured' })
                         };
                     }
@@ -203,7 +259,7 @@ exports.handler = async function(event, context) {
                                     .header { background: linear-gradient(135deg, #C5A572 0%, #a89263 100%); color: white; padding: 30px; text-align: center; }
                                     .header h1 { margin: 0; font-size: 24px; }
                                     .content { background: #f9f8f6; padding: 30px; }
-                                    .button { display: inline-block; background: #212121; color: white !important; padding: 15px 30px; text-decoration: none; font-weight: bold; margin: 20px 0; }
+                                    .button { display: inline-block; background: #212121; color: white !important; padding: 15px 30px; text-decoration: none; font-weight: bold; margin: 20px 0; border-radius: 4px; }
                                     .button:hover { background: #333; }
                                     .footer { text-align: center; padding: 20px; color: #6b6b6b; font-size: 12px; background: #f0f0f0; }
                                     .info-box { background: #fff; border-left: 4px solid #C5A572; padding: 15px; margin: 20px 0; }
@@ -248,7 +304,7 @@ exports.handler = async function(event, context) {
                         `
                     });
 
-                    console.log('✅ Email sent successfully:', emailResult);
+                    console.log('✅ Email sent successfully:', JSON.stringify(emailResult, null, 2));
 
                     return {
                         statusCode: 200,
@@ -257,7 +313,8 @@ exports.handler = async function(event, context) {
                             received: true,
                             emailSent: true,
                             emailId: emailResult.id || emailResult.data?.id,
-                            tokenGenerated: tokenSaved
+                            tokenGenerated: tokenSaved,
+                            downloadUrl: downloadUrl
                         })
                     };
                 } catch (error) {
@@ -266,14 +323,18 @@ exports.handler = async function(event, context) {
                     console.error('Error stack:', error.stack);
                     return {
                         statusCode: 500,
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             error: 'Failed to process ebook purchase',
-                            message: error.message
+                            message: error.message,
+                            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
                         })
                     };
                 }
             } else {
                 console.log('ℹ️ Not an ebook purchase or no customer email');
+                console.log('  - isEbookPurchase:', isEbookPurchase);
+                console.log('  - customerEmail:', session.customer_email);
             }
         }
 
@@ -296,7 +357,8 @@ exports.handler = async function(event, context) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 error: 'Internal server error',
-                message: error.message 
+                message: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             })
         };
     }
