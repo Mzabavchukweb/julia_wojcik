@@ -5,7 +5,7 @@ const path = require('path');
 exports.handler = async function(event, context) {
     console.log('=== DOWNLOAD EBOOK REQUEST ===');
     console.log('Query params:', event.queryStringParameters);
-    
+
     try {
         // Pobierz token z query string
         const token = event.queryStringParameters?.token;
@@ -106,7 +106,7 @@ exports.handler = async function(event, context) {
                 if (fs.existsSync(ebooksDir)) {
                     const ebookFiles = fs.readdirSync(ebooksDir);
                     console.log('Files in ebooks dir:', ebookFiles);
-                }
+                            }
             } catch (e) {
                 console.log('Could not list directory:', e.message);
             }
@@ -131,7 +131,7 @@ exports.handler = async function(event, context) {
         }
 
         console.log('✅ Returning PDF file');
-        
+
         // Zwróć plik PDF
         return {
             statusCode: 200,
@@ -153,38 +153,38 @@ exports.handler = async function(event, context) {
 };
 
 function errorPage(title, message) {
-    return {
+        return {
         statusCode: 400,
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8'
-        },
-        body: `
-            <!DOCTYPE html>
-            <html lang="pl">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8'
+            },
+            body: `
+                <!DOCTYPE html>
+                <html lang="pl">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${title} - Julia Wójcik</title>
-                <style>
+                    <style>
                     * { box-sizing: border-box; }
-                    body {
+                        body {
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
                         background: linear-gradient(135deg, #f9f8f6 0%, #ebe8e3 100%);
-                        margin: 0;
-                        padding: 20px;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                    }
-                    .container {
-                        background: white;
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                        }
+                        .container {
+                            background: white;
                         border-radius: 12px;
-                        padding: 40px;
-                        max-width: 500px;
+                            padding: 40px;
+                            max-width: 500px;
                         box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                        text-align: center;
-                    }
+                            text-align: center;
+                        }
                     .icon { font-size: 48px; margin-bottom: 20px; }
                     h1 { color: #212121; margin: 0 0 15px 0; font-size: 24px; }
                     p { color: #666; line-height: 1.7; margin: 0 0 20px 0; }
@@ -197,10 +197,10 @@ function errorPage(title, message) {
                     }
                     .contact a { color: #C5A572; text-decoration: none; font-weight: 500; }
                     .contact a:hover { text-decoration: underline; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
                     <div class="icon">⚠️</div>
                     <h1>${title}</h1>
                     <p>${message}</p>
@@ -209,9 +209,9 @@ function errorPage(title, message) {
                         <p style="margin: 5px 0;">📸 <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
                         <p style="margin: 5px 0;">🎵 <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
                     </div>
-                </div>
-            </body>
-            </html>
-        `
-    };
-}
+                    </div>
+                </body>
+                </html>
+            `
+        };
+    }
