@@ -58,8 +58,6 @@ export default async function handler(req, res) {
 
         console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
-        console.log('Body preview (first 200 chars):', body.substring(0, 200));
-
         let stripeEvent;
         try {
             stripeEvent = stripe.webhooks.constructEvent(
