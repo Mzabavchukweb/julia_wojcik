@@ -1,7 +1,9 @@
 // Vercel Serverless Function - Webhook Stripe do automatycznej wysyłki e-booka
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Resend } = require('resend');
-const crypto = require('crypto');
+import Stripe from 'stripe';
+import { Resend } from 'resend';
+import crypto from 'crypto';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Inicjalizuj Resend tylko jeśli klucz jest dostępny
 let resend = null;

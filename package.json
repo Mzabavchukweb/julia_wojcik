@@ -1,6 +1,7 @@
 {
   "name": "julia-wojcik-szkolenia",
   "version": "1.0.0",
+  "type": "module",
   "description": "Strona szkoleń stylizacji paznokci - Julia Wójcik",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
