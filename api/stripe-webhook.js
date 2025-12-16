@@ -87,6 +87,13 @@ async function updateToken(token, tokenData) {
     return false;
 }
 
+// Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
 export default async function handler(req, res) {
     const startTime = Date.now();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
