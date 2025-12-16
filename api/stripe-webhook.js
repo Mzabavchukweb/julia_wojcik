@@ -160,31 +160,31 @@ export default async function handler(req, res) {
                     });
                     console.log('Line items count:', lineItems.data.length);
                     console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
-
-                    // Metoda 1: Sprawdź metadata produktu
-                    isEbookPurchase = lineItems.data.some(item => {
-                        const product = item.price?.product;
-                        if (typeof product === 'object') {
-                            console.log('Product name:', product.name);
-                            console.log('Product metadata:', product.metadata);
-                            
-                            // Sprawdź metadata
-                            if (product.metadata?.product_type === 'ebook') {
-                                console.log('✅ Detected ebook by product metadata');
-                                return true;
-                            }
-                            // Sprawdź nazwę produktu
-                            if (product.name && (
-                                product.name.toLowerCase().includes('ebook') || 
-                                product.name.toLowerCase().includes('e-book') ||
-                                product.name.toLowerCase().includes('korekta')
-                            )) {
-                                console.log('✅ Detected ebook by product name');
-                                return true;
-                            }
-                        }
-                        return false;
-                    });
+            
+            // Metoda 1: Sprawdź metadata produktu
+            isEbookPurchase = lineItems.data.some(item => {
+                const product = item.price?.product;
+                if (typeof product === 'object') {
+                    console.log('Product name:', product.name);
+                    console.log('Product metadata:', product.metadata);
+                    
+                    // Sprawdź metadata
+                    if (product.metadata?.product_type === 'ebook') {
+                        console.log('✅ Detected ebook by product metadata');
+                        return true;
+                    }
+                    // Sprawdź nazwę produktu
+                    if (product.name && (
+                        product.name.toLowerCase().includes('ebook') || 
+                        product.name.toLowerCase().includes('e-book') ||
+                        product.name.toLowerCase().includes('korekta')
+                    )) {
+                        console.log('✅ Detected ebook by product name');
+                        return true;
+                    }
+                }
+                return false;
+            });
                 } catch (error) {
                     console.warn('⚠️ Could not fetch line items:', error.message);
                 }
@@ -286,9 +286,9 @@ export default async function handler(req, res) {
                     let emailResult;
                     try {
                         emailResult = await resend.emails.send({
-                            from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
-                            to: session.customer_email,
-                            subject: 'Twój e-book od Julii Wójcik - Dziękujemy za zakup! 📚',
+                        from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
+                        to: session.customer_email,
+                        subject: 'Twój e-book od Julii Wójcik - Dziękujemy za zakup! 📚',
                         html: `
                             <!DOCTYPE html>
                             <html>
@@ -344,7 +344,7 @@ export default async function handler(req, res) {
                             </body>
                             </html>
                         `
-                        });
+                    });
                         console.log('✅ Email sent successfully!');
                         console.log('Email result:', JSON.stringify(emailResult, null, 2));
                         console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
