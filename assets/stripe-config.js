@@ -11,7 +11,7 @@
  *    - Skopiuj URL (format: https://buy.stripe.com/...)
  *    - Wklej poniżej zamiast 'YOUR_PAYMENT_LINK_URL_X'
  * 
- * 3. Ustaw zmienne środowiskowe w Netlify:
+ * 3. Ustaw zmienne środowiskowe w Vercel:
  *    - STRIPE_SECRET_KEY (sk_live_... dla produkcji)
  *    - STRIPE_WEBHOOK_SECRET (whsec_...)
  *    - RESEND_API_KEY (re_...)

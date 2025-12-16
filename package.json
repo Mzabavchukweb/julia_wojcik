@@ -3,13 +3,9 @@
   "version": "1.0.0",
   "description": "Strona szkoleń stylizacji paznokci - Julia Wójcik",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "netlify dev",
-    "netlify:login": "netlify login",
-    "netlify:status": "netlify status"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@netlify/blobs": "^4.0.0",
     "resend": "^3.0.0",
     "stripe": "^14.25.0"
   },

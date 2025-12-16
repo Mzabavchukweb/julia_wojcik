@@ -17,7 +17,7 @@ const testEvent = {
       object: 'checkout.session',
       amount_total: 30000, // 300 PLN w groszach
       currency: 'pln',
-      customer_email: 'test@example.com',
+      customer_email: 'zabavchukmaks21@gmail.com',
       payment_status: 'paid',
       status: 'complete',
       metadata: {

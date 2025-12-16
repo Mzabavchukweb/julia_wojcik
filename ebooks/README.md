@@ -13,7 +13,7 @@ Plik: `original-ebook.pdf` ✅ (znaleziony i przeniesiony z głównego folderu)
 
 1. Umieść swój plik PDF w tym folderze
 2. Zmień nazwę na `original-ebook.pdf`
-3. Wdróż na Netlify/Vercel
+3. Wdróż na Vercel
 
 ## Alternatywa: Przechowywanie w chmurze
 
