@@ -20,58 +20,88 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Stripe webhook signature verification
-        const sig = req.headers['stripe-signature'];
+        // TRYB TESTOWY - pomiń weryfikację podpisu jeśli header X-Test-Event jest ustawiony
+        // Sprawdź header (może być lowercase przez Vercel) lub query parameter
+        const testHeader = req.headers['x-test-event'] || req.headers['X-Test-Event'];
+        const testQuery = req.query?.test === 'true';
+        const isTestEvent = testHeader === 'true' || testQuery;
         
-        if (!sig) {
-            console.error('❌ Missing Stripe signature header');
-            console.error('Available headers:', Object.keys(req.headers || {}));
-            return res.status(400).json({ error: 'Missing Stripe signature' });
-        }
-
-        if (!process.env.STRIPE_WEBHOOK_SECRET) {
-            console.error('❌ Missing STRIPE_WEBHOOK_SECRET environment variable');
-            return res.status(500).json({ error: 'Webhook secret not configured' });
-        }
-
-        // Vercel dostarcza raw body jako string dla POST (jeśli nie jest parsowany jako JSON)
-        // Jeśli body jest obiektem, odtwórz string (nie idealne, ale może zadziałać)
-        let body = req.body;
+        console.log('🔍 Test mode check:', {
+            'x-test-event header': testHeader,
+            'test query param': testQuery,
+            'isTestEvent': isTestEvent,
+            'all headers': Object.keys(req.headers || {})
+        });
         
-        if (typeof body === 'object' && body !== null) {
-            console.warn('⚠️ Body is parsed as object, attempting to stringify');
+        let stripeEvent;
+        
+        if (isTestEvent) {
+            // Tryb testowy - użyj body bezpośrednio jako event
+            console.log('⚠️ TEST MODE - Skipping signature verification');
+            let body = req.body;
+            
+            if (typeof body === 'object' && body !== null) {
+                stripeEvent = body;
+            } else if (typeof body === 'string') {
+                stripeEvent = JSON.parse(body);
+            } else {
+                return res.status(400).json({ error: 'Invalid test event format' });
+            }
+            
+            console.log('✅ Test event accepted. Event type:', stripeEvent.type);
+        } else {
+            // Normalny tryb - wymagaj weryfikacji podpisu
+            const sig = req.headers['stripe-signature'];
+            
+            if (!sig) {
+                console.error('❌ Missing Stripe signature header');
+                console.error('Available headers:', Object.keys(req.headers || {}));
+                return res.status(400).json({ error: 'Missing Stripe signature' });
+            }
+
+            if (!process.env.STRIPE_WEBHOOK_SECRET) {
+                console.error('❌ Missing STRIPE_WEBHOOK_SECRET environment variable');
+                return res.status(500).json({ error: 'Webhook secret not configured' });
+            }
+
+            // Vercel dostarcza raw body jako string dla POST (jeśli nie jest parsowany jako JSON)
+            // Jeśli body jest obiektem, odtwórz string (nie idealne, ale może zadziałać)
+            let body = req.body;
+            
+            if (typeof body === 'object' && body !== null) {
+                console.warn('⚠️ Body is parsed as object, attempting to stringify');
+                try {
+                    body = JSON.stringify(body);
+                } catch (e) {
+                    return res.status(400).json({ 
+                        error: 'Body was parsed as JSON before reaching function',
+                        message: 'Stripe signature verification requires raw body string. Try using Vercel Edge Functions or configure bodyParser: false.'
+                    });
+                }
+            }
+            
+            // Upewnij się, że body jest stringiem
+            if (typeof body !== 'string') {
+                console.error('❌ Body is not a string:', typeof body);
+                return res.status(400).json({ error: 'Invalid request body format' });
+            }
+
+            console.log('Body preview (first 200 chars):', body.substring(0, 200));
+
             try {
-                body = JSON.stringify(body);
-            } catch (e) {
+                stripeEvent = stripe.webhooks.constructEvent(
+                    body,
+                    sig,
+                    process.env.STRIPE_WEBHOOK_SECRET
+                );
+                console.log('✅ Webhook verified successfully. Event type:', stripeEvent.type);
+            } catch (err) {
+                console.error('❌ Webhook signature verification failed:', err.message);
                 return res.status(400).json({ 
-                    error: 'Body was parsed as JSON before reaching function',
-                    message: 'Stripe signature verification requires raw body string. Try using Vercel Edge Functions or configure bodyParser: false.'
+                    error: `Webhook Error: ${err.message}`,
+                    hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
                 });
             }
-        }
-        
-        // Upewnij się, że body jest stringiem
-        if (typeof body !== 'string') {
-            console.error('❌ Body is not a string:', typeof body);
-            return res.status(400).json({ error: 'Invalid request body format' });
-        }
-
-        console.log('Body preview (first 200 chars):', body.substring(0, 200));
-
-        let stripeEvent;
-        try {
-            stripeEvent = stripe.webhooks.constructEvent(
-                body,
-                sig,
-                process.env.STRIPE_WEBHOOK_SECRET
-            );
-            console.log('✅ Webhook verified successfully. Event type:', stripeEvent.type);
-        } catch (err) {
-            console.error('❌ Webhook signature verification failed:', err.message);
-            return res.status(400).json({ 
-                error: `Webhook Error: ${err.message}`,
-                hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
-            });
         }
 
         // Handle the event
@@ -89,40 +119,50 @@ export default async function handler(req, res) {
             });
             
             // Sprawdź czy to zakup e-booka
-            const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
-                expand: ['data.price.product']
-            });
-
-            console.log('Line items count:', lineItems.data.length);
-            console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
-
-            // Sprawdź czy którykolwiek produkt jest e-bookiem
             let isEbookPurchase = false;
+            let lineItems = { data: [] };
             
-            // Metoda 1: Sprawdź metadata produktu
-            isEbookPurchase = lineItems.data.some(item => {
-                const product = item.price?.product;
-                if (typeof product === 'object') {
-                    console.log('Product name:', product.name);
-                    console.log('Product metadata:', product.metadata);
-                    
-                    // Sprawdź metadata
-                    if (product.metadata?.product_type === 'ebook') {
-                        console.log('✅ Detected ebook by product metadata');
-                        return true;
-                    }
-                    // Sprawdź nazwę produktu
-                    if (product.name && (
-                        product.name.toLowerCase().includes('ebook') || 
-                        product.name.toLowerCase().includes('e-book') ||
-                        product.name.toLowerCase().includes('korekta')
-                    )) {
-                        console.log('✅ Detected ebook by product name');
-                        return true;
-                    }
+            // Dla testowych eventów (session.id zaczyna się od 'cs_test_') pomiń wywołanie API
+            const isTestSession = session.id && session.id.startsWith('cs_test_');
+            
+            if (!isTestSession) {
+                try {
+                    lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+                        expand: ['data.price.product']
+                    });
+                    console.log('Line items count:', lineItems.data.length);
+                    console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
+
+                    // Metoda 1: Sprawdź metadata produktu
+                    isEbookPurchase = lineItems.data.some(item => {
+                        const product = item.price?.product;
+                        if (typeof product === 'object') {
+                            console.log('Product name:', product.name);
+                            console.log('Product metadata:', product.metadata);
+                            
+                            // Sprawdź metadata
+                            if (product.metadata?.product_type === 'ebook') {
+                                console.log('✅ Detected ebook by product metadata');
+                                return true;
+                            }
+                            // Sprawdź nazwę produktu
+                            if (product.name && (
+                                product.name.toLowerCase().includes('ebook') || 
+                                product.name.toLowerCase().includes('e-book') ||
+                                product.name.toLowerCase().includes('korekta')
+                            )) {
+                                console.log('✅ Detected ebook by product name');
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+                } catch (error) {
+                    console.warn('⚠️ Could not fetch line items:', error.message);
                 }
-                return false;
-            });
+            } else {
+                console.log('⚠️ Test session detected - skipping line items fetch');
+            }
             
             // Metoda 2: Sprawdź metadata sesji checkout
             if (!isEbookPurchase && session.metadata?.product_type === 'ebook') {

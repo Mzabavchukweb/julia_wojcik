@@ -9,9 +9,9 @@
     "netlify:status": "netlify status"
   },
   "dependencies": {
-    "stripe": "^14.0.0",
+    "@netlify/blobs": "^4.0.0",
     "resend": "^3.0.0",
-    "@netlify/blobs": "^4.0.0"
+    "stripe": "^14.25.0"
   },
   "keywords": [
     "stylizacja paznokci",
@@ -21,4 +21,3 @@
   "author": "Julia Wójcik",
   "license": "ISC"
 }
-
