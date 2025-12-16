@@ -3,7 +3,13 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Resend } = require('resend');
 const crypto = require('crypto');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicjalizuj Resend tylko jeśli klucz jest dostępny
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+} else {
+    console.warn('⚠️ RESEND_API_KEY not set - email sending will be disabled');
+}
 
 // Prosty in-memory store dla tokenów (w produkcji użyj Vercel KV lub bazy danych)
 const tokenStore = new Map();
@@ -238,12 +244,18 @@ export default async function handler(req, res) {
                     console.log('📥 Download URL:', downloadUrl);
 
                     // Sprawdź czy mamy Resend API Key
-                    if (!process.env.RESEND_API_KEY) {
+                    if (!process.env.RESEND_API_KEY || !resend) {
                         console.error('❌ RESEND_API_KEY not configured!');
                         console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('RESEND') || k.includes('EMAIL')));
-                        return res.status(500).json({ 
+                        console.error('Resend instance:', resend ? 'exists' : 'null');
+                        // Zwróć sukces ale z informacją że email nie został wysłany
+                        return res.status(200).json({ 
+                            received: true,
+                            emailSent: false,
                             error: 'Email service not configured',
-                            hint: 'Set RESEND_API_KEY in Vercel environment variables'
+                            tokenGenerated: true,
+                            downloadUrl: downloadUrl,
+                            hint: 'Set RESEND_API_KEY in Vercel environment variables. Download link is still available.'
                         });
                     }
                     
@@ -252,6 +264,7 @@ export default async function handler(req, res) {
                     console.log('  To:', session.customer_email);
                     console.log('  From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
                     console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
+                    console.log('  Resend instance:', resend ? 'initialized' : 'not initialized');
                     
                     let emailResult;
                     try {
