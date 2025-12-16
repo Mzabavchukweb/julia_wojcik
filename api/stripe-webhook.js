@@ -16,6 +16,13 @@ if (process.env.RESEND_API_KEY) {
 // Prosty in-memory store dla tokenów (w produkcji użyj Vercel KV lub bazy danych)
 const tokenStore = new Map();
 
+// Konfiguracja dla Vercel - wyłącz parsowanie body (potrzebne dla Stripe webhook)
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
 export default async function handler(req, res) {
     console.log('=== STRIPE WEBHOOK RECEIVED ===');
     console.log('HTTP Method:', req.method);
