@@ -13,6 +13,9 @@ export default async function handler(req, res) {
     console.log('HTTP Method:', req.method);
     console.log('Body type:', typeof req.body);
     console.log('Body length:', req.body?.length);
+    console.log('URL:', req.url);
+    console.log('Query:', req.query);
+    console.log('Headers:', Object.keys(req.headers || {}));
     
     // Tylko POST
     if (req.method !== 'POST') {
@@ -21,16 +24,18 @@ export default async function handler(req, res) {
 
     try {
         // TRYB TESTOWY - pomiń weryfikację podpisu jeśli header X-Test-Event jest ustawiony
-        // Sprawdź header (może być lowercase przez Vercel) lub query parameter
+        // Sprawdź header (może być lowercase przez Vercel) lub query parameter lub URL
         const testHeader = req.headers['x-test-event'] || req.headers['X-Test-Event'];
         const testQuery = req.query?.test === 'true';
-        const isTestEvent = testHeader === 'true' || testQuery;
+        const testInUrl = req.url && req.url.includes('test=true');
+        const isTestEvent = testHeader === 'true' || testQuery || testInUrl;
         
         console.log('🔍 Test mode check:', {
             'x-test-event header': testHeader,
             'test query param': testQuery,
+            'test in URL': testInUrl,
             'isTestEvent': isTestEvent,
-            'all headers': Object.keys(req.headers || {})
+            'URL': req.url
         });
         
         let stripeEvent;
