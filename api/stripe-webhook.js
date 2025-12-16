@@ -315,11 +315,17 @@ export default async function handler(req, res) {
                             </html>
                         `
                         });
-                        console.log('✅ Email sent successfully:', JSON.stringify(emailResult, null, 2));
+                        console.log('✅ Email sent successfully!');
+                        console.log('Email result:', JSON.stringify(emailResult, null, 2));
+                        console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
+                        console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
                     } catch (emailError) {
                         console.error('❌ Failed to send email:', emailError);
-                        console.error('Email error details:', emailError.message);
+                        console.error('Email error name:', emailError.name);
+                        console.error('Email error message:', emailError.message);
+                        console.error('Email error code:', emailError.code || 'N/A');
                         console.error('Email error stack:', emailError.stack);
+                        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
                         // Kontynuuj - token jest zapisany, użytkownik może pobrać przez link
                         // Ale zwróć błąd żeby wiedzieć że email nie został wysłany
                         return res.status(200).json({ 
