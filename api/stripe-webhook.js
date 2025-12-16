@@ -175,12 +175,15 @@ export default async function handler(req, res) {
                 isEbookPurchase = true;
             }
             
-            // Metoda 3: Dla testów - jeśli kwota to 300 zł, traktuj jako ebook
+            // Metoda 3: Jeśli kwota to 300 zł, traktuj jako ebook (główna metoda dla ebooka)
             if (!isEbookPurchase) {
-                const amountInPLN = session.amount_total / 100;
+                const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
+                console.log(`🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
                 if (session.currency === 'pln' && amountInPLN === 300) {
                     console.log(`✅ Detected ebook by amount (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
+                } else {
+                    console.log(`❌ Amount doesn't match: ${amountInPLN} PLN (expected 300 PLN)`);
                 }
             }
 
@@ -220,27 +223,42 @@ export default async function handler(req, res) {
                     console.log('✅ Token saved:', token.substring(0, 16) + '...');
                     
                     // Utwórz URL do pobrania
-                    const baseUrl = process.env.VERCEL_URL 
-                        ? `https://${process.env.VERCEL_URL}` 
-                        : process.env.NEXT_PUBLIC_URL || 'https://juliawojcikszkolenia.pl';
+                    // VERCEL_URL może być bez https://, więc sprawdź
+                    let baseUrl = 'https://julia-wojcik.vercel.app';
+                    if (process.env.VERCEL_URL && !process.env.VERCEL_URL.startsWith('http')) {
+                        baseUrl = `https://${process.env.VERCEL_URL}`;
+                    } else if (process.env.VERCEL_URL) {
+                        baseUrl = process.env.VERCEL_URL;
+                    } else if (process.env.NEXT_PUBLIC_URL) {
+                        baseUrl = process.env.NEXT_PUBLIC_URL;
+                    }
                     const downloadUrl = `${baseUrl}/api/download-ebook?token=${token}`;
                     
-                    console.log('Download URL:', downloadUrl);
+                    console.log('🌐 Base URL:', baseUrl);
+                    console.log('📥 Download URL:', downloadUrl);
 
                     // Sprawdź czy mamy Resend API Key
                     if (!process.env.RESEND_API_KEY) {
                         console.error('❌ RESEND_API_KEY not configured!');
-                        return res.status(500).json({ error: 'Email service not configured' });
+                        console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('RESEND') || k.includes('EMAIL')));
+                        return res.status(500).json({ 
+                            error: 'Email service not configured',
+                            hint: 'Set RESEND_API_KEY in Vercel environment variables'
+                        });
                     }
                     
                     // Wyślij email z linkiem do pobrania
-                    console.log('Sending email to:', session.customer_email);
-                    console.log('From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
+                    console.log('📧 Preparing to send email...');
+                    console.log('  To:', session.customer_email);
+                    console.log('  From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
+                    console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
                     
-                    const emailResult = await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
-                        to: session.customer_email,
-                        subject: 'Twój e-book od Julii Wójcik - Dziękujemy za zakup! 📚',
+                    let emailResult;
+                    try {
+                        emailResult = await resend.emails.send({
+                            from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
+                            to: session.customer_email,
+                            subject: 'Twój e-book od Julii Wójcik - Dziękujemy za zakup! 📚',
                         html: `
                             <!DOCTYPE html>
                             <html>
@@ -296,14 +314,28 @@ export default async function handler(req, res) {
                             </body>
                             </html>
                         `
-                    });
-
-                    console.log('✅ Email sent successfully:', JSON.stringify(emailResult, null, 2));
+                        });
+                        console.log('✅ Email sent successfully:', JSON.stringify(emailResult, null, 2));
+                    } catch (emailError) {
+                        console.error('❌ Failed to send email:', emailError);
+                        console.error('Email error details:', emailError.message);
+                        console.error('Email error stack:', emailError.stack);
+                        // Kontynuuj - token jest zapisany, użytkownik może pobrać przez link
+                        // Ale zwróć błąd żeby wiedzieć że email nie został wysłany
+                        return res.status(200).json({ 
+                            received: true,
+                            emailSent: false,
+                            emailError: emailError.message,
+                            tokenGenerated: true,
+                            downloadUrl: downloadUrl,
+                            warning: 'Email could not be sent, but download link is available'
+                        });
+                    }
 
                     return res.status(200).json({ 
                         received: true,
                         emailSent: true,
-                        emailId: emailResult.id || emailResult.data?.id,
+                        emailId: emailResult?.id || emailResult?.data?.id,
                         tokenGenerated: true,
                         downloadUrl: downloadUrl
                     });
