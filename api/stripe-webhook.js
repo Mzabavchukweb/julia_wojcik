@@ -75,25 +75,29 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: 'Webhook secret not configured' });
             }
 
-            // Vercel dostarcza raw body jako string dla POST (jeśli nie jest parsowany jako JSON)
-            // Jeśli body jest obiektem, odtwórz string (nie idealne, ale może zadziałać)
+            // Vercel z bodyParser: false dostarcza raw body jako Buffer lub string
             let body = req.body;
             
-            if (typeof body === 'object' && body !== null) {
-                console.warn('⚠️ Body is parsed as object, attempting to stringify');
+            // Konwertuj Buffer na string jeśli potrzeba
+            if (Buffer.isBuffer(body)) {
+                body = body.toString('utf8');
+                console.log('✅ Converted Buffer to string');
+            } else if (typeof body === 'object' && body !== null) {
+                // Jeśli nadal jest obiektem (nie powinno się zdarzyć z bodyParser: false)
+                console.warn('⚠️ Body is still an object, attempting to stringify');
                 try {
                     body = JSON.stringify(body);
                 } catch (e) {
                     return res.status(400).json({ 
                         error: 'Body was parsed as JSON before reaching function',
-                        message: 'Stripe signature verification requires raw body string. Try using Vercel Edge Functions or configure bodyParser: false.'
+                        message: 'Stripe signature verification requires raw body string. Check vercel.json bodyParser setting.'
                     });
                 }
             }
             
             // Upewnij się, że body jest stringiem
             if (typeof body !== 'string') {
-                console.error('❌ Body is not a string:', typeof body);
+                console.error('❌ Body is not a string:', typeof body, body);
                 return res.status(400).json({ error: 'Invalid request body format' });
             }
 
