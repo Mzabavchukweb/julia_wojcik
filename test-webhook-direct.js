@@ -1,7 +1,7 @@
 // Test webhook bezpośrednio - bez Stripe CLI
 // Uruchom: node test-webhook-direct.js
 
-const https = require('https');
+import https from 'https';
 
 // Testowy event checkout.session.completed
 // Format zgodny z Stripe API

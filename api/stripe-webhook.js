@@ -3,7 +3,13 @@ import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Inicjalizuj Stripe tylko jeśli klucz jest dostępny
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+    console.warn('⚠️ STRIPE_SECRET_KEY not set - webhook verification will fail');
+}
 
 // Inicjalizuj Resend tylko jeśli klucz jest dostępny
 let resend = null;
@@ -70,6 +76,11 @@ export default async function handler(req, res) {
                 console.error('❌ Missing Stripe signature header');
                 console.error('Available headers:', Object.keys(req.headers || {}));
                 return res.status(400).json({ error: 'Missing Stripe signature' });
+            }
+
+            if (!stripe) {
+                console.error('❌ Stripe not initialized - STRIPE_SECRET_KEY not set');
+                return res.status(500).json({ error: 'Stripe not configured' });
             }
 
             if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -142,7 +153,7 @@ export default async function handler(req, res) {
             // Dla testowych eventów (session.id zaczyna się od 'cs_test_') pomiń wywołanie API
             const isTestSession = session.id && session.id.startsWith('cs_test_');
             
-            if (!isTestSession) {
+            if (!isTestSession && stripe) {
                 try {
                     lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
                         expand: ['data.price.product']
