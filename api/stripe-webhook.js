@@ -2,6 +2,7 @@
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { kv } from '@vercel/kv';
 
 // Inicjalizuj Stripe tylko jeśli klucz jest dostępny
 let stripe = null;
@@ -19,8 +20,72 @@ if (process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY not set - email sending will be disabled');
 }
 
-// Prosty in-memory store dla tokenów (w produkcji użyj Vercel KV lub bazy danych)
-const tokenStore = new Map();
+// Funkcja do zapisywania tokenu (używa Vercel KV lub fallback do pamięci)
+async function saveToken(token, tokenData) {
+    try {
+        if (kv) {
+            // Użyj Vercel KV z TTL 7 dni (604800 sekund)
+            await kv.set(`token:${token}`, JSON.stringify(tokenData), { ex: 604800 });
+            console.log('✅ Token saved to Vercel KV');
+            return true;
+        }
+    } catch (error) {
+        console.warn('⚠️ Vercel KV not available, using fallback:', error.message);
+    }
+    
+    // Fallback do pamięci (tylko dla testów lokalnych)
+    if (typeof global !== 'undefined' && !global.tokenStore) {
+        global.tokenStore = new Map();
+    }
+    if (global?.tokenStore) {
+        global.tokenStore.set(token, JSON.stringify(tokenData));
+        console.log('✅ Token saved to memory (fallback)');
+        return true;
+    }
+    
+    return false;
+}
+
+// Funkcja do pobierania tokenu
+async function getToken(token) {
+    try {
+        if (kv) {
+            const data = await kv.get(`token:${token}`);
+            if (data) {
+                return typeof data === 'string' ? data : JSON.stringify(data);
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Vercel KV error, trying fallback:', error.message);
+    }
+    
+    // Fallback do pamięci
+    if (global?.tokenStore) {
+        return global.tokenStore.get(token);
+    }
+    
+    return null;
+}
+
+// Funkcja do aktualizacji tokenu
+async function updateToken(token, tokenData) {
+    try {
+        if (kv) {
+            await kv.set(`token:${token}`, JSON.stringify(tokenData), { ex: 604800 });
+            return true;
+        }
+    } catch (error) {
+        console.warn('⚠️ Vercel KV update error:', error.message);
+    }
+    
+    // Fallback
+    if (global?.tokenStore) {
+        global.tokenStore.set(token, JSON.stringify(tokenData));
+        return true;
+    }
+    
+    return false;
+}
 
 export default async function handler(req, res) {
     const startTime = Date.now();
@@ -106,8 +171,8 @@ export default async function handler(req, res) {
         } else {
             // Normalny tryb - wymagaj weryfikacji podpisu
             const sig = req.headers['stripe-signature'];
-            
-            if (!sig) {
+        
+        if (!sig) {
                 console.error(`[${requestId}] ❌ ERROR: Missing Stripe signature header`);
                 console.error(`[${requestId}] Available headers:`, Object.keys(req.headers || {}));
                 console.error(`[${requestId}] All headers:`, JSON.stringify(req.headers, null, 2));
@@ -128,9 +193,9 @@ export default async function handler(req, res) {
                     requestId: requestId,
                     hint: 'STRIPE_SECRET_KEY environment variable is missing'
                 });
-            }
+        }
 
-            if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
                 console.error(`[${requestId}] ❌ ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable`);
                 return res.status(500).json({ 
                     error: 'Webhook secret not configured',
@@ -140,8 +205,8 @@ export default async function handler(req, res) {
             }
 
             // Vercel z bodyParser: false dostarcza raw body jako Buffer lub string
-            let body = req.body;
-            
+        let body = req.body;
+        
             // Konwertuj Buffer na string jeśli potrzeba
             if (Buffer.isBuffer(body)) {
                 body = body.toString('utf8');
@@ -149,49 +214,49 @@ export default async function handler(req, res) {
             } else if (typeof body === 'object' && body !== null) {
                 // Jeśli nadal jest obiektem (nie powinno się zdarzyć z bodyParser: false)
                 console.warn('⚠️ Body is still an object, attempting to stringify');
-                try {
-                    body = JSON.stringify(body);
-                } catch (e) {
-                    return res.status(400).json({ 
-                        error: 'Body was parsed as JSON before reaching function',
-                        message: 'Stripe signature verification requires raw body string. Check vercel.json bodyParser setting.'
-                    });
-                }
-            }
-            
-            // Upewnij się, że body jest stringiem
-            if (typeof body !== 'string') {
-                console.error('❌ Body is not a string:', typeof body, body);
-                return res.status(400).json({ error: 'Invalid request body format' });
-            }
-
-            console.log('Body preview (first 200 chars):', body.substring(0, 200));
-
             try {
+                body = JSON.stringify(body);
+            } catch (e) {
+                return res.status(400).json({ 
+                    error: 'Body was parsed as JSON before reaching function',
+                        message: 'Stripe signature verification requires raw body string. Check vercel.json bodyParser setting.'
+                });
+            }
+        }
+        
+        // Upewnij się, że body jest stringiem
+        if (typeof body !== 'string') {
+                console.error('❌ Body is not a string:', typeof body, body);
+            return res.status(400).json({ error: 'Invalid request body format' });
+        }
+
+        console.log('Body preview (first 200 chars):', body.substring(0, 200));
+
+        try {
                 console.log(`[${requestId}] 🔐 Attempting webhook signature verification...`);
                 console.log(`[${requestId}] Body length:`, body.length);
                 console.log(`[${requestId}] Signature:`, sig.substring(0, 20) + '...');
                 console.log(`[${requestId}] Webhook secret present:`, !!process.env.STRIPE_WEBHOOK_SECRET);
                 
-                stripeEvent = stripe.webhooks.constructEvent(
-                    body,
-                    sig,
-                    process.env.STRIPE_WEBHOOK_SECRET
-                );
+            stripeEvent = stripe.webhooks.constructEvent(
+                body,
+                sig,
+                process.env.STRIPE_WEBHOOK_SECRET
+            );
                 console.log(`[${requestId}] ✅ Webhook verified successfully. Event type:`, stripeEvent.type);
-            } catch (err) {
+        } catch (err) {
                 console.error(`[${requestId}] ❌ ERROR: Webhook signature verification failed`);
                 console.error(`[${requestId}] Error name:`, err.name);
                 console.error(`[${requestId}] Error message:`, err.message);
                 console.error(`[${requestId}] Error stack:`, err.stack);
                 console.error(`[${requestId}] Body preview:`, body.substring(0, 200));
                 console.error(`[${requestId}] Signature preview:`, sig.substring(0, 50));
-                return res.status(400).json({ 
-                    error: `Webhook Error: ${err.message}`,
+            return res.status(400).json({ 
+                error: `Webhook Error: ${err.message}`,
                     errorName: err.name,
                     requestId: requestId,
-                    hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
-                });
+                hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
+            });
             }
         }
 
@@ -219,10 +284,10 @@ export default async function handler(req, res) {
             if (!isTestSession && stripe) {
                 try {
                     lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
-                        expand: ['data.price.product']
-                    });
-                    console.log('Line items count:', lineItems.data.length);
-                    console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
+                expand: ['data.price.product']
+            });
+            console.log('Line items count:', lineItems.data.length);
+            console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
             
             // Metoda 1: Sprawdź metadata produktu
             isEbookPurchase = lineItems.data.some(item => {
@@ -304,9 +369,12 @@ export default async function handler(req, res) {
                         maxDownloads: 5
                     };
                     
-                    // Zapisz token w pamięci (w produkcji użyj Vercel KV lub bazy danych)
-                    tokenStore.set(token, JSON.stringify(tokenData));
-                    console.log('✅ Token saved:', token.substring(0, 16) + '...');
+                    // Zapisz token (używa Vercel KV lub fallback)
+                    const tokenSaved = await saveToken(token, tokenData);
+                    if (!tokenSaved) {
+                        console.error(`[${requestId}] ❌ ERROR: Failed to save token!`);
+                    }
+                    console.log(`[${requestId}] ✅ Token saved:`, token.substring(0, 16) + '...');
                     
                     // Utwórz URL do pobrania
                     // VERCEL_URL może być bez https://, więc sprawdź
@@ -501,14 +569,22 @@ export default async function handler(req, res) {
         console.error(`[${requestId}] Error code:`, error.code || 'N/A');
         console.error(`[${requestId}] Request duration:`, duration, 'ms');
         console.error(`[${requestId}] Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        console.error(`[${requestId}] Res object type:`, typeof res);
+        console.error(`[${requestId}] Res object:`, res ? Object.keys(res) : 'null/undefined');
         console.error('='.repeat(80));
-        return res.status(500).json({ 
-            error: 'Internal server error',
-            message: error.message,
-            errorName: error.name,
-            requestId: requestId,
-            duration: duration
-        });
+        
+        if (res && typeof res.status === 'function') {
+            return res.status(500).json({ 
+                error: 'Internal server error',
+                message: error.message,
+                errorName: error.name,
+                requestId: requestId,
+                duration: duration
+            });
+        } else {
+            console.error(`[${requestId}] ❌ CRITICAL: res object is invalid!`);
+            throw error; // Rethrow jeśli nie możemy wysłać response
+        }
     }
 }
 

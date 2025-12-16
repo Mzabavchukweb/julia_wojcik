@@ -2,12 +2,54 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { kv } from '@vercel/kv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Prosty in-memory store (w produkcji użyj Vercel KV lub bazy danych)
-const tokenStore = new Map();
+// Funkcja do pobierania tokenu
+async function getToken(token) {
+    try {
+        if (kv) {
+            const data = await kv.get(`token:${token}`);
+            if (data) {
+                return typeof data === 'string' ? data : JSON.stringify(data);
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Vercel KV error, trying fallback:', error.message);
+    }
+    
+    // Fallback do pamięci
+    if (typeof global !== 'undefined' && !global.tokenStore) {
+        global.tokenStore = new Map();
+    }
+    if (global?.tokenStore) {
+        return global.tokenStore.get(token);
+    }
+    
+    return null;
+}
+
+// Funkcja do aktualizacji tokenu
+async function updateToken(token, tokenData) {
+    try {
+        if (kv) {
+            await kv.set(`token:${token}`, JSON.stringify(tokenData), { ex: 604800 });
+            return true;
+        }
+    } catch (error) {
+        console.warn('⚠️ Vercel KV update error:', error.message);
+    }
+    
+    // Fallback
+    if (global?.tokenStore) {
+        global.tokenStore.set(token, JSON.stringify(tokenData));
+        return true;
+    }
+    
+    return false;
+}
 
 export default async function handler(req, res) {
     console.log('=== DOWNLOAD EBOOK REQUEST ===');
@@ -22,7 +64,7 @@ export default async function handler(req, res) {
         }
 
         // Pobierz dane tokenu z store
-        const tokenString = tokenStore.get(token);
+        const tokenString = await getToken(token);
         
         if (!tokenString) {
             console.log('❌ Token not found');
@@ -96,7 +138,7 @@ export default async function handler(req, res) {
                 downloadCount: downloadCount + 1,
                 lastDownloadAt: new Date().toISOString()
             };
-            tokenStore.set(token, JSON.stringify(updatedData));
+            await updateToken(token, updatedData);
             console.log('✅ Download count updated to:', downloadCount + 1);
         } catch (updateError) {
             console.warn('⚠️ Could not update download count:', updateError.message);

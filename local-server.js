@@ -7,10 +7,20 @@ import { readFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Import funkcji webhooka
-const webhookHandler = (await import('./api/stripe-webhook.js')).default;
-
 const PORT = 3000;
+let webhookHandler = null;
+
+// Import funkcji webhooka asynchronicznie
+(async () => {
+    try {
+        const module = await import('./api/stripe-webhook.js');
+        webhookHandler = module.default;
+        console.log('✅ Webhook handler loaded');
+    } catch (error) {
+        console.error('❌ Failed to load webhook handler:', error);
+        process.exit(1);
+    }
+})();
 
 // Emuluj request Vercel
 function createVercelRequest(req, body) {
@@ -28,31 +38,44 @@ function createVercelResponse(res) {
     let statusCode = 200;
     let headers = {};
     let body = '';
+    let headersSent = false;
     
-    return {
-        status: (code) => {
+    const response = {
+        status: function(code) {
             statusCode = code;
-            return this;
+            return response;
         },
-        json: (data) => {
+        json: function(data) {
             headers['Content-Type'] = 'application/json';
             body = JSON.stringify(data);
-            return this;
+            return response;
         },
-        send: (data) => {
+        send: function(data) {
             body = data;
-            return this;
+            return response;
         },
-        setHeader: (name, value) => {
+        setHeader: function(name, value) {
             headers[name] = value;
-            return this;
+            return response;
         },
-        getHeader: (name) => headers[name],
-        end: () => {
-            res.writeHead(statusCode, headers);
-            res.end(body);
+        getHeader: function(name) {
+            return headers[name];
+        },
+        end: function() {
+            if (!headersSent) {
+                headersSent = true;
+                res.writeHead(statusCode, headers);
+                res.end(body);
+            }
         }
     };
+    
+    Object.defineProperty(response, 'headersSent', {
+        get: function() { return headersSent; },
+        configurable: true
+    });
+    
+    return response;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -107,6 +130,10 @@ const server = http.createServer(async (req, res) => {
                     parsedBody = body;
                 }
                 
+                if (!webhookHandler) {
+                    throw new Error('Webhook handler not loaded yet');
+                }
+                
                 console.log(`[${requestId}] 🔄 Calling webhook handler...`);
                 const vercelReq = createVercelRequest(req, parsedBody);
                 const vercelRes = createVercelResponse(res);
@@ -133,14 +160,18 @@ const server = http.createServer(async (req, res) => {
                 console.error(`${'='.repeat(80)}\n`);
                 
                 if (!res.headersSent) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ 
-                        error: error.message,
-                        errorName: error.name,
-                        requestId: requestId,
-                        duration: duration,
-                        stack: error.stack
-                    }));
+                    try {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ 
+                            error: error.message,
+                            errorName: error.name,
+                            requestId: requestId,
+                            duration: duration,
+                            stack: error.stack
+                        }));
+                    } catch (responseError) {
+                        console.error(`[${requestId}] ❌ Failed to send error response:`, responseError.message);
+                    }
                 }
             }
         });

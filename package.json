@@ -10,6 +10,7 @@
     "vercel:dev": "vercel dev --listen 3000"
   },
   "dependencies": {
+    "@vercel/kv": "^3.0.0",
     "resend": "^3.0.0",
     "stripe": "^14.25.0"
   },
