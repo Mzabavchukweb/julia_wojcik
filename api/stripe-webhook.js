@@ -23,17 +23,35 @@ if (process.env.RESEND_API_KEY) {
 const tokenStore = new Map();
 
 export default async function handler(req, res) {
-    console.log('=== STRIPE WEBHOOK RECEIVED ===');
-    console.log('HTTP Method:', req.method);
-    console.log('Body type:', typeof req.body);
-    console.log('Body length:', req.body?.length);
-    console.log('URL:', req.url);
-    console.log('Query:', req.query);
-    console.log('Headers:', Object.keys(req.headers || {}));
+    const startTime = Date.now();
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log('='.repeat(80));
+    console.log(`🚀 [${requestId}] STRIPE WEBHOOK RECEIVED`);
+    console.log('='.repeat(80));
+    console.log(`[${requestId}] HTTP Method:`, req.method);
+    console.log(`[${requestId}] URL:`, req.url);
+    console.log(`[${requestId}] Query:`, JSON.stringify(req.query || {}));
+    console.log(`[${requestId}] Body type:`, typeof req.body);
+    console.log(`[${requestId}] Body length:`, req.body?.length);
+    console.log(`[${requestId}] Body is Buffer:`, Buffer.isBuffer(req.body));
+    console.log(`[${requestId}] Headers count:`, Object.keys(req.headers || {}).length);
+    console.log(`[${requestId}] Stripe signature present:`, !!(req.headers['stripe-signature'] || req.headers['Stripe-Signature']));
+    console.log(`[${requestId}] Environment check:`, {
+        STRIPE_SECRET_KEY: !!process.env.STRIPE_SECRET_KEY,
+        STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET,
+        RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+        EMAIL_FROM: !!process.env.EMAIL_FROM
+    });
     
     // Tylko POST
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        console.error(`[${requestId}] ❌ ERROR: Method not allowed:`, req.method);
+        return res.status(405).json({ 
+            error: 'Method not allowed',
+            method: req.method,
+            requestId: requestId
+        });
     }
 
     try {
@@ -44,7 +62,7 @@ export default async function handler(req, res) {
         const testInUrl = req.url && req.url.includes('test=true');
         const isTestEvent = testHeader === 'true' || testQuery || testInUrl;
         
-        console.log('🔍 Test mode check:', {
+        console.log(`[${requestId}] 🔍 Test mode check:`, {
             'x-test-event header': testHeader,
             'test query param': testQuery,
             'test in URL': testInUrl,
@@ -56,36 +74,69 @@ export default async function handler(req, res) {
         
         if (isTestEvent) {
             // Tryb testowy - użyj body bezpośrednio jako event
-            console.log('⚠️ TEST MODE - Skipping signature verification');
+            console.log(`[${requestId}] ⚠️ TEST MODE - Skipping signature verification`);
             let body = req.body;
             
-            if (typeof body === 'object' && body !== null) {
-                stripeEvent = body;
-            } else if (typeof body === 'string') {
-                stripeEvent = JSON.parse(body);
-            } else {
-                return res.status(400).json({ error: 'Invalid test event format' });
+            try {
+                if (typeof body === 'object' && body !== null) {
+                    stripeEvent = body;
+                    console.log(`[${requestId}] ✅ Test event parsed from object`);
+                } else if (typeof body === 'string') {
+                    stripeEvent = JSON.parse(body);
+                    console.log(`[${requestId}] ✅ Test event parsed from string`);
+                } else {
+                    console.error(`[${requestId}] ❌ ERROR: Invalid test event format. Body type:`, typeof body);
+                    return res.status(400).json({ 
+                        error: 'Invalid test event format',
+                        bodyType: typeof body,
+                        requestId: requestId
+                    });
+                }
+                
+                console.log(`[${requestId}] ✅ Test event accepted. Event type:`, stripeEvent?.type);
+            } catch (parseError) {
+                console.error(`[${requestId}] ❌ ERROR parsing test event:`, parseError.message);
+                console.error(`[${requestId}] Parse error stack:`, parseError.stack);
+                return res.status(400).json({ 
+                    error: 'Failed to parse test event',
+                    message: parseError.message,
+                    requestId: requestId
+                });
             }
-            
-            console.log('✅ Test event accepted. Event type:', stripeEvent.type);
         } else {
             // Normalny tryb - wymagaj weryfikacji podpisu
             const sig = req.headers['stripe-signature'];
             
             if (!sig) {
-                console.error('❌ Missing Stripe signature header');
-                console.error('Available headers:', Object.keys(req.headers || {}));
-                return res.status(400).json({ error: 'Missing Stripe signature' });
+                console.error(`[${requestId}] ❌ ERROR: Missing Stripe signature header`);
+                console.error(`[${requestId}] Available headers:`, Object.keys(req.headers || {}));
+                console.error(`[${requestId}] All headers:`, JSON.stringify(req.headers, null, 2));
+                return res.status(400).json({ 
+                    error: 'Missing Stripe signature',
+                    requestId: requestId,
+                    availableHeaders: Object.keys(req.headers || {})
+                });
             }
 
             if (!stripe) {
-                console.error('❌ Stripe not initialized - STRIPE_SECRET_KEY not set');
-                return res.status(500).json({ error: 'Stripe not configured' });
+                console.error(`[${requestId}] ❌ ERROR: Stripe not initialized - STRIPE_SECRET_KEY not set`);
+                console.error(`[${requestId}] Environment variables check:`, {
+                    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'SET (hidden)' : 'NOT SET'
+                });
+                return res.status(500).json({ 
+                    error: 'Stripe not configured',
+                    requestId: requestId,
+                    hint: 'STRIPE_SECRET_KEY environment variable is missing'
+                });
             }
 
             if (!process.env.STRIPE_WEBHOOK_SECRET) {
-                console.error('❌ Missing STRIPE_WEBHOOK_SECRET environment variable');
-                return res.status(500).json({ error: 'Webhook secret not configured' });
+                console.error(`[${requestId}] ❌ ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable`);
+                return res.status(500).json({ 
+                    error: 'Webhook secret not configured',
+                    requestId: requestId,
+                    hint: 'STRIPE_WEBHOOK_SECRET environment variable is missing'
+                });
             }
 
             // Vercel z bodyParser: false dostarcza raw body jako Buffer lub string
@@ -117,28 +168,40 @@ export default async function handler(req, res) {
             console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
             try {
+                console.log(`[${requestId}] 🔐 Attempting webhook signature verification...`);
+                console.log(`[${requestId}] Body length:`, body.length);
+                console.log(`[${requestId}] Signature:`, sig.substring(0, 20) + '...');
+                console.log(`[${requestId}] Webhook secret present:`, !!process.env.STRIPE_WEBHOOK_SECRET);
+                
                 stripeEvent = stripe.webhooks.constructEvent(
                     body,
                     sig,
                     process.env.STRIPE_WEBHOOK_SECRET
                 );
-                console.log('✅ Webhook verified successfully. Event type:', stripeEvent.type);
+                console.log(`[${requestId}] ✅ Webhook verified successfully. Event type:`, stripeEvent.type);
             } catch (err) {
-                console.error('❌ Webhook signature verification failed:', err.message);
+                console.error(`[${requestId}] ❌ ERROR: Webhook signature verification failed`);
+                console.error(`[${requestId}] Error name:`, err.name);
+                console.error(`[${requestId}] Error message:`, err.message);
+                console.error(`[${requestId}] Error stack:`, err.stack);
+                console.error(`[${requestId}] Body preview:`, body.substring(0, 200));
+                console.error(`[${requestId}] Signature preview:`, sig.substring(0, 50));
                 return res.status(400).json({ 
                     error: `Webhook Error: ${err.message}`,
+                    errorName: err.name,
+                    requestId: requestId,
                     hint: 'Check if STRIPE_WEBHOOK_SECRET matches the webhook signing secret in Stripe Dashboard'
                 });
             }
         }
 
         // Handle the event
-        console.log('Processing event type:', stripeEvent.type);
+        console.log(`[${requestId}] 📦 Processing event type:`, stripeEvent?.type);
         
-        if (stripeEvent.type === 'checkout.session.completed') {
+        if (stripeEvent?.type === 'checkout.session.completed') {
             const session = stripeEvent.data.object;
             
-            console.log('Checkout session completed:', {
+            console.log(`[${requestId}] 💳 Checkout session completed:`, {
                 sessionId: session.id,
                 customerEmail: session.customer_email,
                 amountTotal: session.amount_total,
@@ -210,7 +273,7 @@ export default async function handler(req, res) {
                 }
             }
 
-            console.log('📊 Purchase detection summary:', {
+            console.log(`[${requestId}] 📊 Purchase detection summary:`, {
                 isEbookPurchase,
                 customerEmail: session.customer_email,
                 amountTotal: session.amount_total,
@@ -222,7 +285,7 @@ export default async function handler(req, res) {
             });
 
             if (isEbookPurchase && session.customer_email) {
-                console.log('✅ Ebook purchase detected - processing...');
+                console.log(`[${requestId}] ✅ Ebook purchase detected - processing...`);
                 try {
                     // Generuj unikalny 64-znakowy token
                     const token = crypto.randomBytes(32).toString('hex');
@@ -350,12 +413,15 @@ export default async function handler(req, res) {
                         console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
                         console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
                     } catch (emailError) {
-                        console.error('❌ Failed to send email:', emailError);
-                        console.error('Email error name:', emailError.name);
-                        console.error('Email error message:', emailError.message);
-                        console.error('Email error code:', emailError.code || 'N/A');
-                        console.error('Email error stack:', emailError.stack);
-                        console.error('Full error object:', JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
+                        console.error(`[${requestId}] ❌ ERROR: Failed to send email`);
+                        console.error(`[${requestId}] Email error name:`, emailError.name);
+                        console.error(`[${requestId}] Email error message:`, emailError.message);
+                        console.error(`[${requestId}] Email error code:`, emailError.code || 'N/A');
+                        console.error(`[${requestId}] Email error stack:`, emailError.stack);
+                        console.error(`[${requestId}] Email to:`, session.customer_email);
+                        console.error(`[${requestId}] Email from:`, process.env.EMAIL_FROM || 'NOT SET');
+                        console.error(`[${requestId}] Resend API Key present:`, !!process.env.RESEND_API_KEY);
+                        console.error(`[${requestId}] Full error object:`, JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
                         // Kontynuuj - token jest zapisany, użytkownik może pobrać przez link
                         // Ale zwróć błąd żeby wiedzieć że email nie został wysłany
                         return res.status(200).json({ 
@@ -376,45 +442,72 @@ export default async function handler(req, res) {
                         downloadUrl: downloadUrl
                     });
                 } catch (error) {
-                    console.error('❌ Error processing ebook purchase:', error);
-                    console.error('Error details:', error.message);
-                    console.error('Error stack:', error.stack);
+                    console.error(`[${requestId}] ❌ ERROR: Error processing ebook purchase`);
+                    console.error(`[${requestId}] Error name:`, error.name);
+                    console.error(`[${requestId}] Error message:`, error.message);
+                    console.error(`[${requestId}] Error stack:`, error.stack);
+                    console.error(`[${requestId}] Error code:`, error.code || 'N/A');
+                    console.error(`[${requestId}] Full error:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+                    const duration = Date.now() - startTime;
+                    console.error(`[${requestId}] ⏱️ Request duration:`, duration, 'ms');
                     return res.status(500).json({ 
                         error: 'Failed to process ebook purchase',
-                        message: error.message
+                        message: error.message,
+                        errorName: error.name,
+                        requestId: requestId,
+                        duration: duration
                     });
                 }
             } else {
-                console.log('⚠️ Not an ebook purchase or no customer email');
-                console.log('  - isEbookPurchase:', isEbookPurchase);
-                console.log('  - customerEmail:', session.customer_email);
-                console.log('  - amountTotal:', session.amount_total);
-                console.log('  - currency:', session.currency);
-                console.log('  - metadata:', session.metadata);
+                console.log(`[${requestId}] ⚠️ Not an ebook purchase or no customer email`);
+                console.log(`[${requestId}]   - isEbookPurchase:`, isEbookPurchase);
+                console.log(`[${requestId}]   - customerEmail:`, session.customer_email);
+                console.log(`[${requestId}]   - amountTotal:`, session.amount_total);
+                console.log(`[${requestId}]   - currency:`, session.currency);
+                console.log(`[${requestId}]   - metadata:`, session.metadata);
                 
                 // Zwróć sukces nawet jeśli to nie ebook - Stripe wymaga 200 OK
+                const duration = Date.now() - startTime;
+                console.log(`[${requestId}] ✅ Request completed in ${duration}ms`);
                 return res.status(200).json({ 
                     received: true,
                     eventType: stripeEvent?.type || 'unknown',
                     processed: false,
-                    reason: isEbookPurchase ? 'No customer email' : 'Not an ebook purchase'
+                    reason: isEbookPurchase ? 'No customer email' : 'Not an ebook purchase',
+                    requestId: requestId,
+                    duration: duration
                 });
             }
         }
 
         // Return success for other events
-        console.log('✅ Event processed successfully');
+        const duration = Date.now() - startTime;
+        console.log(`[${requestId}] ✅ Event processed successfully in ${duration}ms`);
         return res.status(200).json({ 
             received: true,
-            eventType: stripeEvent?.type || 'unknown'
+            eventType: stripeEvent?.type || 'unknown',
+            requestId: requestId,
+            duration: duration
         });
 
     } catch (error) {
-        console.error('❌ Unexpected error in webhook handler:', error);
-        console.error('Error stack:', error.stack);
+        const duration = Date.now() - startTime;
+        console.error('='.repeat(80));
+        console.error(`[${requestId}] ❌❌❌ CRITICAL ERROR in webhook handler ❌❌❌`);
+        console.error('='.repeat(80));
+        console.error(`[${requestId}] Error name:`, error.name);
+        console.error(`[${requestId}] Error message:`, error.message);
+        console.error(`[${requestId}] Error stack:`, error.stack);
+        console.error(`[${requestId}] Error code:`, error.code || 'N/A');
+        console.error(`[${requestId}] Request duration:`, duration, 'ms');
+        console.error(`[${requestId}] Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        console.error('='.repeat(80));
         return res.status(500).json({ 
             error: 'Internal server error',
-            message: error.message
+            message: error.message,
+            errorName: error.name,
+            requestId: requestId,
+            duration: duration
         });
     }
 }
