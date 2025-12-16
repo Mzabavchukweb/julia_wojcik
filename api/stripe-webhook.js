@@ -184,10 +184,19 @@ export default async function handler(req, res) {
                 }
             }
 
-            console.log('Is ebook purchase?', isEbookPurchase);
-            console.log('Customer email:', session.customer_email);
+            console.log('📊 Purchase detection summary:', {
+                isEbookPurchase,
+                customerEmail: session.customer_email,
+                amountTotal: session.amount_total,
+                currency: session.currency,
+                amountInPLN: session.amount_total ? (session.amount_total / 100) : 'N/A',
+                sessionId: session.id,
+                metadata: session.metadata,
+                lineItemsCount: lineItems?.data?.length || 0
+            });
 
             if (isEbookPurchase && session.customer_email) {
+                console.log('✅ Ebook purchase detected - processing...');
                 try {
                     // Generuj unikalny 64-znakowy token
                     const token = crypto.randomBytes(32).toString('hex');
@@ -308,9 +317,20 @@ export default async function handler(req, res) {
                     });
                 }
             } else {
-                console.log('ℹ️ Not an ebook purchase or no customer email');
+                console.log('⚠️ Not an ebook purchase or no customer email');
                 console.log('  - isEbookPurchase:', isEbookPurchase);
                 console.log('  - customerEmail:', session.customer_email);
+                console.log('  - amountTotal:', session.amount_total);
+                console.log('  - currency:', session.currency);
+                console.log('  - metadata:', session.metadata);
+                
+                // Zwróć sukces nawet jeśli to nie ebook - Stripe wymaga 200 OK
+                return res.status(200).json({ 
+                    received: true,
+                    eventType: stripeEvent?.type || 'unknown',
+                    processed: false,
+                    reason: isEbookPurchase ? 'No customer email' : 'Not an ebook purchase'
+                });
             }
         }
 
