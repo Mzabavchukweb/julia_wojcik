@@ -25,7 +25,7 @@ Environment: Production, Preview, Development (zaznacz wszystkie)
 ### 3. RESEND_API_KEY
 ```
 Key: RESEND_API_KEY
-Value: re_MQttk8b3_EvhEckNG26mPQtdEZ3xhn1PE
+Value: re_... (twój klucz z Resend Dashboard → API Keys)
 Environment: Production, Preview, Development (zaznacz wszystkie)
 ```
 
