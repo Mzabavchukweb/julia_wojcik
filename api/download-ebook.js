@@ -1,11 +1,24 @@
 // Vercel Serverless Function - Pobieranie e-booka przez token
+console.log('[INIT] Loading download-ebook.js module...');
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { kv } from '@vercel/kv';
+
+// Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
+let kv = null;
+try {
+    const kvModule = await import('@vercel/kv');
+    kv = kvModule.kv;
+    console.log('[INIT] ✅ Vercel KV loaded');
+} catch (error) {
+    console.error('[INIT] ⚠️ Vercel KV not available (will use memory fallback):', error.message, error.stack);
+    kv = null;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+console.log('[INIT] ✅ Module download-ebook.js loaded successfully');
 
 // Funkcja do pobierania tokenu
 async function getToken(token) {
@@ -17,7 +30,7 @@ async function getToken(token) {
             }
         }
     } catch (error) {
-        console.warn('⚠️ Vercel KV error, trying fallback:', error.message);
+        console.error('❌ Vercel KV error, trying fallback:', error.message, error.stack);
     }
     
     // Fallback do pamięci
@@ -39,7 +52,7 @@ async function updateToken(token, tokenData) {
             return true;
         }
     } catch (error) {
-        console.warn('⚠️ Vercel KV update error:', error.message);
+        console.error('❌ Vercel KV update error:', error.message, error.stack);
     }
     
     // Fallback
@@ -141,7 +154,7 @@ export default async function handler(req, res) {
             await updateToken(token, updatedData);
             console.log('✅ Download count updated to:', downloadCount + 1);
         } catch (updateError) {
-            console.warn('⚠️ Could not update download count:', updateError.message);
+            console.error('❌ Could not update download count:', updateError.message, updateError.stack);
         }
 
         console.log('✅ Returning PDF file');

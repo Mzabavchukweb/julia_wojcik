@@ -1,24 +1,48 @@
 // Vercel Serverless Function - Webhook Stripe do automatycznej wysyłki e-booka
+console.log('[INIT] Loading stripe-webhook.js module...');
+
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
-import { kv } from '@vercel/kv';
+
+// Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
+let kv = null;
+try {
+    const kvModule = await import('@vercel/kv');
+    kv = kvModule.kv;
+    console.log('[INIT] ✅ Vercel KV loaded');
+} catch (error) {
+    console.error('[INIT] ⚠️ Vercel KV not available (will use memory fallback):', error.message, error.stack);
+    kv = null;
+}
 
 // Inicjalizuj Stripe tylko jeśli klucz jest dostępny
 let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-} else {
-    console.warn('⚠️ STRIPE_SECRET_KEY not set - webhook verification will fail');
+try {
+    if (process.env.STRIPE_SECRET_KEY) {
+        stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        console.log('[INIT] ✅ Stripe initialized');
+    } else {
+        console.error('[INIT] ❌ STRIPE_SECRET_KEY not set - webhook verification will fail');
+    }
+} catch (error) {
+    console.error('[INIT] ❌ ERROR: Failed to initialize Stripe:', error.message, error.stack);
 }
 
 // Inicjalizuj Resend tylko jeśli klucz jest dostępny
 let resend = null;
-if (process.env.RESEND_API_KEY) {
-    resend = new Resend(process.env.RESEND_API_KEY);
-} else {
-    console.warn('⚠️ RESEND_API_KEY not set - email sending will be disabled');
+try {
+    if (process.env.RESEND_API_KEY) {
+        resend = new Resend(process.env.RESEND_API_KEY);
+        console.log('[INIT] ✅ Resend initialized');
+    } else {
+        console.error('[INIT] ❌ RESEND_API_KEY not set - email sending will be disabled');
+    }
+} catch (error) {
+    console.error('[INIT] ❌ ERROR: Failed to initialize Resend:', error.message, error.stack);
 }
+
+console.log('[INIT] ✅ Module stripe-webhook.js loaded successfully');
 
 // Funkcja do zapisywania tokenu (używa Vercel KV lub fallback do pamięci)
 async function saveToken(token, tokenData) {
@@ -30,7 +54,7 @@ async function saveToken(token, tokenData) {
             return true;
         }
     } catch (error) {
-        console.warn('⚠️ Vercel KV not available, using fallback:', error.message);
+        console.error('❌ Vercel KV not available, using fallback:', error.message, error.stack);
     }
     
     // Fallback do pamięci (tylko dla testów lokalnych)
@@ -56,7 +80,7 @@ async function getToken(token) {
             }
         }
     } catch (error) {
-        console.warn('⚠️ Vercel KV error, trying fallback:', error.message);
+        console.error('❌ Vercel KV error, trying fallback:', error.message, error.stack);
     }
     
     // Fallback do pamięci
@@ -75,7 +99,7 @@ async function updateToken(token, tokenData) {
             return true;
         }
     } catch (error) {
-        console.warn('⚠️ Vercel KV update error:', error.message);
+        console.error('❌ Vercel KV update error:', error.message, error.stack);
     }
     
     // Fallback
@@ -285,63 +309,63 @@ export default async function handler(req, res) {
             let isEbookPurchase = false;
             let lineItems = { data: [] };
             
-            // Dla testowych eventów (session.id zaczyna się od 'cs_test_') pomiń wywołanie API
-            const isTestSession = session.id && session.id.startsWith('cs_test_');
-            
-            if (!isTestSession && stripe) {
+            // Spróbuj pobrać line items (dla wszystkich sesji, nie tylko live)
+            if (stripe && session.id) {
                 try {
+                    console.log(`[${requestId}] 🔍 Fetching line items for session: ${session.id}`);
                     lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
-                expand: ['data.price.product']
-            });
-            console.log('Line items count:', lineItems.data.length);
-            console.log('Line items:', JSON.stringify(lineItems.data, null, 2));
+                        expand: ['data.price.product']
+                    });
+                    console.log(`[${requestId}] ✅ Line items fetched. Count:`, lineItems.data.length);
+                    console.log(`[${requestId}] Line items:`, JSON.stringify(lineItems.data, null, 2));
             
-            // Metoda 1: Sprawdź metadata produktu
-            isEbookPurchase = lineItems.data.some(item => {
-                const product = item.price?.product;
-                if (typeof product === 'object') {
-                    console.log('Product name:', product.name);
-                    console.log('Product metadata:', product.metadata);
-                    
-                    // Sprawdź metadata
-                    if (product.metadata?.product_type === 'ebook') {
-                        console.log('✅ Detected ebook by product metadata');
-                        return true;
-                    }
-                    // Sprawdź nazwę produktu
-                    if (product.name && (
-                        product.name.toLowerCase().includes('ebook') || 
-                        product.name.toLowerCase().includes('e-book') ||
-                        product.name.toLowerCase().includes('korekta')
-                    )) {
-                        console.log('✅ Detected ebook by product name');
-                        return true;
-                    }
-                }
-                return false;
-            });
+                    // Metoda 1: Sprawdź metadata produktu i nazwę
+                    isEbookPurchase = lineItems.data.some(item => {
+                        const product = item.price?.product;
+                        if (typeof product === 'object') {
+                            console.log(`[${requestId}] Product name:`, product.name);
+                            console.log(`[${requestId}] Product metadata:`, product.metadata);
+                            
+                            // Sprawdź metadata
+                            if (product.metadata?.product_type === 'ebook') {
+                                console.log(`[${requestId}] ✅ Detected ebook by product metadata`);
+                                return true;
+                            }
+                            // Sprawdź nazwę produktu
+                            if (product.name && (
+                                product.name.toLowerCase().includes('ebook') || 
+                                product.name.toLowerCase().includes('e-book') ||
+                                product.name.toLowerCase().includes('korekta')
+                            )) {
+                                console.log(`[${requestId}] ✅ Detected ebook by product name: "${product.name}"`);
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                 } catch (error) {
-                    console.warn('⚠️ Could not fetch line items:', error.message);
+                    console.warn(`[${requestId}] ⚠️ Could not fetch line items:`, error.message);
+                    console.warn(`[${requestId}] Will use fallback detection methods`);
                 }
             } else {
-                console.log('⚠️ Test session detected - skipping line items fetch');
+                console.log(`[${requestId}] ⚠️ Cannot fetch line items - Stripe not initialized or no session ID`);
             }
             
             // Metoda 2: Sprawdź metadata sesji checkout
             if (!isEbookPurchase && session.metadata?.product_type === 'ebook') {
-                console.log('✅ Detected ebook by session metadata');
+                console.log(`[${requestId}] ✅ Detected ebook by session metadata`);
                 isEbookPurchase = true;
             }
             
             // Metoda 3: Jeśli kwota to 300 zł, traktuj jako ebook (główna metoda dla ebooka)
             if (!isEbookPurchase) {
                 const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
-                console.log(`🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
+                console.log(`[${requestId}] 🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
                 if (session.currency === 'pln' && amountInPLN === 300) {
-                    console.log(`✅ Detected ebook by amount (${amountInPLN} PLN)`);
+                    console.log(`[${requestId}] ✅ Detected ebook by amount (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
                 } else {
-                    console.log(`❌ Amount doesn't match: ${amountInPLN} PLN (expected 300 PLN)`);
+                    console.log(`[${requestId}] ❌ Amount doesn't match: ${amountInPLN} PLN (expected 300 PLN)`);
                 }
             }
 
