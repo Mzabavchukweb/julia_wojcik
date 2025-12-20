@@ -77,12 +77,22 @@ export default async function handler(req, res) {
         }
 
         // Pobierz dane tokenu z store
+        console.log('🔍 Looking for token:', token.substring(0, 16) + '...');
+        console.log('Vercel KV available:', !!kv);
+        
         const tokenString = await getToken(token);
         
         if (!tokenString) {
-            console.log('❌ Token not found');
-            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub wygasł.<br>Linki są ważne przez 7 dni od zakupu.'));
+            console.error('❌ Token not found in store');
+            console.error('Token (first 16 chars):', token.substring(0, 16));
+            console.error('This could mean:');
+            console.error('  1. Token was not saved during purchase');
+            console.error('  2. Vercel KV is not configured/working');
+            console.error('  3. Token expired or was deleted');
+            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub wygasł.<br>Linki są ważne przez 7 dni od zakupu.<br><br>Jeśli właśnie dokonałeś zakupu, poczekaj chwilę i spróbuj ponownie.'));
         }
+        
+        console.log('✅ Token found in store');
 
         const tokenData = JSON.parse(tokenString);
         const { email, expiresAt, downloadCount, maxDownloads } = tokenData;

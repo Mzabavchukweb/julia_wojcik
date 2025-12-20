@@ -405,11 +405,32 @@ export default async function handler(req, res) {
                     };
                     
                     // Zapisz token (używa Vercel KV lub fallback)
+                    console.log(`[${requestId}] 💾 Attempting to save token...`);
+                    console.log(`[${requestId}] Token (first 16 chars):`, token.substring(0, 16));
+                    console.log(`[${requestId}] Token data:`, JSON.stringify(tokenData));
+                    console.log(`[${requestId}] Vercel KV available:`, !!kv);
+                    
                     const tokenSaved = await saveToken(token, tokenData);
                     if (!tokenSaved) {
                         console.error(`[${requestId}] ❌ ERROR: Failed to save token!`);
+                        console.error(`[${requestId}] This means token will not be retrievable for download!`);
+                        // Kontynuuj mimo to - może email się wyśle
+                    } else {
+                        console.log(`[${requestId}] ✅ Token saved successfully:`, token.substring(0, 16) + '...');
+                        
+                        // WERYFIKACJA: Spróbuj od razu odczytać token żeby upewnić się że jest zapisany
+                        try {
+                            const testRead = await getToken(token);
+                            if (testRead) {
+                                console.log(`[${requestId}] ✅✅ Token verification: Can read token back - OK!`);
+                            } else {
+                                console.error(`[${requestId}] ❌❌ Token verification FAILED: Cannot read token back immediately!`);
+                                console.error(`[${requestId}] This is a critical issue - token will not work for download!`);
+                            }
+                        } catch (verifyError) {
+                            console.error(`[${requestId}] ❌ Error verifying token:`, verifyError.message);
+                        }
                     }
-                    console.log(`[${requestId}] ✅ Token saved:`, token.substring(0, 16) + '...');
                     
                     // Utwórz URL do pobrania - użyj publicznego URL (nie deployment URL)
                     // Priority: 1. PUBLIC_URL (custom), 2. NEXT_PUBLIC_URL, 3. Główny Vercel URL
