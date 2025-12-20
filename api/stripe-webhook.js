@@ -4,7 +4,7 @@ console.log('[INIT] Loading stripe-webhook.js module...');
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
-import { buffer } from 'micro';
+import getRawBody from 'raw-body';
 
 // Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
 let kv = null;
@@ -236,21 +236,39 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Użyj micro buffer() do odczytu raw body - to jest kluczowe dla Stripe webhook
-            let rawBody;
+            // Użyj raw-body do odczytu raw body - to jest kluczowe dla Stripe webhook
+            let body;
             try {
-                rawBody = await buffer(req);
-                console.log(`[${requestId}] ✅ Got raw body using micro buffer, length:`, rawBody.length);
-            } catch (bufferError) {
-                console.error(`[${requestId}] ❌ ERROR: Failed to read raw body:`, bufferError.message);
+                // Sprawdź czy req jest Readable stream (Node.js stream)
+                if (req.readable && typeof req.read === 'function') {
+                    const rawBody = await getRawBody(req, {
+                        length: req.headers['content-length'],
+                        limit: '10mb',
+                        encoding: 'utf8'
+                    });
+                    body = rawBody;
+                    console.log(`[${requestId}] ✅ Got raw body using raw-body, length:`, body.length);
+                } else if (Buffer.isBuffer(req.body)) {
+                    // Jeśli body jest już Buffer
+                    body = req.body.toString('utf8');
+                    console.log(`[${requestId}] ✅ Body was Buffer, converted to string, length:`, body.length);
+                } else if (typeof req.body === 'string') {
+                    // Jeśli body jest już stringiem
+                    body = req.body;
+                    console.log(`[${requestId}] ✅ Body was string, length:`, body.length);
+                } else {
+                    // Fallback - próbuj stringify (nie idealne, ale może zadziałać)
+                    console.error(`[${requestId}] ⚠️ Body is not readable stream/Buffer/string, attempting stringify`);
+                    body = JSON.stringify(req.body);
+                }
+            } catch (bodyError) {
+                console.error(`[${requestId}] ❌ ERROR: Failed to read raw body:`, bodyError.message, bodyError.stack);
                 return res.status(400).json({ 
                     error: 'Failed to read request body',
-                    message: bufferError.message,
+                    message: bodyError.message,
                     requestId: requestId
                 });
             }
-
-            const body = rawBody.toString('utf8');
             console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
             try {
