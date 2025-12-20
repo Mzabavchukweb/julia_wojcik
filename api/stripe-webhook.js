@@ -4,6 +4,7 @@ console.log('[INIT] Loading stripe-webhook.js module...');
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import getRawBody from 'raw-body';
 
 // Inicjalizuj Stripe tylko jeśli klucz jest dostępny
 let stripe = null;
@@ -34,13 +35,11 @@ if (process.env.RESEND_API_KEY) {
 console.log('[INIT] ✅ Module stripe-webhook.js loaded successfully');
 
 // Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
-// Uwaga: W nowszych wersjach Vercel, bodyParser jest wyłączony domyślnie dla POST z content-type application/json
+// Używamy Node.js runtime (nie Edge) bo potrzebujemy pełnej biblioteki Stripe
 export const config = {
     api: {
         bodyParser: false,
     },
-    // Edge runtime może lepiej obsługiwać raw body, ale może nie wspierać wszystkich bibliotek
-    // runtime: 'edge',
 };
 
 export default async function handler(req, res) {
@@ -163,31 +162,58 @@ export default async function handler(req, res) {
                 });
             }
 
-            // NAJPROSTSZE ROZWIĄZANIE: Vercel z bodyParser: false powinien dostarczyć body jako string
-            // Jeśli body jest obiektem (sparsowane), użyj JSON.stringify - Stripe powinien to zaakceptować
+            // Odczytaj raw body - Vercel z bodyParser: false powinien dostarczyć body jako string
+            // Jeśli nie, próbuj użyć raw-body library
             let body;
             
+            // Metoda 1: Sprawdź czy req.body jest już stringiem (preferowane)
             if (typeof req.body === 'string') {
                 body = req.body;
                 console.log(`[${requestId}] ✅ Body is string, length:`, body.length);
-            } else if (Buffer.isBuffer(req.body)) {
+            } 
+            // Metoda 2: Sprawdź czy req.body jest Bufferem
+            else if (Buffer.isBuffer(req.body)) {
                 body = req.body.toString('utf8');
                 console.log(`[${requestId}] ✅ Body is Buffer, converted to string, length:`, body.length);
-            } else if (req.body && typeof req.body === 'object') {
-                // Body zostało sparsowane - użyj JSON.stringify
-                // Uwaga: To może nie zadziałać z podpisem Stripe, ale spróbujmy
+            }
+            // Metoda 3: Spróbuj użyć raw-body library (jeśli req jest streamem)
+            else if (req.readable && typeof req.on === 'function') {
+                try {
+                    const rawBuffer = await getRawBody(req, {
+                        length: req.headers['content-length'],
+                        limit: '10mb',
+                    });
+                    body = rawBuffer.toString('utf8');
+                    console.log(`[${requestId}] ✅ Body read using raw-body, length:`, body.length);
+                } catch (rawBodyError) {
+                    console.error(`[${requestId}] ❌ raw-body failed:`, rawBodyError.message);
+                    return res.status(400).json({ 
+                        error: 'Failed to read request body',
+                        requestId: requestId,
+                        hint: 'Request body could not be read as raw string',
+                        rawBodyError: rawBodyError.message
+                    });
+                }
+            }
+            // Metoda 4: Ostatnia deska ratunku - jeśli body zostało sparsowane jako object
+            else if (req.body && typeof req.body === 'object') {
+                // Użyj JSON.stringify bez spacji (kompaktowy format) - może nie zadziałać!
                 body = JSON.stringify(req.body);
-                console.log(`[${requestId}] ⚠️ Body was object, stringified, length:`, body.length);
-                console.log(`[${requestId}] ⚠️ WARNING: Signature verification may fail if body was parsed`);
-            } else {
+                console.log(`[${requestId}] ⚠️ WARNING: Body was parsed as object, using JSON.stringify`);
+                console.log(`[${requestId}] ⚠️ WARNING: Signature verification will likely FAIL because parsed JSON may differ from original`);
+            }
+            // Błąd - nie można odczytać body
+            else {
                 console.error(`[${requestId}] ❌ ERROR: Cannot determine body type:`, typeof req.body);
                 return res.status(400).json({ 
                     error: 'Invalid request body format',
                     requestId: requestId,
-                    bodyType: typeof req.body
+                    bodyType: typeof req.body,
+                    hint: 'Ensure bodyParser is set to false in Vercel config'
                 });
-        }
-        console.log('Body preview (first 200 chars):', body.substring(0, 200));
+            }
+            
+            console.log(`[${requestId}] Body preview (first 200 chars):`, body.substring(0, 200));
 
         try {
                 console.log(`[${requestId}] 🔐 Attempting webhook signature verification...`);

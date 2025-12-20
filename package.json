@@ -10,6 +10,7 @@
     "vercel:dev": "vercel dev --listen 3000"
   },
   "dependencies": {
+    "raw-body": "^3.0.2",
     "resend": "^3.0.0",
     "stripe": "^14.25.0"
   },
