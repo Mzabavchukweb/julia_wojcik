@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PORT = 3000;
+const PORT = 7090;
 let webhookHandler = null;
 
 // Import funkcji webhooka asynchronicznie

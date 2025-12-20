@@ -4,6 +4,7 @@ console.log('[INIT] Loading stripe-webhook.js module...');
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import { buffer } from 'micro';
 
 // Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
 let kv = null;
@@ -112,26 +113,11 @@ async function updateToken(token, tokenData) {
 }
 
 // Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
-// W Vercel Serverless Functions używamy raw body stream
 export const config = {
     api: {
         bodyParser: false,
     },
 };
-
-// Funkcja do odczytania raw body z request stream
-function getRawBody(req) {
-    return new Promise((resolve, reject) => {
-        let data = '';
-        req.on('data', chunk => {
-            data += chunk.toString('utf8');
-        });
-        req.on('end', () => {
-            resolve(data);
-        });
-        req.on('error', reject);
-    });
-}
 
 export default async function handler(req, res) {
     const startTime = Date.now();
@@ -218,7 +204,7 @@ export default async function handler(req, res) {
             // Normalny tryb - wymagaj weryfikacji podpisu
             const sig = req.headers['stripe-signature'];
         
-        if (!sig) {
+            if (!sig) {
                 console.error(`[${requestId}] ❌ ERROR: Missing Stripe signature header`);
                 console.error(`[${requestId}] Available headers:`, Object.keys(req.headers || {}));
                 console.error(`[${requestId}] All headers:`, JSON.stringify(req.headers, null, 2));
@@ -239,9 +225,9 @@ export default async function handler(req, res) {
                     requestId: requestId,
                     hint: 'STRIPE_SECRET_KEY environment variable is missing'
                 });
-        }
+            }
 
-        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+            if (!process.env.STRIPE_WEBHOOK_SECRET) {
                 console.error(`[${requestId}] ❌ ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable`);
                 return res.status(500).json({ 
                     error: 'Webhook secret not configured',
@@ -250,61 +236,36 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Vercel Serverless Functions - próbuj odczytać raw body
-            // Jeśli body jest już sparsowane, użyjemy go, ale to nie zadziała z weryfikacją podpisu
-            let body = req.body;
-            
-            // Sprawdź czy body jest już sparsowane (obiekt)
-            if (typeof body === 'object' && body !== null && !Buffer.isBuffer(body)) {
-                console.error(`[${requestId}] ❌ ERROR: Body was parsed as JSON. Vercel Functions auto-parse body.`);
-                console.error(`[${requestId}] This means we cannot verify Stripe signature.`);
-                console.error(`[${requestId}] Attempting to reconstruct from parsed object...`);
-                
-                // Próbuj zrekonstruować JSON (nie idealne, ale może zadziałać)
-                try {
-                    // Użyj JSON.stringify z domyślnym formatowaniem
-                    body = JSON.stringify(body);
-                    console.warn(`[${requestId}] ⚠️ WARNING: Using reconstructed JSON - signature verification may fail`);
-                    console.warn(`[${requestId}] This is a workaround - for production, use Vercel Edge Functions or read raw stream`);
-                } catch (e) {
-                    return res.status(400).json({ 
-                        error: 'Cannot reconstruct body for signature verification',
-                        message: 'Body was parsed as JSON. Stripe signature verification requires exact raw body.',
-                        requestId: requestId,
-                        hint: 'Consider using Vercel Edge Functions or ensure raw body is available'
-                    });
-                }
-            } else if (Buffer.isBuffer(body)) {
-                // Body jest Buffer - konwertuj na string
-                body = body.toString('utf8');
-                console.log(`[${requestId}] ✅ Converted Buffer to string`);
-            } else if (typeof body === 'string') {
-                // Body jest już stringiem - idealne!
-                console.log(`[${requestId}] ✅ Body is already a string`);
-            } else {
-                console.error(`[${requestId}] ❌ ERROR: Unknown body type:`, typeof body);
+            // Użyj micro buffer() do odczytu raw body - to jest kluczowe dla Stripe webhook
+            let rawBody;
+            try {
+                rawBody = await buffer(req);
+                console.log(`[${requestId}] ✅ Got raw body using micro buffer, length:`, rawBody.length);
+            } catch (bufferError) {
+                console.error(`[${requestId}] ❌ ERROR: Failed to read raw body:`, bufferError.message);
                 return res.status(400).json({ 
-                    error: 'Invalid request body format',
-                    bodyType: typeof body,
+                    error: 'Failed to read request body',
+                    message: bufferError.message,
                     requestId: requestId
                 });
             }
 
-        console.log('Body preview (first 200 chars):', body.substring(0, 200));
+            const body = rawBody.toString('utf8');
+            console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
-        try {
+            try {
                 console.log(`[${requestId}] 🔐 Attempting webhook signature verification...`);
                 console.log(`[${requestId}] Body length:`, body.length);
                 console.log(`[${requestId}] Signature:`, sig.substring(0, 20) + '...');
                 console.log(`[${requestId}] Webhook secret present:`, !!process.env.STRIPE_WEBHOOK_SECRET);
                 
-            stripeEvent = stripe.webhooks.constructEvent(
-                body,
-                sig,
-                process.env.STRIPE_WEBHOOK_SECRET
-            );
+                stripeEvent = stripe.webhooks.constructEvent(
+                    body,
+                    sig,
+                    process.env.STRIPE_WEBHOOK_SECRET
+                );
                 console.log(`[${requestId}] ✅ Webhook verified successfully. Event type:`, stripeEvent.type);
-        } catch (err) {
+            } catch (err) {
                 console.error(`[${requestId}] ❌ ERROR: Webhook signature verification failed`);
                 console.error(`[${requestId}] Error name:`, err.name);
                 console.error(`[${requestId}] Error message:`, err.message);

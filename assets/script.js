@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '.intro-text',
         '.feature-item',
         '.timeline-item',
+        '.about-header',
         '.about-image',
         '.about-text',
         '.contact-info',
@@ -339,17 +340,106 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Lightbox controls
+    // Flaga do uniknięcia podwójnego wywołania (touchend + click)
+    let lastTouchEnd = 0;
+    
+    function handleLightboxButton(action) {
+        const now = Date.now();
+        // Ignoruj jeśli ostatni touchend był mniej niż 300ms temu
+        if (now - lastTouchEnd < 300) return;
+        action();
+    }
+    
+    // Lightbox controls - click events
     if (lightboxClose) {
-        lightboxClose.addEventListener('click', closeLightbox);
+        lightboxClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLightboxButton(closeLightbox);
+        });
+        // Touch event dla mobile
+        lightboxClose.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            lastTouchEnd = Date.now();
+            closeLightbox();
+        }, { passive: false });
     }
 
     if (lightboxPrev) {
-        lightboxPrev.addEventListener('click', prevImage);
+        lightboxPrev.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLightboxButton(prevImage);
+        });
+        // Touch event dla mobile
+        lightboxPrev.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            lastTouchEnd = Date.now();
+            prevImage();
+        }, { passive: false });
     }
 
     if (lightboxNext) {
-        lightboxNext.addEventListener('click', nextImage);
+        lightboxNext.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLightboxButton(nextImage);
+        });
+        // Touch event dla mobile
+        lightboxNext.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            lastTouchEnd = Date.now();
+            nextImage();
+        }, { passive: false });
+    }
+
+    // Swipe gestures na mobile (tylko na obrazku/tle, nie na przyciskach)
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let isSwiping = false;
+    
+    lightbox.addEventListener('touchstart', function(e) {
+        // Nie uruchamiaj swipe na przyciskach
+        if (e.target.closest('.lightbox-prev') || 
+            e.target.closest('.lightbox-next') || 
+            e.target.closest('.lightbox-close')) {
+            isSwiping = false;
+            return;
+        }
+        isSwiping = true;
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    lightbox.addEventListener('touchend', function(e) {
+        if (!isSwiping) return;
+        
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+        isSwiping = false;
+    }, { passive: true });
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+        
+        // Tylko poziomy swipe (nie pionowy)
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+            if (diffX > 0) {
+                // Swipe left - next
+                nextImage();
+            } else {
+                // Swipe right - prev
+                prevImage();
+            }
+        }
     }
 
     // Close on background click
