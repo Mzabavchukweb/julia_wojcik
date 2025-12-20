@@ -469,121 +469,152 @@ export default async function handler(req, res) {
                         emailResult = await resend.emails.send({
                         from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
                         to: session.customer_email,
-                        subject: 'Twój e-book od Julii Wójcik - Dziękuję za zakup',
+
+                        subject: 'Twój e-book - Dziękuję za zakup',
                         html: `
                             <!DOCTYPE html>
                             <html>
                             <head>
                                 <meta charset="UTF-8">
                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;500&display=swap" rel="stylesheet">
                                 <style>
                                     body { 
-                                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
-                                        line-height: 1.7; 
-                                        color: #212121; 
+                                        font-family: 'Roboto Condensed', 'Avenir Next Condensed', sans-serif; 
+                                        line-height: 1.8; 
+                                        color: #6b6b6b; 
                                         margin: 0; 
                                         padding: 0; 
-                                        background: #f9f8f6;
+                                        background: #f3f1ee;
+                                        -webkit-font-smoothing: antialiased;
                                     }
-                                    .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+                                    .container { 
+                                        max-width: 600px; 
+                                        margin: 0 auto; 
+                                        background: #ffffff; 
+                                    }
                                     .header { 
                                         background: #C5A572; 
-                                        color: white; 
-                                        padding: 40px 30px; 
+                                        padding: 48px 40px; 
                                         text-align: center; 
                                     }
                                     .header h1 { 
+                                        font-family: 'Instrument Serif', Georgia, serif;
                                         margin: 0; 
-                                        font-size: 26px; 
-                                        font-weight: 600;
-                                        letter-spacing: 0.5px;
+                                        font-size: 28px; 
+                                        font-weight: 400;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.08em;
+                                        color: #ffffff;
+                                        line-height: 1.2;
                                     }
                                     .content { 
                                         background: #ffffff; 
-                                        padding: 40px 30px; 
+                                        padding: 48px 40px; 
                                     }
                                     .content p {
-                                        margin: 0 0 16px 0;
-                                        color: #333;
+                                        margin: 0 0 20px 0;
+                                        color: #6b6b6b;
+                                        font-size: 16px;
                                     }
                                     .button { 
                                         display: inline-block; 
                                         background: #212121; 
-                                        color: white !important; 
-                                        padding: 16px 36px; 
+                                        color: #ffffff !important; 
+                                        padding: 18px 48px; 
                                         text-decoration: none; 
-                                        font-weight: 600; 
-                                        font-size: 15px;
-                                        margin: 24px 0; 
-                                        letter-spacing: 0.5px;
+                                        font-family: 'Roboto Condensed', sans-serif;
+                                        font-weight: 500; 
+                                        font-size: 14px;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.1em;
+                                        margin: 28px 0; 
                                     }
-                                    .button:hover { background: #333; }
                                     .info-box { 
                                         background: #f9f8f6; 
                                         border-left: 3px solid #C5A572; 
-                                        padding: 20px; 
-                                        margin: 28px 0; 
+                                        padding: 24px; 
+                                        margin: 32px 0; 
                                     }
-                                    .info-box p {
-                                        margin: 0 0 12px 0;
-                                        font-weight: 600;
+                                    .info-box-title {
+                                        font-family: 'Instrument Serif', Georgia, serif;
+                                        font-size: 18px;
+                                        font-weight: 400;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.05em;
                                         color: #212121;
+                                        margin: 0 0 16px 0;
                                     }
                                     .info-box ul {
                                         margin: 0;
                                         padding-left: 20px;
-                                        color: #555;
+                                        color: #6b6b6b;
                                     }
                                     .info-box li {
-                                        margin-bottom: 8px;
+                                        margin-bottom: 10px;
+                                        font-size: 15px;
                                     }
-                                    .contact-box {
-                                        margin-top: 28px;
-                                        padding-top: 20px;
-                                        border-top: 1px solid #eee;
+                                    .contact-section {
+                                        margin-top: 32px;
+                                        padding-top: 24px;
+                                        border-top: 1px solid #e8e5e0;
                                     }
-                                    .contact-box p {
-                                        margin: 0 0 8px 0;
-                                        color: #555;
+                                    .contact-section p {
+                                        margin: 0 0 10px 0;
+                                        color: #6b6b6b;
+                                        font-size: 15px;
                                     }
-                                    .contact-box a { 
+                                    .contact-section a { 
                                         color: #C5A572; 
                                         text-decoration: none;
-                                        font-weight: 500;
-                                    }
-                                    .contact-box a:hover {
-                                        text-decoration: underline;
                                     }
                                     .signature {
-                                        margin-top: 32px;
+                                        margin-top: 36px;
                                     }
                                     .signature p {
-                                        margin: 0;
+                                        margin: 0 0 4px 0;
+                                        color: #6b6b6b;
+                                    }
+                                    .signature-name {
+                                        font-family: 'Instrument Serif', Georgia, serif;
+                                        font-size: 18px;
+                                        color: #212121;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.05em;
+                                        margin-top: 12px !important;
                                     }
                                     .footer { 
                                         text-align: center; 
-                                        padding: 24px 30px; 
-                                        color: #999; 
-                                        font-size: 13px; 
+                                        padding: 32px 40px; 
                                         background: #f9f8f6;
-                                        border-top: 1px solid #eee;
+                                        border-top: 1px solid #e8e5e0;
+                                    }
+                                    .footer-brand {
+                                        font-family: 'Instrument Serif', Georgia, serif;
+                                        font-size: 14px;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.12em;
+                                        color: #212121;
+                                        margin: 0 0 8px 0;
                                     }
                                     .footer p {
-                                        margin: 0 0 8px 0;
+                                        margin: 0 0 6px 0;
+                                        color: #8a8a8a;
+                                        font-size: 13px;
                                     }
                                     .footer a { 
                                         color: #C5A572; 
                                         text-decoration: none;
                                     }
                                     .credits {
-                                        margin-top: 16px;
+                                        margin-top: 20px;
                                         padding-top: 16px;
-                                        border-top: 1px solid #e5e5e5;
+                                        border-top: 1px solid #e8e5e0;
                                         font-size: 11px;
-                                        color: #bbb;
+                                        color: #a8a8a8;
                                     }
                                     .credits a {
-                                        color: #999;
+                                        color: #8a8a8a;
                                     }
                                 </style>
                             </head>
@@ -594,20 +625,20 @@ export default async function handler(req, res) {
                                     </div>
                                     <div class="content">
                                         <p>Cześć!</p>
-                                        <p>Dziękuję za zakup e-booka <strong>„Korekta bez skrótów"</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
+                                        <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Korekta bez skrótów</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
                                         <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
                                         <div style="text-align: center;">
-                                            <a href="${downloadUrl}" class="button" style="color: white !important;">Pobierz e-book</a>
+                                            <a href="${downloadUrl}" class="button" style="color: #ffffff !important;">POBIERZ E-BOOK</a>
                                         </div>
                                         <div class="info-box">
-                                            <p>Ważne informacje:</p>
+                                            <p class="info-box-title">Ważne informacje</p>
                                             <ul>
-                                                <li>Link jest ważny przez <strong>7 dni</strong> od zakupu</li>
-                                                <li>Możesz pobrać e-book maksymalnie <strong>5 razy</strong></li>
+                                                <li>Link jest ważny przez <strong style="color: #212121;">7 dni</strong> od zakupu</li>
+                                                <li>Możesz pobrać e-book maksymalnie <strong style="color: #212121;">5 razy</strong></li>
                                                 <li>Po pobraniu zapisz plik na swoim urządzeniu</li>
                                             </ul>
                                         </div>
-                                        <div class="contact-box">
+                                        <div class="contact-section">
                                             <p>Jeśli masz jakiekolwiek pytania lub problemy z pobraniem, napisz do mnie:</p>
                                             <p>Instagram: <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
                                             <p>TikTok: <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
@@ -615,12 +646,13 @@ export default async function handler(req, res) {
                                         <div class="signature">
                                             <p>Życzę Ci owocnej pracy z e-bookiem!</p>
                                             <p style="margin-top: 16px;">Pozdrawiam serdecznie,</p>
-                                            <p><strong>Julia Wójcik</strong></p>
+                                            <p class="signature-name">Julia Wójcik</p>
                                         </div>
                                     </div>
                                     <div class="footer">
-                                        <p><strong>Julia Wójcik</strong> — Profesjonalna Stylizacja Paznokci</p>
-                                        <p>Szczecin | <a href="https://juliawojcikszkolenia.pl">juliawojcikszkolenia.pl</a></p>
+                                        <p class="footer-brand">Julia Wójcik</p>
+                                        <p>Profesjonalna Stylizacja Paznokci</p>
+                                        <p>Szczecin · <a href="https://juliawojcikszkolenia.pl">juliawojcikszkolenia.pl</a></p>
                                         <div class="credits">
                                             <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
                                         </div>

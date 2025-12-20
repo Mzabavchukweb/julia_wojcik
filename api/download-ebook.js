@@ -256,128 +256,140 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Pobieranie e-booka - Julia Wójcik</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;500&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; }
                 body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-                    background: #C5A572;
+                    font-family: 'Roboto Condensed', 'Avenir Next Condensed', sans-serif;
+                    background: #f3f1ee;
                     margin: 0;
                     padding: 20px;
                     display: flex;
                     justify-content: center;
                     align-items: center;
                     min-height: 100vh;
+                    color: #6b6b6b;
+                    line-height: 1.8;
+                    -webkit-font-smoothing: antialiased;
                 }
                 .container {
-                    background: white;
-                    padding: 50px 40px;
+                    background: #ffffff;
+                    padding: 60px 48px;
                     max-width: 550px;
                     width: 100%;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
                     text-align: center;
                 }
                 .logo {
+                    font-family: 'Instrument Serif', Georgia, serif;
                     font-size: 14px;
-                    letter-spacing: 3px;
+                    letter-spacing: 0.12em;
                     text-transform: uppercase;
-                    color: #C5A572;
-                    margin-bottom: 40px;
-                    font-weight: 600;
+                    color: #212121;
+                    margin-bottom: 48px;
+                    font-weight: 400;
                 }
                 h1 {
+                    font-family: 'Instrument Serif', Georgia, serif;
                     color: #212121;
                     margin: 0 0 16px 0;
-                    font-size: 28px;
-                    font-weight: 600;
+                    font-size: 32px;
+                    font-weight: 400;
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                    line-height: 1.1;
                 }
                 .subtitle {
-                    color: #666;
+                    color: #6b6b6b;
                     font-size: 16px;
-                    margin-bottom: 32px;
+                    margin-bottom: 36px;
                 }
                 .status-box {
                     background: #f9f8f6;
                     border-left: 3px solid #C5A572;
-                    padding: 20px 24px;
-                    margin: 28px 0;
+                    padding: 24px;
+                    margin: 32px 0;
                     text-align: left;
                 }
                 .status-box p {
                     margin: 0;
-                    color: #333;
-                    line-height: 1.6;
+                    color: #6b6b6b;
+                    line-height: 1.7;
                 }
                 .download-button {
                     display: inline-block;
                     background: #212121;
-                    color: white !important;
-                    padding: 16px 40px;
+                    color: #ffffff !important;
+                    padding: 18px 48px;
                     text-decoration: none;
-                    font-weight: 600;
-                    font-size: 15px;
-                    letter-spacing: 0.5px;
-                    margin: 24px 0;
-                    transition: background 0.3s;
+                    font-family: 'Roboto Condensed', sans-serif;
+                    font-weight: 500;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                    margin: 28px 0;
+                    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
                     border: none;
                     cursor: pointer;
                 }
                 .download-button:hover {
-                    background: #333;
-                }
-                .spinner {
-                    display: inline-block;
-                    width: 16px;
-                    height: 16px;
-                    border: 2px solid rgba(255,255,255,.3);
-                    border-radius: 50%;
-                    border-top-color: white;
-                    animation: spin 1s ease-in-out infinite;
-                    margin-right: 10px;
-                    vertical-align: middle;
-                }
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
+                    background: #2d2d2d;
+                    box-shadow: 0 8px 32px rgba(197, 165, 114, 0.25);
                 }
                 .info {
-                    color: #888;
-                    font-size: 14px;
-                    line-height: 1.8;
-                    margin: 28px 0;
-                    text-align: left;
-                    padding: 0 10px;
-                }
-                .info strong {
-                    color: #212121;
-                    display: block;
-                    margin-bottom: 12px;
+                    color: #6b6b6b;
                     font-size: 15px;
+                    line-height: 1.8;
+                    margin: 36px 0;
+                    text-align: left;
+                    padding: 0;
+                }
+                .info-title {
+                    font-family: 'Instrument Serif', Georgia, serif;
+                    color: #212121;
+                    font-size: 18px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    margin-bottom: 16px;
+                    font-weight: 400;
                 }
                 .footer {
-                    margin-top: 40px;
+                    margin-top: 48px;
                     padding-top: 24px;
-                    border-top: 1px solid #eee;
-                    color: #999;
+                    border-top: 1px solid #e8e5e0;
+                    color: #8a8a8a;
                     font-size: 13px;
                 }
-                .footer p {
+                .footer-brand {
+                    font-family: 'Instrument Serif', Georgia, serif;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.12em;
+                    color: #212121;
                     margin: 0 0 8px 0;
+                }
+                .footer p {
+                    margin: 0 0 6px 0;
                 }
                 .footer a {
                     color: #C5A572;
                     text-decoration: none;
+                    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
                 }
                 .footer a:hover {
-                    text-decoration: underline;
+                    color: #a89263;
                 }
                 .credits {
                     margin-top: 20px;
                     padding-top: 16px;
-                    border-top: 1px solid #f0f0f0;
+                    border-top: 1px solid #e8e5e0;
                     font-size: 11px;
-                    color: #ccc;
+                    color: #a8a8a8;
                 }
                 .credits a {
-                    color: #bbb;
+                    color: #8a8a8a;
                 }
             </style>
         </head>
@@ -396,14 +408,15 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 </a>
                 
                 <div class="info">
-                    <strong>Informacje</strong>
+                    <p class="info-title">Informacje</p>
                     Plik: Korekta bez skrótów (PDF)<br>
                     Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
                     Link jest ważny przez 7 dni
                 </div>
                 
                 <div class="footer">
-                    <p><strong>Julia Wójcik</strong> — Profesjonalna Stylizacja Paznokci</p>
+                    <p class="footer-brand">Julia Wójcik</p>
+                    <p>Profesjonalna Stylizacja Paznokci</p>
                     <p><a href="https://www.instagram.com/juliawojcik_instruktor/">Instagram</a> · <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">TikTok</a></p>
                     <div class="credits">
                         <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
@@ -459,53 +472,95 @@ function errorPage(title, message) {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>${title} - Julia Wójcik</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;500&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; }
                 body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-                    background: #f9f8f6;
+                    font-family: 'Roboto Condensed', 'Avenir Next Condensed', sans-serif;
+                    background: #f3f1ee;
                     margin: 0;
                     padding: 20px;
                     display: flex;
                     justify-content: center;
                     align-items: center;
                     min-height: 100vh;
+                    color: #6b6b6b;
+                    line-height: 1.8;
+                    -webkit-font-smoothing: antialiased;
                 }
                 .container {
-                    background: white;
-                    padding: 50px 40px;
+                    background: #ffffff;
+                    padding: 60px 48px;
                     max-width: 500px;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
                     text-align: center;
                 }
                 .logo {
+                    font-family: 'Instrument Serif', Georgia, serif;
                     font-size: 14px;
-                    letter-spacing: 3px;
+                    letter-spacing: 0.12em;
                     text-transform: uppercase;
-                    color: #C5A572;
-                    margin-bottom: 40px;
-                    font-weight: 600;
+                    color: #212121;
+                    margin-bottom: 48px;
+                    font-weight: 400;
                 }
-                h1 { color: #212121; margin: 0 0 16px 0; font-size: 24px; font-weight: 600; }
-                p { color: #666; line-height: 1.7; margin: 0 0 20px 0; }
+                h1 { 
+                    font-family: 'Instrument Serif', Georgia, serif;
+                    color: #212121; 
+                    margin: 0 0 20px 0; 
+                    font-size: 28px; 
+                    font-weight: 400;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    line-height: 1.2;
+                }
+                p { 
+                    color: #6b6b6b; 
+                    line-height: 1.8; 
+                    margin: 0 0 20px 0; 
+                    font-size: 16px;
+                }
                 .contact { 
                     background: #f9f8f6; 
                     border-left: 3px solid #C5A572; 
-                    padding: 20px; 
+                    padding: 24px; 
                     text-align: left;
-                    margin-top: 30px;
+                    margin-top: 36px;
                 }
-                .contact p { margin: 0 0 8px 0; }
-                .contact a { color: #C5A572; text-decoration: none; font-weight: 500; }
-                .contact a:hover { text-decoration: underline; }
+                .contact-title {
+                    font-family: 'Instrument Serif', Georgia, serif;
+                    font-size: 16px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: #212121;
+                    margin: 0 0 12px 0;
+                    font-weight: 400;
+                }
+                .contact p { 
+                    margin: 0 0 8px 0; 
+                    font-size: 15px;
+                }
+                .contact a { 
+                    color: #C5A572; 
+                    text-decoration: none;
+                    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+                }
+                .contact a:hover { 
+                    color: #a89263;
+                }
                 .footer {
-                    margin-top: 40px;
+                    margin-top: 48px;
                     padding-top: 20px;
-                    border-top: 1px solid #eee;
+                    border-top: 1px solid #e8e5e0;
                     font-size: 11px;
-                    color: #ccc;
+                    color: #a8a8a8;
                 }
-                .footer a { color: #bbb; text-decoration: none; }
+                .footer a { 
+                    color: #8a8a8a; 
+                    text-decoration: none; 
+                }
             </style>
         </head>
         <body>
@@ -514,7 +569,7 @@ function errorPage(title, message) {
                 <h1>${title}</h1>
                 <p>${message}</p>
                 <div class="contact">
-                    <p><strong>Potrzebujesz pomocy?</strong></p>
+                    <p class="contact-title">Potrzebujesz pomocy?</p>
                     <p>Instagram: <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
                     <p>TikTok: <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
                 </div>
