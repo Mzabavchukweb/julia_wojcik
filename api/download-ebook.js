@@ -78,37 +78,80 @@ export default async function handler(req, res) {
         }
 
         // Dekoduj token (token zawiera dane - nie potrzebujemy storage!)
-        console.log('🔍 Decoding token:', token.substring(0, 50) + '...');
+        console.log('🔍 Decoding token');
+        console.log('Token length:', token.length);
+        console.log('Token (first 100 chars):', token.substring(0, 100));
+        
+        // Token może być URL-encoded, więc najpierw go zdekoduj
+        let decodedToken = token;
+        try {
+            decodedToken = decodeURIComponent(token);
+            console.log('✅ Token URL-decoded');
+        } catch (e) {
+            console.log('⚠️ Token not URL-encoded, using as-is');
+        }
         
         let tokenData;
         try {
             // Token format: payload.signature
-            const parts = token.split('.');
+            const parts = decodedToken.split('.');
+            console.log('Token parts count:', parts.length);
+            
             if (parts.length !== 2) {
-                throw new Error('Invalid token format');
+                console.error('❌ Invalid token format - expected 2 parts separated by dot');
+                throw new Error('Invalid token format - expected payload.signature');
             }
             
             const [payloadBase64, signature] = parts;
+            console.log('Payload length:', payloadBase64.length);
+            console.log('Signature length:', signature.length);
+            console.log('Signature:', signature);
             
             // Zweryfikuj podpis
             const secret = process.env.TOKEN_SECRET || process.env.STRIPE_WEBHOOK_SECRET || 'default-secret-change-in-production';
+            console.log('Using secret:', secret ? secret.substring(0, 10) + '...' : 'NOT SET');
+            
             const hmac = crypto.createHmac('sha256', secret);
             hmac.update(payloadBase64);
             const expectedSignature = hmac.digest('hex').substring(0, 32);
+            console.log('Expected signature:', expectedSignature);
+            console.log('Received signature:', signature);
             
             if (signature !== expectedSignature) {
+                console.error('❌ Signature mismatch!');
+                console.error('Expected:', expectedSignature);
+                console.error('Got:', signature);
                 throw new Error('Token signature verification failed');
             }
             
-            // Dekoduj payload
-            const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
-            tokenData = JSON.parse(payloadJson);
+            console.log('✅ Signature verified');
+            
+            // Dekoduj payload - base64url
+            try {
+                const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
+                console.log('✅ Payload decoded');
+                console.log('Payload JSON:', payloadJson.substring(0, 200));
+                
+                tokenData = JSON.parse(payloadJson);
+                console.log('✅ Token data parsed successfully');
+            } catch (decodeError) {
+                console.error('❌ Failed to decode payload:', decodeError.message);
+                // Spróbuj zwykłego base64 jako fallback
+                try {
+                    const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
+                    tokenData = JSON.parse(payloadJson);
+                    console.log('✅ Payload decoded using base64 (fallback)');
+                } catch (fallbackError) {
+                    throw new Error(`Payload decode failed: ${decodeError.message}`);
+                }
+            }
             
             console.log('✅ Token decoded and verified successfully');
         } catch (error) {
             console.error('❌ Token decode/verification failed:', error.message);
-            console.error('Token (first 50 chars):', token.substring(0, 50));
-            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub został uszkodzony.<br>Linki są ważne przez 7 dni od zakupu.<br><br>Jeśli właśnie dokonałeś zakupu, sprawdź czy skopiowałeś link w całości.'));
+            console.error('Error stack:', error.stack);
+            console.error('Token (first 100 chars):', token.substring(0, 100));
+            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub został uszkodzony.<br>Linki są ważne przez 7 dni od zakupu.<br><br>Jeśli właśnie dokonałeś zakup, sprawdź czy skopiowałeś link w całości.'));
         }
         const { email, expiresAt, downloadCount, maxDownloads } = tokenData;
         console.log('Token data:', { email, expiresAt, downloadCount, maxDownloads });
