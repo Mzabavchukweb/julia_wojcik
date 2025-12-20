@@ -432,10 +432,14 @@ export default async function handler(req, res) {
                     }
                     // NIE używamy VERCEL_URL - to jest deployment URL który może wymagać logowania
                     
-                    const downloadUrl = `${baseUrl}/api/download-ebook?token=${token}`;
+                    // Zakoduj token w URL dla bezpieczeństwa (URL encoding)
+                    const encodedToken = encodeURIComponent(token);
+                    const downloadUrl = `${baseUrl}/api/download-ebook?token=${encodedToken}`;
                     
                     console.log('🌐 Base URL:', baseUrl);
                     console.log('📥 Download URL:', downloadUrl);
+                    console.log('🔑 Token (raw, first 50 chars):', token.substring(0, 50));
+                    console.log('🔑 Token (encoded, first 50 chars):', encodedToken.substring(0, 50));
 
                     // Sprawdź czy mamy Resend API Key
                     if (!process.env.RESEND_API_KEY || !resend) {
