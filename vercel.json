@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/stripe-webhook.js": {
-      "maxDuration": 30,
-      "bodyParser": false
+      "maxDuration": 30
     },
     "api/download-ebook.js": {
       "maxDuration": 30
