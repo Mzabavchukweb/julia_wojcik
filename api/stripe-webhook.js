@@ -112,11 +112,26 @@ async function updateToken(token, tokenData) {
 }
 
 // Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
+// W Vercel Serverless Functions używamy raw body stream
 export const config = {
     api: {
         bodyParser: false,
     },
 };
+
+// Funkcja do odczytania raw body z request stream
+function getRawBody(req) {
+    return new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => {
+            data += chunk.toString('utf8');
+        });
+        req.on('end', () => {
+            resolve(data);
+        });
+        req.on('error', reject);
+    });
+}
 
 export default async function handler(req, res) {
     const startTime = Date.now();
@@ -235,31 +250,45 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Vercel z bodyParser: false dostarcza raw body jako Buffer lub string
-        let body = req.body;
-        
-            // Konwertuj Buffer na string jeśli potrzeba
-            if (Buffer.isBuffer(body)) {
+            // Vercel Serverless Functions - próbuj odczytać raw body
+            // Jeśli body jest już sparsowane, użyjemy go, ale to nie zadziała z weryfikacją podpisu
+            let body = req.body;
+            
+            // Sprawdź czy body jest już sparsowane (obiekt)
+            if (typeof body === 'object' && body !== null && !Buffer.isBuffer(body)) {
+                console.error(`[${requestId}] ❌ ERROR: Body was parsed as JSON. Vercel Functions auto-parse body.`);
+                console.error(`[${requestId}] This means we cannot verify Stripe signature.`);
+                console.error(`[${requestId}] Attempting to reconstruct from parsed object...`);
+                
+                // Próbuj zrekonstruować JSON (nie idealne, ale może zadziałać)
+                try {
+                    // Użyj JSON.stringify z domyślnym formatowaniem
+                    body = JSON.stringify(body);
+                    console.warn(`[${requestId}] ⚠️ WARNING: Using reconstructed JSON - signature verification may fail`);
+                    console.warn(`[${requestId}] This is a workaround - for production, use Vercel Edge Functions or read raw stream`);
+                } catch (e) {
+                    return res.status(400).json({ 
+                        error: 'Cannot reconstruct body for signature verification',
+                        message: 'Body was parsed as JSON. Stripe signature verification requires exact raw body.',
+                        requestId: requestId,
+                        hint: 'Consider using Vercel Edge Functions or ensure raw body is available'
+                    });
+                }
+            } else if (Buffer.isBuffer(body)) {
+                // Body jest Buffer - konwertuj na string
                 body = body.toString('utf8');
-                console.log('✅ Converted Buffer to string');
-            } else if (typeof body === 'object' && body !== null) {
-                // Jeśli nadal jest obiektem (nie powinno się zdarzyć z bodyParser: false)
-                console.warn('⚠️ Body is still an object, attempting to stringify');
-            try {
-                body = JSON.stringify(body);
-            } catch (e) {
+                console.log(`[${requestId}] ✅ Converted Buffer to string`);
+            } else if (typeof body === 'string') {
+                // Body jest już stringiem - idealne!
+                console.log(`[${requestId}] ✅ Body is already a string`);
+            } else {
+                console.error(`[${requestId}] ❌ ERROR: Unknown body type:`, typeof body);
                 return res.status(400).json({ 
-                    error: 'Body was parsed as JSON before reaching function',
-                        message: 'Stripe signature verification requires raw body string. Check vercel.json bodyParser setting.'
+                    error: 'Invalid request body format',
+                    bodyType: typeof body,
+                    requestId: requestId
                 });
             }
-        }
-        
-        // Upewnij się, że body jest stringiem
-        if (typeof body !== 'string') {
-                console.error('❌ Body is not a string:', typeof body, body);
-            return res.status(400).json({ error: 'Invalid request body format' });
-        }
 
         console.log('Body preview (first 200 chars):', body.substring(0, 200));
 
