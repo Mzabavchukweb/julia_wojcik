@@ -5,14 +5,11 @@
   "description": "Strona szkoleń stylizacji paznokci - Julia Wójcik",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:webhook": "node test-webhook-local.js",
-    "test:vercel": "node test-webhook-vercel.js",
     "dev": "node local-server.js",
     "start": "node local-server.js",
     "vercel:dev": "vercel dev --listen 3000"
   },
   "dependencies": {
-    "@vercel/kv": "^3.0.0",
     "resend": "^3.0.0",
     "stripe": "^14.25.0"
   },

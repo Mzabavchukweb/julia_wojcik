@@ -6,64 +6,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 
-// Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
-let kv = null;
-try {
-    const kvModule = await import('@vercel/kv');
-    kv = kvModule.kv;
-    console.log('[INIT] ✅ Vercel KV loaded');
-} catch (error) {
-    console.error('[INIT] ⚠️ Vercel KV not available (will use memory fallback):', error.message, error.stack);
-    kv = null;
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 console.log('[INIT] ✅ Module download-ebook.js loaded successfully');
-
-// Funkcja do pobierania tokenu
-async function getToken(token) {
-    try {
-        if (kv) {
-            const data = await kv.get(`token:${token}`);
-            if (data) {
-                return typeof data === 'string' ? data : JSON.stringify(data);
-            }
-        }
-    } catch (error) {
-        console.error('❌ Vercel KV error, trying fallback:', error.message, error.stack);
-    }
-    
-    // Fallback do pamięci
-    if (typeof global !== 'undefined' && !global.tokenStore) {
-        global.tokenStore = new Map();
-    }
-    if (global?.tokenStore) {
-        return global.tokenStore.get(token);
-    }
-    
-    return null;
-}
-
-// Funkcja do aktualizacji tokenu
-async function updateToken(token, tokenData) {
-    try {
-        if (kv) {
-            await kv.set(`token:${token}`, JSON.stringify(tokenData), { ex: 604800 });
-            return true;
-        }
-    } catch (error) {
-        console.error('❌ Vercel KV update error:', error.message, error.stack);
-    }
-    
-    // Fallback
-    if (global?.tokenStore) {
-        global.tokenStore.set(token, JSON.stringify(tokenData));
-        return true;
-    }
-    
-    return false;
-}
 
 export default async function handler(req, res) {
     console.log('=== DOWNLOAD EBOOK REQUEST ===');
