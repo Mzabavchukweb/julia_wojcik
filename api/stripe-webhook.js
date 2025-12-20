@@ -4,7 +4,6 @@ console.log('[INIT] Loading stripe-webhook.js module...');
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
-import getRawBody from 'raw-body';
 
 // Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
 let kv = null;
@@ -113,10 +112,13 @@ async function updateToken(token, tokenData) {
 }
 
 // Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
+// Uwaga: W nowszych wersjach Vercel, bodyParser jest wyłączony domyślnie dla POST z content-type application/json
 export const config = {
     api: {
         bodyParser: false,
     },
+    // Edge runtime może lepiej obsługiwać raw body, ale może nie wspierać wszystkich bibliotek
+    // runtime: 'edge',
 };
 
 export default async function handler(req, res) {
@@ -239,58 +241,59 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Użyj raw-body do odczytu raw body - to jest kluczowe dla Stripe webhook
-            // Vercel może parsować body, więc próbujemy różnych metod
+            // PROSTSZE ROZWIĄZANIE: Odczytaj raw body używając prostego ReadableStream API
             let body;
             
-            // Metoda 1: Sprawdź czy jest rawBody (niektóre frameworki to udostępniają)
-            if (req.rawBody) {
-                body = typeof req.rawBody === 'string' ? req.rawBody : req.rawBody.toString('utf8');
-                console.log(`[${requestId}] ✅ Using req.rawBody, length:`, body.length);
-            }
-            // Metoda 2: Spróbuj użyć raw-body z req jako stream
-            else if (req.readable && typeof req.read === 'function') {
-                try {
-                    body = await getRawBody(req, {
-                        length: req.headers['content-length'],
-                        limit: '10mb',
-                        encoding: 'utf8'
-                    });
-                    console.log(`[${requestId}] ✅ Got raw body using raw-body from stream, length:`, body.length);
-                } catch (streamError) {
-                    console.error(`[${requestId}] ⚠️ Failed to read from stream:`, streamError.message);
-                    // Fallback do innych metod
+            try {
+                // Vercel Serverless Functions - body powinno być dostępne jako string lub Buffer
+                if (typeof req.body === 'string') {
+                    body = req.body;
+                    console.log(`[${requestId}] ✅ Body is string, length:`, body.length);
+                } else if (Buffer.isBuffer(req.body)) {
+                    body = req.body.toString('utf8');
+                    console.log(`[${requestId}] ✅ Body is Buffer, converted to string, length:`, body.length);
+                } else if (req.body && typeof req.body === 'object') {
+                    // Jeśli body jest obiektem (sparsowane), spróbuj użyć ReadableStream
+                    // Vercel powinien udostępnić raw body przez req jako stream
+                    const chunks = [];
+                    const reader = req.body.getReader();
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                    }
+                    
+                    // Połącz wszystkie chunk'i
+                    const allChunks = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        allChunks.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+                    
+                    body = new TextDecoder('utf-8').decode(allChunks);
+                    console.log(`[${requestId}] ✅ Body read from ReadableStream, length:`, body.length);
+                } else {
+                    // Ostatnia próba - użyj req jako ReadableStream jeśli to możliwe
+                    if (req.getReader || req[Symbol.asyncIterator]) {
+                        const chunks = [];
+                        for await (const chunk of req) {
+                            chunks.push(chunk);
+                        }
+                        body = Buffer.concat(chunks).toString('utf8');
+                        console.log(`[${requestId}] ✅ Body read from async iterator, length:`, body.length);
+                    } else {
+                        throw new Error(`Cannot read body - unknown format. Type: ${typeof req.body}, isBuffer: ${Buffer.isBuffer(req.body)}`);
+                    }
                 }
-            }
-            // Metoda 3: Jeśli body jest Buffer
-            else if (Buffer.isBuffer(req.body)) {
-                body = req.body.toString('utf8');
-                console.log(`[${requestId}] ✅ Body was Buffer, converted to string, length:`, body.length);
-            }
-            // Metoda 4: Jeśli body jest stringiem (nie sparsowane)
-            else if (typeof req.body === 'string') {
-                body = req.body;
-                console.log(`[${requestId}] ✅ Body was string (raw), length:`, body.length);
-            }
-            // Metoda 5: Jeśli body jest obiektem (sparsowane) - to jest problem!
-            else if (typeof req.body === 'object' && req.body !== null) {
-                // Vercel sparsował body - trzeba użyć JSON.stringify, ale to może nie zadziałać z podpisem
-                // Jednak Stripe wymaga RAW body, więc to nie zadziała poprawnie
-                console.error(`[${requestId}] ❌ Body was parsed as object - Stripe signature verification will likely fail!`);
-                console.error(`[${requestId}] This usually means bodyParser is not properly disabled.`);
-                body = JSON.stringify(req.body);
-                // Usuń spacje i nowe linie aby spróbować dopasować format
-                body = body.replace(/\s+/g, '');
-            }
-            
-            if (!body) {
-                console.error(`[${requestId}] ❌ ERROR: Could not extract body from request`);
+            } catch (bodyError) {
+                console.error(`[${requestId}] ❌ ERROR: Failed to read body:`, bodyError.message, bodyError.stack);
                 return res.status(400).json({ 
-                    error: 'Could not read request body',
+                    error: 'Failed to read request body',
+                    message: bodyError.message,
                     requestId: requestId,
-                    bodyType: typeof req.body,
-                    bodyIsBuffer: Buffer.isBuffer(req.body),
-                    bodyIsReadable: req.readable
+                    bodyType: typeof req.body
                 });
             }
             console.log('Body preview (first 200 chars):', body.substring(0, 200));
