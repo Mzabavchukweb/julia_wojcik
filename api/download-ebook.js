@@ -217,20 +217,220 @@ export default async function handler(req, res) {
         tokenData.lastDownloadAt = new Date().toISOString();
         console.log('✅ Download count:', downloadCount + 1, 'of', maxDownloads);
 
-        console.log('✅ Returning PDF file');
+        // Sprawdź czy request jest z przeglądarki (czy pokazać stronę HTML)
+        const userAgent = req.headers['user-agent'] || '';
+        const acceptHeader = req.headers['accept'] || '';
+        const isBrowser = acceptHeader.includes('text/html') || userAgent.includes('Mozilla');
         
-        // Zwróć plik PDF
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf"');
-        res.setHeader('Content-Length', pdfBuffer.length.toString());
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        return res.send(pdfBuffer);
+        // Jeśli request jest bezpośredni (curl, wget, etc.) - zwróć PDF bezpośrednio
+        if (!isBrowser || req.query?.direct === 'true') {
+            console.log('✅ Returning PDF file directly');
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf"');
+            res.setHeader('Content-Length', pdfBuffer.length.toString());
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.send(pdfBuffer);
+        }
+        
+        // Jeśli request jest z przeglądarki - pokaż stronę HTML z automatycznym pobieraniem
+        console.log('✅ Returning HTML page with auto-download');
+        
+        // Zakoduj PDF w base64 dla inline download
+        const pdfBase64 = pdfBuffer.toString('base64');
+        const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+        
+        return res.send(downloadPage(pdfDataUrl, downloadCount + 1, maxDownloads));
 
     } catch (error) {
         console.error('❌ Error in download-ebook:', error);
         console.error('Stack:', error.stack);
         return res.status(500).send(errorPage('Błąd', 'Wystąpił nieoczekiwany błąd podczas pobierania e-booka.<br>Spróbuj ponownie później lub skontaktuj się z nami.'));
     }
+}
+
+function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
+    return `
+        <!DOCTYPE html>
+        <html lang="pl">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Pobieranie e-booka - Julia Wójcik</title>
+            <style>
+                * { box-sizing: border-box; }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                    background: linear-gradient(135deg, #C5A572 0%, #a89263 100%);
+                    margin: 0;
+                    padding: 20px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                }
+                .container {
+                    background: white;
+                    border-radius: 16px;
+                    padding: 50px 40px;
+                    max-width: 600px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    text-align: center;
+                }
+                .icon {
+                    font-size: 80px;
+                    margin-bottom: 30px;
+                    animation: bounce 1s ease-in-out;
+                }
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-20px); }
+                }
+                h1 {
+                    color: #212121;
+                    margin: 0 0 20px 0;
+                    font-size: 32px;
+                    font-weight: 700;
+                }
+                .status {
+                    background: #f0f8ff;
+                    border-left: 4px solid #4CAF50;
+                    padding: 20px;
+                    margin: 30px 0;
+                    border-radius: 8px;
+                    text-align: left;
+                }
+                .status strong {
+                    color: #4CAF50;
+                    font-size: 18px;
+                    display: block;
+                    margin-bottom: 10px;
+                }
+                .info {
+                    color: #666;
+                    line-height: 1.8;
+                    margin: 20px 0;
+                    font-size: 16px;
+                }
+                .download-button {
+                    display: inline-block;
+                    background: #212121;
+                    color: white !important;
+                    padding: 18px 40px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    font-size: 18px;
+                    border-radius: 8px;
+                    margin: 30px 0;
+                    transition: background 0.3s;
+                    border: none;
+                    cursor: pointer;
+                }
+                .download-button:hover {
+                    background: #333;
+                }
+                .spinner {
+                    display: inline-block;
+                    width: 20px;
+                    height: 20px;
+                    border: 3px solid rgba(255,255,255,.3);
+                    border-radius: 50%;
+                    border-top-color: white;
+                    animation: spin 1s ease-in-out infinite;
+                    margin-right: 10px;
+                    vertical-align: middle;
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eee;
+                    color: #999;
+                    font-size: 14px;
+                }
+                .footer a {
+                    color: #C5A572;
+                    text-decoration: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">📥</div>
+                <h1>Pobieranie rozpoczęte!</h1>
+                
+                <div class="status">
+                    <strong>✅ Twój e-book jest gotowy do pobrania</strong>
+                    <div class="info">
+                        Jeśli pobieranie nie rozpoczęło się automatycznie, kliknij przycisk poniżej.
+                    </div>
+                </div>
+                
+                <div id="downloadStatus" style="margin: 20px 0;">
+                    <p style="color: #666;">Trwa przygotowywanie pliku...</p>
+                </div>
+                
+                <a href="#" id="downloadLink" class="download-button" download="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf" style="display: none;">
+                    <span class="spinner"></span>Pobierz e-book
+                </a>
+                
+                <div class="info" style="margin-top: 30px;">
+                    <strong>📋 Informacje:</strong><br>
+                    • Plik: <strong>Korekta bez skrótów</strong> (PDF)<br>
+                    • Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
+                    • Link jest ważny przez 7 dni
+                </div>
+                
+                <div class="footer">
+                    <p>Julia Wójcik - Profesjonalna Stylizacja Paznokci</p>
+                    <p>📸 <a href="https://www.instagram.com/juliawojcik_instruktor/">Instagram</a> | 
+                    🎵 <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">TikTok</a></p>
+                </div>
+            </div>
+            
+            <script>
+                // Automatycznie rozpocznij pobieranie
+                (function() {
+                    const pdfDataUrl = '${pdfDataUrl}';
+                    const link = document.getElementById('downloadLink');
+                    const status = document.getElementById('downloadStatus');
+                    
+                    // Konwertuj data URL na blob i utwórz link do pobrania
+                    try {
+                        // Dla większych plików, użyj fetch zamiast bezpośredniego data URL
+                        fetch(pdfDataUrl)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const url = window.URL.createObjectURL(blob);
+                                link.href = url;
+                                link.style.display = 'inline-block';
+                                
+                                status.innerHTML = '<p style="color: #4CAF50;"><strong>✅ Plik gotowy!</strong></p>';
+                                
+                                // Automatycznie kliknij link po 1 sekundzie
+                                setTimeout(() => {
+                                    link.click();
+                                    status.innerHTML = '<p style="color: #4CAF50;"><strong>✅ Pobieranie rozpoczęte!</strong><br><small style="color: #666;">Jeśli pobieranie się nie rozpoczęło, kliknij przycisk powyżej.</small></p>';
+                                }, 1000);
+                            })
+                            .catch(err => {
+                                console.error('Download error:', err);
+                                status.innerHTML = '<p style="color: #f44336;">⚠️ Wystąpił problem. Kliknij przycisk poniżej.</p>';
+                                link.href = pdfDataUrl;
+                                link.style.display = 'inline-block';
+                            });
+                    } catch (error) {
+                        console.error('Error:', error);
+                        link.href = pdfDataUrl;
+                        link.style.display = 'inline-block';
+                        status.innerHTML = '<p style="color: #f44336;">⚠️ Kliknij przycisk poniżej aby pobrać.</p>';
+                    }
+                })();
+            </script>
+        </body>
+        </html>
+    `;
 }
 
 function errorPage(title, message) {
