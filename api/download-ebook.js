@@ -265,7 +265,7 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                     font-family: 'Roboto Condensed', 'Avenir Next Condensed', sans-serif;
                     background: #f3f1ee;
                     margin: 0;
-                    padding: 20px;
+                    padding: 40px 20px;
                     display: flex;
                     justify-content: center;
                     align-items: center;
@@ -276,25 +276,36 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 }
                 .container {
                     background: #ffffff;
-                    padding: 60px 48px;
                     max-width: 550px;
                     width: 100%;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
                     text-align: center;
+                }
+                .logo-section {
+                    padding: 48px 48px 0 48px;
                 }
                 .logo {
                     font-family: 'Instrument Serif', Georgia, serif;
-                    font-size: 14px;
-                    letter-spacing: 0.12em;
+                    font-size: 18px;
+                    letter-spacing: 0.15em;
                     text-transform: uppercase;
                     color: #212121;
-                    margin-bottom: 48px;
+                    margin: 0;
                     font-weight: 400;
+                }
+                .gold-line {
+                    width: 60px;
+                    height: 2px;
+                    background: #C5A572;
+                    margin: 24px auto 0 auto;
+                }
+                .header {
+                    padding: 32px 48px 0 48px;
                 }
                 h1 {
                     font-family: 'Instrument Serif', Georgia, serif;
                     color: #212121;
-                    margin: 0 0 16px 0;
+                    margin: 0 0 12px 0;
                     font-size: 32px;
                     font-weight: 400;
                     text-transform: uppercase;
@@ -302,15 +313,18 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                     line-height: 1.1;
                 }
                 .subtitle {
-                    color: #6b6b6b;
-                    font-size: 16px;
-                    margin-bottom: 36px;
+                    color: #8a8a8a;
+                    font-size: 15px;
+                    margin: 0;
+                }
+                .content {
+                    padding: 40px 48px 48px 48px;
                 }
                 .status-box {
                     background: #f9f8f6;
                     border-left: 3px solid #C5A572;
                     padding: 24px;
-                    margin: 32px 0;
+                    margin: 0 0 32px 0;
                     text-align: left;
                 }
                 .status-box p {
@@ -322,52 +336,60 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                     display: inline-block;
                     background: #212121;
                     color: #ffffff !important;
-                    padding: 18px 48px;
+                    padding: 18px 42px;
                     text-decoration: none;
                     font-family: 'Roboto Condensed', sans-serif;
                     font-weight: 500;
                     font-size: 14px;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
-                    margin: 28px 0;
+                    margin: 0 0 36px 0;
                     transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
                     border: none;
                     cursor: pointer;
                 }
                 .download-button:hover {
                     background: #2d2d2d;
+                    transform: translateY(-2px);
                     box-shadow: 0 8px 32px rgba(197, 165, 114, 0.25);
                 }
+                .button-arrow {
+                    margin-left: 12px;
+                    font-size: 16px;
+                }
                 .info {
-                    color: #6b6b6b;
-                    font-size: 15px;
-                    line-height: 1.8;
-                    margin: 36px 0;
+                    background: #f9f8f6;
+                    border-left: 3px solid #C5A572;
+                    padding: 24px;
                     text-align: left;
-                    padding: 0;
                 }
                 .info-title {
                     font-family: 'Instrument Serif', Georgia, serif;
                     color: #212121;
-                    font-size: 18px;
+                    font-size: 14px;
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
-                    margin-bottom: 16px;
+                    margin: 0 0 12px 0;
                     font-weight: 400;
                 }
+                .info-text {
+                    color: #6b6b6b;
+                    font-size: 14px;
+                    line-height: 1.8;
+                    margin: 0;
+                }
                 .footer {
-                    margin-top: 48px;
-                    padding-top: 24px;
-                    border-top: 1px solid #e8e5e0;
+                    background: #212121;
+                    padding: 32px 48px;
                     color: #8a8a8a;
-                    font-size: 13px;
+                    font-size: 12px;
                 }
                 .footer-brand {
                     font-family: 'Instrument Serif', Georgia, serif;
                     font-size: 14px;
                     text-transform: uppercase;
                     letter-spacing: 0.12em;
-                    color: #212121;
+                    color: #ffffff;
                     margin: 0 0 8px 0;
                 }
                 .footer p {
@@ -381,41 +403,62 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 .footer a:hover {
                     color: #a89263;
                 }
+                .footer-gold-line {
+                    width: 40px;
+                    height: 1px;
+                    background: #C5A572;
+                    margin: 16px auto;
+                }
                 .credits {
                     margin-top: 20px;
                     padding-top: 16px;
-                    border-top: 1px solid #e8e5e0;
-                    font-size: 11px;
-                    color: #a8a8a8;
+                    border-top: 1px solid #3a3a3a;
+                    font-size: 10px;
+                    color: #555555;
                 }
                 .credits a {
-                    color: #8a8a8a;
+                    color: #6b6b6b;
                 }
             </style>
         </head>
         <body>
             <div class="container">
-                <div class="logo">Julia Wójcik</div>
-                <h1>Dziękuję za zakup</h1>
-                <p class="subtitle">Twój e-book jest gotowy do pobrania</p>
-                
-                <div class="status-box">
-                    <p id="downloadStatus">Trwa przygotowywanie pliku...</p>
+                <!-- Logo Section -->
+                <div class="logo-section">
+                    <p class="logo">Julia Wójcik</p>
+                    <div class="gold-line"></div>
                 </div>
                 
-                <a href="#" id="downloadLink" class="download-button" download="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf" style="display: none;">
-                    Pobierz e-book
-                </a>
-                
-                <div class="info">
-                    <p class="info-title">Informacje</p>
-                    Plik: Korekta bez skrótów (PDF)<br>
-                    Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
-                    Link jest ważny przez 7 dni
+                <!-- Header -->
+                <div class="header">
+                    <h1>Dziękuję za zakup</h1>
+                    <p class="subtitle">Twój e-book jest gotowy do pobrania</p>
                 </div>
                 
+                <!-- Content -->
+                <div class="content">
+                    <div class="status-box">
+                        <p id="downloadStatus">Trwa przygotowywanie pliku...</p>
+                    </div>
+                    
+                    <a href="#" id="downloadLink" class="download-button" download="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf" style="display: none;">
+                        POBIERZ E-BOOK<span class="button-arrow">→</span>
+                    </a>
+                    
+                    <div class="info">
+                        <p class="info-title">Informacje</p>
+                        <p class="info-text">
+                            Plik: Korekta bez skrótów (PDF)<br>
+                            Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
+                            Link jest ważny przez 7 dni
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
                 <div class="footer">
                     <p class="footer-brand">Julia Wójcik</p>
+                    <div class="footer-gold-line"></div>
                     <p>Profesjonalna Stylizacja Paznokci</p>
                     <p><a href="https://www.instagram.com/juliawojcik_instruktor/">Instagram</a> · <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">TikTok</a></p>
                     <div class="credits">
