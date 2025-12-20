@@ -16,7 +16,7 @@ const testEvent = {
             object: 'checkout.session',
             amount_total: 30000, // 300 PLN
             currency: 'pln',
-            customer_email: process.env.TEST_EMAIL || 'juliajula08@icloud.com',
+            customer_email: process.env.TEST_EMAIL || 'zabavchukmaks21@gmail.com',
             metadata: {
                 product_type: 'ebook'
             }

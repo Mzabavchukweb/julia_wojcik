@@ -411,16 +411,18 @@ export default async function handler(req, res) {
                     }
                     console.log(`[${requestId}] ✅ Token saved:`, token.substring(0, 16) + '...');
                     
-                    // Utwórz URL do pobrania
-                    // VERCEL_URL może być bez https://, więc sprawdź
-                    let baseUrl = 'https://julia-wojcik.vercel.app';
-                    if (process.env.VERCEL_URL && !process.env.VERCEL_URL.startsWith('http')) {
-                        baseUrl = `https://${process.env.VERCEL_URL}`;
-                    } else if (process.env.VERCEL_URL) {
-                        baseUrl = process.env.VERCEL_URL;
+                    // Utwórz URL do pobrania - użyj publicznego URL (nie deployment URL)
+                    // Priority: 1. PUBLIC_URL (custom), 2. NEXT_PUBLIC_URL, 3. Główny Vercel URL
+                    let baseUrl = 'https://julia-wojcik.vercel.app'; // Główny publiczny URL projektu
+                    
+                    // Użyj custom URL jeśli jest skonfigurowany
+                    if (process.env.PUBLIC_URL) {
+                        baseUrl = process.env.PUBLIC_URL;
                     } else if (process.env.NEXT_PUBLIC_URL) {
                         baseUrl = process.env.NEXT_PUBLIC_URL;
                     }
+                    // NIE używamy VERCEL_URL - to jest deployment URL który może wymagać logowania
+                    
                     const downloadUrl = `${baseUrl}/api/download-ebook?token=${token}`;
                     
                     console.log('🌐 Base URL:', baseUrl);
