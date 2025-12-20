@@ -30,7 +30,7 @@ if (process.env.RESEND_API_KEY) {
         }
     } catch (error) {
     console.error('[INIT] ❌ ERROR: Failed to initialize Resend:', error.message, error.stack);
-    }
+            }
     
 console.log('[INIT] ✅ Module stripe-webhook.js loaded successfully');
 

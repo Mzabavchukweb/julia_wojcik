@@ -38,10 +38,15 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     
+    <!-- Preload critical resources for LCP -->
+    <link rel="preload" href="images/hero/hero.jpg" as="image" fetchpriority="high">
+    <link rel="preload" href="assets/style.css" as="style">
+    
     <link rel="stylesheet" href="assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Avenir+Next:wght@400;500;600&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
     <!-- Floating Decorative Elements -->
@@ -80,7 +85,7 @@
         <section class="hero" data-scroll-section>
             <div class="hero-background">
                 <div class="hero-overlay"></div>
-                        <img src="images/hero/hero.jpg" alt="Profesjonalna stylizacja paznokci - Julia Wójcik" class="hero-bg-image" data-scroll data-scroll-speed="-2" loading="eager">
+                        <img src="images/hero/hero.jpg" alt="Profesjonalna stylizacja paznokci - Julia Wójcik" class="hero-bg-image" data-scroll data-scroll-speed="-2" loading="eager" fetchpriority="high">
             </div>
             <div class="hero-content">
                 <div class="hero-text" data-scroll data-scroll-delay="0.1">
@@ -359,7 +364,7 @@
                         <span class="title-word">PRACE</span>
                         <span class="title-word title-word-alt">KURSANTEK</span>
                     </h2>
-                    <p class="section-subtitle">Zobacz efekty pracy moich kursantek po ukończeniu szkoleń oraz PORTFOLIO - MOJE PRACE</p>
+                    <p class="section-subtitle">Zobacz efekty pracy moich kursantek po ukończeniu szkoleń</p>
                 </div>
                 <div class="portfolio-grid-clean">
                     <!-- Prace kursantek -->
@@ -388,7 +393,6 @@
                             <img src="nowe-prace/image6.jpeg" alt="Praca kursantki po szkoleniu - efekty nauki" class="portfolio-img" loading="lazy">
                         </div>
                     </div>
-                    <!-- Portfolio - Moje prace -->
                     <div class="portfolio-item" data-scroll data-scroll-opacity data-scroll-delay="0.35">
                         <div class="portfolio-item-inner">
                             <img src="images/prace/image3.webp" alt="Portfolio - profesjonalna stylizacja paznokci hybrydowych" class="portfolio-img" loading="lazy">
@@ -667,6 +671,6 @@
         </div>
     </div>
 
-    <script src="assets/script.js"></script>
+    <script src="assets/script.js" defer></script>
 </body>
 </html>
