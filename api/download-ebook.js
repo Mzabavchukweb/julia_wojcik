@@ -165,11 +165,11 @@ export default async function handler(req, res) {
         // Sprawdź czy to request do pobrania pliku bezpośrednio
         if (req.query?.download === 'true') {
             console.log('✅ Returning PDF file directly');
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf"');
-            res.setHeader('Content-Length', pdfBuffer.length.toString());
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            return res.send(pdfBuffer);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf"');
+        res.setHeader('Content-Length', pdfBuffer.length.toString());
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        return res.send(pdfBuffer);
         }
         
         // Pokaż stronę HTML z przyciskiem do pobrania (ładuje się natychmiast!)

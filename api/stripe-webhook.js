@@ -27,11 +27,11 @@ if (process.env.RESEND_API_KEY) {
         console.log('[INIT] ✅ Resend initialized');
 } else {
         console.error('[INIT] ❌ RESEND_API_KEY not set - email sending will be disabled');
-    }
-} catch (error) {
+        }
+    } catch (error) {
     console.error('[INIT] ❌ ERROR: Failed to initialize Resend:', error.message, error.stack);
-}
-
+    }
+    
 console.log('[INIT] ✅ Module stripe-webhook.js loaded successfully');
 
 // Konfiguracja Vercel - wyłącz parsowanie body (wymagane dla Stripe webhook)
@@ -211,8 +211,8 @@ export default async function handler(req, res) {
                     bodyType: typeof req.body,
                     hint: 'Ensure bodyParser is set to false in Vercel config'
                 });
-            }
-            
+        }
+
             console.log(`[${requestId}] Body preview (first 200 chars):`, body.substring(0, 200));
 
         try {
@@ -249,9 +249,31 @@ export default async function handler(req, res) {
         if (stripeEvent?.type === 'checkout.session.completed') {
             const session = stripeEvent.data.object;
             
+            // Pobierz email z różnych źródeł (Stripe może zapisać go w różnych polach)
+            let customerEmail = session.customer_email 
+                || session.customer_details?.email 
+                || null;
+            
+            // Jeśli nadal brak emaila, spróbuj pobrać z customer object
+            if (!customerEmail && session.customer && stripe) {
+                try {
+                    console.log(`[${requestId}] 🔍 Fetching customer email from customer object: ${session.customer}`);
+                    const customer = await stripe.customers.retrieve(session.customer);
+                    if (customer && !customer.deleted) {
+                        customerEmail = customer.email;
+                        console.log(`[${requestId}] ✅ Got email from customer object: ${customerEmail}`);
+                    }
+                } catch (customerError) {
+                    console.warn(`[${requestId}] ⚠️ Could not fetch customer:`, customerError.message);
+                }
+            }
+            
             console.log(`[${requestId}] 💳 Checkout session completed:`, {
                 sessionId: session.id,
-                customerEmail: session.customer_email,
+                customerEmail: customerEmail,
+                customerEmailSource: session.customer_email ? 'session.customer_email' : 
+                                    session.customer_details?.email ? 'session.customer_details.email' : 
+                                    session.customer ? 'customer object' : 'none',
                 amountTotal: session.amount_total,
                 currency: session.currency,
                 paymentLink: session.payment_link
@@ -323,7 +345,7 @@ export default async function handler(req, res) {
 
             console.log(`[${requestId}] 📊 Purchase detection summary:`, {
                 isEbookPurchase,
-                customerEmail: session.customer_email,
+                customerEmail: customerEmail,
                 amountTotal: session.amount_total,
                 currency: session.currency,
                 amountInPLN: session.amount_total ? (session.amount_total / 100) : 'N/A',
@@ -332,7 +354,7 @@ export default async function handler(req, res) {
                 lineItemsCount: lineItems?.data?.length || 0
             });
 
-            if (isEbookPurchase && session.customer_email) {
+            if (isEbookPurchase && customerEmail) {
                 console.log(`[${requestId}] ✅ Ebook purchase detected - processing...`);
                 try {
                     // Generuj zakodowany token (zawiera dane w samym tokenie - nie potrzebujemy storage!)
@@ -342,7 +364,7 @@ export default async function handler(req, res) {
                     
                     // Dane do zakodowania w tokenie
                     const tokenPayload = {
-                        email: session.customer_email,
+                        email: customerEmail,
                         sessionId: session.id,
                         createdAt: new Date().toISOString(),
                         expiresAt: expiresAt.toISOString(),
@@ -407,13 +429,12 @@ export default async function handler(req, res) {
                     
                     // Wyślij email z linkiem do pobrania
                     console.log('📧 Preparing to send email...');
-                    console.log('  To:', session.customer_email);
+                    console.log('  To:', customerEmail);
                     console.log('  From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
                     console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
                     console.log('  Resend instance:', resend ? 'initialized' : 'not initialized');
                     
                     // Wyciągnij imię z emaila lub użyj domyślnego powitania
-                    const customerEmail = session.customer_email || '';
                     const customerName = session.customer_details?.name || '';
                     let greeting = 'Cześć';
                     if (customerName) {
@@ -433,7 +454,7 @@ export default async function handler(req, res) {
                     try {
                         emailResult = await resend.emails.send({
                         from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
-                        to: session.customer_email,
+                        to: customerEmail,
                         subject: 'Twój e-book jest gotowy do pobrania',
                         html: `
                             <!DOCTYPE html>
@@ -654,7 +675,7 @@ export default async function handler(req, res) {
                             </head>
                             <body>
                                 <div class="wrapper">
-                                    <div class="container">
+                                <div class="container">
                                         <!-- Logo Section -->
                                         <div class="logo-section">
                                             <p class="logo">Julia Wójcik</p>
@@ -662,7 +683,7 @@ export default async function handler(req, res) {
                                         </div>
                                         
                                         <!-- Header -->
-                                        <div class="header">
+                                    <div class="header">
                                             <h1>Dziękuję za zakup</h1>
                                             <p class="header-subtitle">Twój e-book jest gotowy do pobrania</p>
                                         </div>
@@ -679,14 +700,14 @@ export default async function handler(req, res) {
                                                 </a>
                                             </div>
                                             
-                                            <div class="info-box">
+                                        <div class="info-box">
                                                 <p class="info-box-title">Ważne informacje</p>
                                                 <ul>
                                                     <li>Link jest ważny przez <strong style="color: #212121;">7 dni</strong> od zakupu</li>
                                                     <li>Możesz pobrać e-book maksymalnie <strong style="color: #212121;">5 razy</strong></li>
-                                                    <li>Po pobraniu zapisz plik na swoim urządzeniu</li>
-                                                </ul>
-                                            </div>
+                                                <li>Po pobraniu zapisz plik na swoim urządzeniu</li>
+                                            </ul>
+                                        </div>
                                             
                                             <!-- Contact Section with Social Icons -->
                                             <div class="contact-section">
@@ -705,14 +726,14 @@ export default async function handler(req, res) {
                                             
                                             <!-- Signature -->
                                             <div class="signature">
-                                                <p>Życzę Ci owocnej pracy z e-bookiem!</p>
+                                        <p>Życzę Ci owocnej pracy z e-bookiem!</p>
                                                 <p style="margin-top: 16px;">Pozdrawiam serdecznie,</p>
                                                 <p class="signature-name">Julia Wójcik</p>
                                             </div>
-                                        </div>
+                                    </div>
                                         
                                         <!-- Footer -->
-                                        <div class="footer">
+                                    <div class="footer">
                                             <p class="footer-brand">Julia Wójcik</p>
                                             <div class="footer-gold-line"></div>
                                             <p>Profesjonalna Stylizacja Paznokci</p>
@@ -737,7 +758,7 @@ export default async function handler(req, res) {
                         console.error(`[${requestId}] Email error message:`, emailError.message);
                         console.error(`[${requestId}] Email error code:`, emailError.code || 'N/A');
                         console.error(`[${requestId}] Email error stack:`, emailError.stack);
-                        console.error(`[${requestId}] Email to:`, session.customer_email);
+                        console.error(`[${requestId}] Email to:`, customerEmail);
                         console.error(`[${requestId}] Email from:`, process.env.EMAIL_FROM || 'NOT SET');
                         console.error(`[${requestId}] Resend API Key present:`, !!process.env.RESEND_API_KEY);
                         console.error(`[${requestId}] Full error object:`, JSON.stringify(emailError, Object.getOwnPropertyNames(emailError), 2));
@@ -780,7 +801,7 @@ export default async function handler(req, res) {
             } else {
                 console.log(`[${requestId}] ⚠️ Not an ebook purchase or no customer email`);
                 console.log(`[${requestId}]   - isEbookPurchase:`, isEbookPurchase);
-                console.log(`[${requestId}]   - customerEmail:`, session.customer_email);
+                console.log(`[${requestId}]   - customerEmail:`, customerEmail);
                 console.log(`[${requestId}]   - amountTotal:`, session.amount_total);
                 console.log(`[${requestId}]   - currency:`, session.currency);
                 console.log(`[${requestId}]   - metadata:`, session.metadata);
