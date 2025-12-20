@@ -387,15 +387,13 @@ export default async function handler(req, res) {
             if (isEbookPurchase && session.customer_email) {
                 console.log(`[${requestId}] ✅ Ebook purchase detected - processing...`);
                 try {
-                    // Generuj unikalny 64-znakowy token
-                    const token = crypto.randomBytes(32).toString('hex');
-                    
-                    // Oblicz datę wygaśnięcia (7 dni od teraz)
+                    // Generuj zakodowany token (zawiera dane w samym tokenie - nie potrzebujemy storage!)
+                    // To rozwiązuje problem z Vercel KV - token jest samowystarczalny
                     const expiresAt = new Date();
-                    expiresAt.setDate(expiresAt.getDate() + 7);
+                    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dni ważności
                     
-                    // Dane tokenu
-                    const tokenData = {
+                    // Dane do zakodowania w tokenie
+                    const tokenPayload = {
                         email: session.customer_email,
                         sessionId: session.id,
                         createdAt: new Date().toISOString(),
@@ -404,33 +402,23 @@ export default async function handler(req, res) {
                         maxDownloads: 5
                     };
                     
-                    // Zapisz token (używa Vercel KV lub fallback)
-                    console.log(`[${requestId}] 💾 Attempting to save token...`);
-                    console.log(`[${requestId}] Token (first 16 chars):`, token.substring(0, 16));
-                    console.log(`[${requestId}] Token data:`, JSON.stringify(tokenData));
-                    console.log(`[${requestId}] Vercel KV available:`, !!kv);
+                    // Zakoduj dane w base64 + dodaj podpis HMAC dla bezpieczeństwa
+                    const payloadJson = JSON.stringify(tokenPayload);
+                    const payloadBase64 = Buffer.from(payloadJson).toString('base64url');
                     
-                    const tokenSaved = await saveToken(token, tokenData);
-                    if (!tokenSaved) {
-                        console.error(`[${requestId}] ❌ ERROR: Failed to save token!`);
-                        console.error(`[${requestId}] This means token will not be retrievable for download!`);
-                        // Kontynuuj mimo to - może email się wyśle
-                    } else {
-                        console.log(`[${requestId}] ✅ Token saved successfully:`, token.substring(0, 16) + '...');
-                        
-                        // WERYFIKACJA: Spróbuj od razu odczytać token żeby upewnić się że jest zapisany
-                        try {
-                            const testRead = await getToken(token);
-                            if (testRead) {
-                                console.log(`[${requestId}] ✅✅ Token verification: Can read token back - OK!`);
-                            } else {
-                                console.error(`[${requestId}] ❌❌ Token verification FAILED: Cannot read token back immediately!`);
-                                console.error(`[${requestId}] This is a critical issue - token will not work for download!`);
-                            }
-                        } catch (verifyError) {
-                            console.error(`[${requestId}] ❌ Error verifying token:`, verifyError.message);
-                        }
-                    }
+                    // Utwórz podpis HMAC (SHA256) dla bezpieczeństwa
+                    const secret = process.env.TOKEN_SECRET || process.env.STRIPE_WEBHOOK_SECRET || 'default-secret-change-in-production';
+                    const hmac = crypto.createHmac('sha256', secret);
+                    hmac.update(payloadBase64);
+                    const signature = hmac.digest('hex').substring(0, 32);
+                    
+                    // Token = payload + podpis (odzielone kropką)
+                    const token = `${payloadBase64}.${signature}`;
+                    
+                    console.log(`[${requestId}] ✅ Token generated (self-contained, no storage needed):`, token.substring(0, 50) + '...');
+                    console.log(`[${requestId}] Token contains:`, { email: tokenPayload.email, expiresAt: tokenPayload.expiresAt });
+                    
+                    // Token jest gotowy - nie potrzebujemy zapisywać go do storage!
                     
                     // Utwórz URL do pobrania - użyj publicznego URL (nie deployment URL)
                     // Priority: 1. PUBLIC_URL (custom), 2. NEXT_PUBLIC_URL, 3. Główny Vercel URL

@@ -76,25 +76,39 @@ export default async function handler(req, res) {
             return res.status(400).send(errorPage('Brak tokenu', 'Brak tokenu dostępu. Link do pobrania jest nieprawidłowy.<br>Jeśli otrzymałeś ten link w emailu, upewnij się, że skopiowałeś go w całości.'));
         }
 
-        // Pobierz dane tokenu z store
-        console.log('🔍 Looking for token:', token.substring(0, 16) + '...');
-        console.log('Vercel KV available:', !!kv);
+        // Dekoduj token (token zawiera dane - nie potrzebujemy storage!)
+        console.log('🔍 Decoding token:', token.substring(0, 50) + '...');
         
-        const tokenString = await getToken(token);
-        
-        if (!tokenString) {
-            console.error('❌ Token not found in store');
-            console.error('Token (first 16 chars):', token.substring(0, 16));
-            console.error('This could mean:');
-            console.error('  1. Token was not saved during purchase');
-            console.error('  2. Vercel KV is not configured/working');
-            console.error('  3. Token expired or was deleted');
-            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub wygasł.<br>Linki są ważne przez 7 dni od zakupu.<br><br>Jeśli właśnie dokonałeś zakupu, poczekaj chwilę i spróbuj ponownie.'));
+        let tokenData;
+        try {
+            // Token format: payload.signature
+            const parts = token.split('.');
+            if (parts.length !== 2) {
+                throw new Error('Invalid token format');
+            }
+            
+            const [payloadBase64, signature] = parts;
+            
+            // Zweryfikuj podpis
+            const secret = process.env.TOKEN_SECRET || process.env.STRIPE_WEBHOOK_SECRET || 'default-secret-change-in-production';
+            const hmac = crypto.createHmac('sha256', secret);
+            hmac.update(payloadBase64);
+            const expectedSignature = hmac.digest('hex').substring(0, 32);
+            
+            if (signature !== expectedSignature) {
+                throw new Error('Token signature verification failed');
+            }
+            
+            // Dekoduj payload
+            const payloadJson = Buffer.from(payloadBase64, 'base64url').toString('utf8');
+            tokenData = JSON.parse(payloadJson);
+            
+            console.log('✅ Token decoded and verified successfully');
+        } catch (error) {
+            console.error('❌ Token decode/verification failed:', error.message);
+            console.error('Token (first 50 chars):', token.substring(0, 50));
+            return res.status(404).send(errorPage('Token nieważny', 'Ten link do pobrania jest nieważny lub został uszkodzony.<br>Linki są ważne przez 7 dni od zakupu.<br><br>Jeśli właśnie dokonałeś zakupu, sprawdź czy skopiowałeś link w całości.'));
         }
-        
-        console.log('✅ Token found in store');
-
-        const tokenData = JSON.parse(tokenString);
         const { email, expiresAt, downloadCount, maxDownloads } = tokenData;
         console.log('Token data:', { email, expiresAt, downloadCount, maxDownloads });
 
@@ -154,18 +168,10 @@ export default async function handler(req, res) {
             return res.status(500).send(errorPage('Błąd serwera', 'Nie udało się pobrać pliku e-booka.<br>Skontaktuj się z nami, a pomożemy rozwiązać problem.'));
         }
 
-        // Zwiększ licznik pobrań
-        try {
-            const updatedData = {
-                ...tokenData,
-                downloadCount: downloadCount + 1,
-                lastDownloadAt: new Date().toISOString()
-            };
-            await updateToken(token, updatedData);
-            console.log('✅ Download count updated to:', downloadCount + 1);
-        } catch (updateError) {
-            console.error('❌ Could not update download count:', updateError.message, updateError.stack);
-        }
+        // Zwiększ licznik pobrań w tokenie (dla informacji, ale nie zapisujemy - token jest read-only)
+        tokenData.downloadCount = downloadCount + 1;
+        tokenData.lastDownloadAt = new Date().toISOString();
+        console.log('✅ Download count:', downloadCount + 1, 'of', maxDownloads);
 
         console.log('✅ Returning PDF file');
         
