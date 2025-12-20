@@ -4,6 +4,7 @@ console.log('[INIT] Loading download-ebook.js module...');
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 // Import Vercel KV - jeśli nie jest dostępny, kod użyje fallback w funkcjach
 let kv = null;
