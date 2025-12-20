@@ -260,7 +260,7 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 * { box-sizing: border-box; }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-                    background: linear-gradient(135deg, #C5A572 0%, #a89263 100%);
+                    background: #C5A572;
                     margin: 0;
                     padding: 20px;
                     display: flex;
@@ -270,57 +270,53 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 }
                 .container {
                     background: white;
-                    border-radius: 16px;
                     padding: 50px 40px;
-                    max-width: 600px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    max-width: 550px;
+                    width: 100%;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
                     text-align: center;
                 }
-                .icon {
-                    font-size: 80px;
-                    margin-bottom: 30px;
-                    animation: bounce 1s ease-in-out;
-                }
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-20px); }
+                .logo {
+                    font-size: 14px;
+                    letter-spacing: 3px;
+                    text-transform: uppercase;
+                    color: #C5A572;
+                    margin-bottom: 40px;
+                    font-weight: 600;
                 }
                 h1 {
                     color: #212121;
-                    margin: 0 0 20px 0;
-                    font-size: 32px;
-                    font-weight: 700;
+                    margin: 0 0 16px 0;
+                    font-size: 28px;
+                    font-weight: 600;
                 }
-                .status {
-                    background: #f0f8ff;
-                    border-left: 4px solid #4CAF50;
-                    padding: 20px;
-                    margin: 30px 0;
-                    border-radius: 8px;
+                .subtitle {
+                    color: #666;
+                    font-size: 16px;
+                    margin-bottom: 32px;
+                }
+                .status-box {
+                    background: #f9f8f6;
+                    border-left: 3px solid #C5A572;
+                    padding: 20px 24px;
+                    margin: 28px 0;
                     text-align: left;
                 }
-                .status strong {
-                    color: #4CAF50;
-                    font-size: 18px;
-                    display: block;
-                    margin-bottom: 10px;
-                }
-                .info {
-                    color: #666;
-                    line-height: 1.8;
-                    margin: 20px 0;
-                    font-size: 16px;
+                .status-box p {
+                    margin: 0;
+                    color: #333;
+                    line-height: 1.6;
                 }
                 .download-button {
                     display: inline-block;
                     background: #212121;
                     color: white !important;
-                    padding: 18px 40px;
+                    padding: 16px 40px;
                     text-decoration: none;
                     font-weight: 600;
-                    font-size: 18px;
-                    border-radius: 8px;
-                    margin: 30px 0;
+                    font-size: 15px;
+                    letter-spacing: 0.5px;
+                    margin: 24px 0;
                     transition: background 0.3s;
                     border: none;
                     cursor: pointer;
@@ -330,9 +326,9 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 }
                 .spinner {
                     display: inline-block;
-                    width: 20px;
-                    height: 20px;
-                    border: 3px solid rgba(255,255,255,.3);
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255,255,255,.3);
                     border-radius: 50%;
                     border-top-color: white;
                     animation: spin 1s ease-in-out infinite;
@@ -342,63 +338,86 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
+                .info {
+                    color: #888;
+                    font-size: 14px;
+                    line-height: 1.8;
+                    margin: 28px 0;
+                    text-align: left;
+                    padding: 0 10px;
+                }
+                .info strong {
+                    color: #212121;
+                    display: block;
+                    margin-bottom: 12px;
+                    font-size: 15px;
+                }
                 .footer {
                     margin-top: 40px;
-                    padding-top: 20px;
+                    padding-top: 24px;
                     border-top: 1px solid #eee;
                     color: #999;
-                    font-size: 14px;
+                    font-size: 13px;
+                }
+                .footer p {
+                    margin: 0 0 8px 0;
                 }
                 .footer a {
                     color: #C5A572;
                     text-decoration: none;
                 }
+                .footer a:hover {
+                    text-decoration: underline;
+                }
+                .credits {
+                    margin-top: 20px;
+                    padding-top: 16px;
+                    border-top: 1px solid #f0f0f0;
+                    font-size: 11px;
+                    color: #ccc;
+                }
+                .credits a {
+                    color: #bbb;
+                }
             </style>
         </head>
         <body>
             <div class="container">
-                <div class="icon">📥</div>
-                <h1>Pobieranie rozpoczęte!</h1>
+                <div class="logo">Julia Wójcik</div>
+                <h1>Dziękuję za zakup</h1>
+                <p class="subtitle">Twój e-book jest gotowy do pobrania</p>
                 
-                <div class="status">
-                    <strong>✅ Twój e-book jest gotowy do pobrania</strong>
-                    <div class="info">
-                        Jeśli pobieranie nie rozpoczęło się automatycznie, kliknij przycisk poniżej.
-                    </div>
-                </div>
-                
-                <div id="downloadStatus" style="margin: 20px 0;">
-                    <p style="color: #666;">Trwa przygotowywanie pliku...</p>
+                <div class="status-box">
+                    <p id="downloadStatus">Trwa przygotowywanie pliku...</p>
                 </div>
                 
                 <a href="#" id="downloadLink" class="download-button" download="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf" style="display: none;">
-                    <span class="spinner"></span>Pobierz e-book
+                    Pobierz e-book
                 </a>
                 
-                <div class="info" style="margin-top: 30px;">
-                    <strong>📋 Informacje:</strong><br>
-                    • Plik: <strong>Korekta bez skrótów</strong> (PDF)<br>
-                    • Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
-                    • Link jest ważny przez 7 dni
+                <div class="info">
+                    <strong>Informacje</strong>
+                    Plik: Korekta bez skrótów (PDF)<br>
+                    Liczba pobrań: ${downloadCount} z ${maxDownloads}<br>
+                    Link jest ważny przez 7 dni
                 </div>
                 
                 <div class="footer">
-                    <p>Julia Wójcik - Profesjonalna Stylizacja Paznokci</p>
-                    <p>📸 <a href="https://www.instagram.com/juliawojcik_instruktor/">Instagram</a> | 
-                    🎵 <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">TikTok</a></p>
+                    <p><strong>Julia Wójcik</strong> — Profesjonalna Stylizacja Paznokci</p>
+                    <p><a href="https://www.instagram.com/juliawojcik_instruktor/">Instagram</a> · <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">TikTok</a></p>
+                    <div class="credits">
+                        <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
+                    </div>
                 </div>
             </div>
             
             <script>
-                // Automatycznie rozpocznij pobieranie
                 (function() {
                     const pdfDataUrl = '${pdfDataUrl}';
                     const link = document.getElementById('downloadLink');
                     const status = document.getElementById('downloadStatus');
                     
-                    // Konwertuj data URL na blob i utwórz link do pobrania
                     try {
-                        // Dla większych plików, użyj fetch zamiast bezpośredniego data URL
                         fetch(pdfDataUrl)
                             .then(res => res.blob())
                             .then(blob => {
@@ -406,17 +425,16 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                                 link.href = url;
                                 link.style.display = 'inline-block';
                                 
-                                status.innerHTML = '<p style="color: #4CAF50;"><strong>✅ Plik gotowy!</strong></p>';
+                                status.innerHTML = 'Plik gotowy do pobrania';
                                 
-                                // Automatycznie kliknij link po 1 sekundzie
                                 setTimeout(() => {
                                     link.click();
-                                    status.innerHTML = '<p style="color: #4CAF50;"><strong>✅ Pobieranie rozpoczęte!</strong><br><small style="color: #666;">Jeśli pobieranie się nie rozpoczęło, kliknij przycisk powyżej.</small></p>';
+                                    status.innerHTML = 'Pobieranie rozpoczęte. Jeśli plik się nie pobiera, kliknij przycisk powyżej.';
                                 }, 1000);
                             })
                             .catch(err => {
                                 console.error('Download error:', err);
-                                status.innerHTML = '<p style="color: #f44336;">⚠️ Wystąpił problem. Kliknij przycisk poniżej.</p>';
+                                status.innerHTML = 'Wystąpił problem. Kliknij przycisk poniżej.';
                                 link.href = pdfDataUrl;
                                 link.style.display = 'inline-block';
                             });
@@ -424,7 +442,7 @@ function downloadPage(pdfDataUrl, downloadCount, maxDownloads) {
                         console.error('Error:', error);
                         link.href = pdfDataUrl;
                         link.style.display = 'inline-block';
-                        status.innerHTML = '<p style="color: #f44336;">⚠️ Kliknij przycisk poniżej aby pobrać.</p>';
+                        status.innerHTML = 'Kliknij przycisk poniżej, aby pobrać e-book.';
                     }
                 })();
             </script>
@@ -445,7 +463,7 @@ function errorPage(title, message) {
                 * { box-sizing: border-box; }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-                    background: linear-gradient(135deg, #f9f8f6 0%, #ebe8e3 100%);
+                    background: #f9f8f6;
                     margin: 0;
                     padding: 20px;
                     display: flex;
@@ -455,35 +473,53 @@ function errorPage(title, message) {
                 }
                 .container {
                     background: white;
-                    border-radius: 12px;
-                    padding: 40px;
+                    padding: 50px 40px;
                     max-width: 500px;
                     box-shadow: 0 10px 40px rgba(0,0,0,0.1);
                     text-align: center;
                 }
-                .icon { font-size: 48px; margin-bottom: 20px; }
-                h1 { color: #212121; margin: 0 0 15px 0; font-size: 24px; }
+                .logo {
+                    font-size: 14px;
+                    letter-spacing: 3px;
+                    text-transform: uppercase;
+                    color: #C5A572;
+                    margin-bottom: 40px;
+                    font-weight: 600;
+                }
+                h1 { color: #212121; margin: 0 0 16px 0; font-size: 24px; font-weight: 600; }
                 p { color: #666; line-height: 1.7; margin: 0 0 20px 0; }
                 .contact { 
                     background: #f9f8f6; 
-                    border-left: 4px solid #C5A572; 
-                    padding: 15px; 
+                    border-left: 3px solid #C5A572; 
+                    padding: 20px; 
                     text-align: left;
-                    margin-top: 25px;
+                    margin-top: 30px;
                 }
+                .contact p { margin: 0 0 8px 0; }
                 .contact a { color: #C5A572; text-decoration: none; font-weight: 500; }
                 .contact a:hover { text-decoration: underline; }
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eee;
+                    font-size: 11px;
+                    color: #ccc;
+                }
+                .footer a { color: #bbb; text-decoration: none; }
             </style>
         </head>
         <body>
             <div class="container">
-                <div class="icon">⚠️</div>
+                <div class="logo">Julia Wójcik</div>
                 <h1>${title}</h1>
                 <p>${message}</p>
                 <div class="contact">
-                    <p style="margin-bottom: 10px;"><strong>Potrzebujesz pomocy?</strong></p>
-                    <p style="margin: 5px 0;">📸 <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
-                    <p style="margin: 5px 0;">🎵 <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
+                    <p><strong>Potrzebujesz pomocy?</strong></p>
+                    <p>Instagram: <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
+                    <p>TikTok: <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
+                </div>
+                <div class="footer">
+                    <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
                 </div>
             </div>
         </body>

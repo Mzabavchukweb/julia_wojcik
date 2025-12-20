@@ -469,7 +469,7 @@ export default async function handler(req, res) {
                         emailResult = await resend.emails.send({
                         from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
                         to: session.customer_email,
-                        subject: 'Twój e-book od Julii Wójcik - Dziękujemy za zakup! 📚',
+                        subject: 'Twój e-book od Julii Wójcik - Dziękuję za zakup',
                         html: `
                             <!DOCTYPE html>
                             <html>
@@ -477,49 +477,153 @@ export default async function handler(req, res) {
                                 <meta charset="UTF-8">
                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                 <style>
-                                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                                    .container { max-width: 600px; margin: 0 auto; }
-                                    .header { background: linear-gradient(135deg, #C5A572 0%, #a89263 100%); color: white; padding: 30px; text-align: center; }
-                                    .header h1 { margin: 0; font-size: 24px; }
-                                    .content { background: #f9f8f6; padding: 30px; }
-                                    .button { display: inline-block; background: #212121; color: white !important; padding: 15px 30px; text-decoration: none; font-weight: bold; margin: 20px 0; border-radius: 4px; }
+                                    body { 
+                                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+                                        line-height: 1.7; 
+                                        color: #212121; 
+                                        margin: 0; 
+                                        padding: 0; 
+                                        background: #f9f8f6;
+                                    }
+                                    .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+                                    .header { 
+                                        background: #C5A572; 
+                                        color: white; 
+                                        padding: 40px 30px; 
+                                        text-align: center; 
+                                    }
+                                    .header h1 { 
+                                        margin: 0; 
+                                        font-size: 26px; 
+                                        font-weight: 600;
+                                        letter-spacing: 0.5px;
+                                    }
+                                    .content { 
+                                        background: #ffffff; 
+                                        padding: 40px 30px; 
+                                    }
+                                    .content p {
+                                        margin: 0 0 16px 0;
+                                        color: #333;
+                                    }
+                                    .button { 
+                                        display: inline-block; 
+                                        background: #212121; 
+                                        color: white !important; 
+                                        padding: 16px 36px; 
+                                        text-decoration: none; 
+                                        font-weight: 600; 
+                                        font-size: 15px;
+                                        margin: 24px 0; 
+                                        letter-spacing: 0.5px;
+                                    }
                                     .button:hover { background: #333; }
-                                    .footer { text-align: center; padding: 20px; color: #6b6b6b; font-size: 12px; background: #f0f0f0; }
-                                    .info-box { background: #fff; border-left: 4px solid #C5A572; padding: 15px; margin: 20px 0; }
-                                    a { color: #C5A572; }
+                                    .info-box { 
+                                        background: #f9f8f6; 
+                                        border-left: 3px solid #C5A572; 
+                                        padding: 20px; 
+                                        margin: 28px 0; 
+                                    }
+                                    .info-box p {
+                                        margin: 0 0 12px 0;
+                                        font-weight: 600;
+                                        color: #212121;
+                                    }
+                                    .info-box ul {
+                                        margin: 0;
+                                        padding-left: 20px;
+                                        color: #555;
+                                    }
+                                    .info-box li {
+                                        margin-bottom: 8px;
+                                    }
+                                    .contact-box {
+                                        margin-top: 28px;
+                                        padding-top: 20px;
+                                        border-top: 1px solid #eee;
+                                    }
+                                    .contact-box p {
+                                        margin: 0 0 8px 0;
+                                        color: #555;
+                                    }
+                                    .contact-box a { 
+                                        color: #C5A572; 
+                                        text-decoration: none;
+                                        font-weight: 500;
+                                    }
+                                    .contact-box a:hover {
+                                        text-decoration: underline;
+                                    }
+                                    .signature {
+                                        margin-top: 32px;
+                                    }
+                                    .signature p {
+                                        margin: 0;
+                                    }
+                                    .footer { 
+                                        text-align: center; 
+                                        padding: 24px 30px; 
+                                        color: #999; 
+                                        font-size: 13px; 
+                                        background: #f9f8f6;
+                                        border-top: 1px solid #eee;
+                                    }
+                                    .footer p {
+                                        margin: 0 0 8px 0;
+                                    }
+                                    .footer a { 
+                                        color: #C5A572; 
+                                        text-decoration: none;
+                                    }
+                                    .credits {
+                                        margin-top: 16px;
+                                        padding-top: 16px;
+                                        border-top: 1px solid #e5e5e5;
+                                        font-size: 11px;
+                                        color: #bbb;
+                                    }
+                                    .credits a {
+                                        color: #999;
+                                    }
                                 </style>
                             </head>
                             <body>
                                 <div class="container">
                                     <div class="header">
-                                        <h1>🎉 Dziękujemy za zakup!</h1>
+                                        <h1>Dziękuję za zakup</h1>
                                     </div>
                                     <div class="content">
                                         <p>Cześć!</p>
-                                        <p>Dziękuję za zakup e-booka <strong>"Korekta bez skrótów"</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój!</p>
+                                        <p>Dziękuję za zakup e-booka <strong>„Korekta bez skrótów"</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
                                         <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
                                         <div style="text-align: center;">
-                                            <a href="${downloadUrl}" class="button" style="color: white !important;">📥 Pobierz e-book</a>
+                                            <a href="${downloadUrl}" class="button" style="color: white !important;">Pobierz e-book</a>
                                         </div>
                                         <div class="info-box">
-                                            <p><strong>⏰ Ważne informacje:</strong></p>
-                                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                            <p>Ważne informacje:</p>
+                                            <ul>
                                                 <li>Link jest ważny przez <strong>7 dni</strong> od zakupu</li>
                                                 <li>Możesz pobrać e-book maksymalnie <strong>5 razy</strong></li>
                                                 <li>Po pobraniu zapisz plik na swoim urządzeniu</li>
                                             </ul>
                                         </div>
-                                        <p>Jeśli masz jakiekolwiek pytania lub problemy z pobraniem, napisz do mnie:</p>
-                                        <ul style="list-style: none; padding: 0;">
-                                            <li>📸 Instagram: <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></li>
-                                            <li>🎵 TikTok: <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></li>
-                                        </ul>
-                                        <p>Życzę Ci owocnej pracy z e-bookiem!</p>
-                                        <p>Pozdrawiam serdecznie,<br><strong>Julia Wójcik</strong></p>
+                                        <div class="contact-box">
+                                            <p>Jeśli masz jakiekolwiek pytania lub problemy z pobraniem, napisz do mnie:</p>
+                                            <p>Instagram: <a href="https://www.instagram.com/juliawojcik_instruktor/">@juliawojcik_instruktor</a></p>
+                                            <p>TikTok: <a href="https://www.tiktok.com/@nailsbyjul_kawojcik">@nailsbyjul_kawojcik</a></p>
+                                        </div>
+                                        <div class="signature">
+                                            <p>Życzę Ci owocnej pracy z e-bookiem!</p>
+                                            <p style="margin-top: 16px;">Pozdrawiam serdecznie,</p>
+                                            <p><strong>Julia Wójcik</strong></p>
+                                        </div>
                                     </div>
                                     <div class="footer">
-                                        <p>Julia Wójcik - Profesjonalna Stylizacja Paznokci</p>
+                                        <p><strong>Julia Wójcik</strong> — Profesjonalna Stylizacja Paznokci</p>
                                         <p>Szczecin | <a href="https://juliawojcikszkolenia.pl">juliawojcikszkolenia.pl</a></p>
+                                        <div class="credits">
+                                            <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
+                                        </div>
                                     </div>
                                 </div>
                             </body>
