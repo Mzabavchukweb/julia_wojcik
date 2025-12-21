@@ -432,7 +432,16 @@ export default async function handler(req, res) {
                     }
                     
                     // Wyślij email z linkiem do pobrania
-                    const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
+                    let emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
+                    
+                    // Automatyczna poprawka: jeśli używa onboarding@resend.dev, zamień na zweryfikowaną domenę
+                    if (emailFrom.includes('onboarding@resend.dev')) {
+                        console.warn(`[${requestId}] ⚠️ WARNING: EMAIL_FROM uses test domain onboarding@resend.dev`);
+                        console.warn(`[${requestId}] ⚠️ Auto-fixing to use verified domain: juliawojcikszkolenia.pl`);
+                        emailFrom = 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
+                        console.warn(`[${requestId}] ⚠️ Please update EMAIL_FROM in Vercel to: ${emailFrom}`);
+                    }
+                    
                     console.log('📧 Preparing to send email...');
                     console.log('  To:', customerEmail);
                     console.log('  Email type:', typeof customerEmail);
@@ -442,14 +451,6 @@ export default async function handler(req, res) {
                     console.log('  From (will be used):', emailFrom);
                     console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
                     console.log('  Resend instance:', resend ? 'initialized' : 'not initialized');
-                    
-                    // Ostrzeżenie jeśli używa onboarding@resend.dev
-                    if (emailFrom.includes('onboarding@resend.dev')) {
-                        console.warn(`[${requestId}] ⚠️ WARNING: Using test domain onboarding@resend.dev`);
-                        console.warn(`[${requestId}] ⚠️ This will only allow sending to your own email address`);
-                        console.warn(`[${requestId}] ⚠️ To send to all recipients, verify your domain at https://resend.com/domains`);
-                        console.warn(`[${requestId}] ⚠️ Then set EMAIL_FROM to use your verified domain (e.g., ebook@juliawojcikszkolenia.pl)`);
-                    }
                     
                     // Walidacja emaila przed wysyłką
                     if (!customerEmail || typeof customerEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
