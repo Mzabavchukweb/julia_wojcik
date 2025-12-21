@@ -276,7 +276,11 @@ export default async function handler(req, res) {
                                     session.customer ? 'customer object' : 'none',
                 amountTotal: session.amount_total,
                 currency: session.currency,
-                paymentLink: session.payment_link
+                paymentLink: session.payment_link,
+                sessionCustomerEmail: session.customer_email,
+                sessionCustomerDetailsEmail: session.customer_details?.email,
+                sessionCustomer: session.customer,
+                fullSessionData: JSON.stringify(session, null, 2)
             });
             
             // Sprawdź czy to zakup e-booka
@@ -430,9 +434,22 @@ export default async function handler(req, res) {
                     // Wyślij email z linkiem do pobrania
                     console.log('📧 Preparing to send email...');
                     console.log('  To:', customerEmail);
+                    console.log('  Email type:', typeof customerEmail);
+                    console.log('  Email length:', customerEmail?.length);
+                    console.log('  Email validation:', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail || ''));
                     console.log('  From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
                     console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
                     console.log('  Resend instance:', resend ? 'initialized' : 'not initialized');
+                    
+                    // Walidacja emaila przed wysyłką
+                    if (!customerEmail || typeof customerEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+                        console.error(`[${requestId}] ❌ ERROR: Invalid email address:`, customerEmail);
+                        return res.status(400).json({ 
+                            error: 'Invalid customer email',
+                            customerEmail: customerEmail,
+                            requestId: requestId
+                        });
+                    }
                     
                     // Wyciągnij imię z emaila lub użyj domyślnego powitania
                     const customerName = session.customer_details?.name || '';
@@ -449,6 +466,10 @@ export default async function handler(req, res) {
                             greeting = `Cześć ${capitalizedName}`;
                         }
                     }
+                    
+                    // Loguj dokładnie jaki email będzie użyty do wysyłki
+                    console.log(`[${requestId}] 📧 Sending email to: "${customerEmail}"`);
+                    console.log(`[${requestId}] 📧 Email will be sent using Resend API`);
                     
                     let emailResult;
                     try {
