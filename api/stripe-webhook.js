@@ -432,14 +432,24 @@ export default async function handler(req, res) {
                     }
                     
                     // Wyślij email z linkiem do pobrania
+                    const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
                     console.log('📧 Preparing to send email...');
                     console.log('  To:', customerEmail);
                     console.log('  Email type:', typeof customerEmail);
                     console.log('  Email length:', customerEmail?.length);
                     console.log('  Email validation:', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail || ''));
-                    console.log('  From:', process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
+                    console.log('  From (EMAIL_FROM env var):', process.env.EMAIL_FROM || 'NOT SET - using default');
+                    console.log('  From (will be used):', emailFrom);
                     console.log('  Resend API Key present:', !!process.env.RESEND_API_KEY);
                     console.log('  Resend instance:', resend ? 'initialized' : 'not initialized');
+                    
+                    // Ostrzeżenie jeśli używa onboarding@resend.dev
+                    if (emailFrom.includes('onboarding@resend.dev')) {
+                        console.warn(`[${requestId}] ⚠️ WARNING: Using test domain onboarding@resend.dev`);
+                        console.warn(`[${requestId}] ⚠️ This will only allow sending to your own email address`);
+                        console.warn(`[${requestId}] ⚠️ To send to all recipients, verify your domain at https://resend.com/domains`);
+                        console.warn(`[${requestId}] ⚠️ Then set EMAIL_FROM to use your verified domain (e.g., ebook@juliawojcikszkolenia.pl)`);
+                    }
                     
                     // Walidacja emaila przed wysyłką
                     if (!customerEmail || typeof customerEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
@@ -474,7 +484,7 @@ export default async function handler(req, res) {
                     let emailResult;
                     try {
                         emailResult = await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
+                        from: emailFrom,
                         to: customerEmail,
                         subject: 'Twój e-book jest gotowy do pobrania',
                         html: `
@@ -769,10 +779,47 @@ export default async function handler(req, res) {
                             </html>
                         `
                     });
-                        console.log('✅ Email sent successfully!');
-                        console.log('Email result:', JSON.stringify(emailResult, null, 2));
-                        console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
-                        console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
+                    
+                    // Sprawdź czy email został wysłany poprawnie
+                    if (emailResult?.error) {
+                        console.error(`[${requestId}] ❌ ERROR: Resend returned an error`);
+                        console.error(`[${requestId}] Error status:`, emailResult.error.statusCode);
+                        console.error(`[${requestId}] Error name:`, emailResult.error.name);
+                        console.error(`[${requestId}] Error message:`, emailResult.error.message);
+                        console.error(`[${requestId}] Email to:`, customerEmail);
+                        console.error(`[${requestId}] Email from:`, process.env.EMAIL_FROM || 'NOT SET');
+                        
+                        // Sprawdź czy to błąd związany z weryfikacją domeny
+                        const isDomainError = emailResult.error.message?.includes('verify a domain') || 
+                                            emailResult.error.message?.includes('testing emails to your own email');
+                        
+                        if (isDomainError) {
+                            console.error(`[${requestId}] ⚠️ DOMAIN VERIFICATION REQUIRED`);
+                            console.error(`[${requestId}] ⚠️ You need to verify your domain in Resend to send emails to all recipients`);
+                            console.error(`[${requestId}] ⚠️ Go to: https://resend.com/domains`);
+                            console.error(`[${requestId}] ⚠️ Current FROM address:`, process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>');
+                            console.error(`[${requestId}] ⚠️ After verifying domain, update EMAIL_FROM to use your verified domain`);
+                        }
+                        
+                        // Kontynuuj - token jest zapisany, użytkownik może pobrać przez link
+                        return res.status(200).json({ 
+                            received: true,
+                            emailSent: false,
+                            emailError: emailResult.error.message,
+                            errorCode: emailResult.error.statusCode,
+                            errorName: emailResult.error.name,
+                            tokenGenerated: true,
+                            downloadUrl: downloadUrl,
+                            warning: 'Email could not be sent, but download link is available',
+                            domainVerificationRequired: isDomainError,
+                            hint: isDomainError ? 'Verify your domain at https://resend.com/domains and update EMAIL_FROM environment variable' : undefined
+                        });
+                    }
+                    
+                    console.log('✅ Email sent successfully!');
+                    console.log('Email result:', JSON.stringify(emailResult, null, 2));
+                    console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
+                    console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
                     } catch (emailError) {
                         console.error(`[${requestId}] ❌ ERROR: Failed to send email`);
                         console.error(`[${requestId}] Email error name:`, emailError.name);
