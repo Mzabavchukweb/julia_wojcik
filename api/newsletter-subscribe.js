@@ -1,13 +1,28 @@
 // Vercel Serverless Function - Zapisywanie subskrybentów newslettera
+console.log('[INIT] Loading newsletter-subscribe.js module...');
+
 import { Redis } from '@upstash/redis';
 
-// Inicjalizuj Redis (automatycznie używa zmiennych środowiskowych)
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+console.log('[INIT] ✅ Module newsletter-subscribe.js loaded successfully');
 
 export default async function handler(req, res) {
+    console.log('[NEWSLETTER] Request received:', req.method, req.url);
+    
+    // Inicjalizuj Redis w handlerze (automatycznie używa zmiennych środowiskowych)
+    let redis = null;
+    try {
+        if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+            redis = new Redis({
+                url: process.env.UPSTASH_REDIS_REST_URL,
+                token: process.env.UPSTASH_REDIS_REST_TOKEN,
+            });
+            console.log('[NEWSLETTER] ✅ Redis initialized');
+        } else {
+            console.log('[NEWSLETTER] ⚠️ Redis not configured - using fallback');
+        }
+    } catch (redisInitError) {
+        console.error('[NEWSLETTER] ❌ Redis initialization error:', redisInitError);
+    }
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -23,7 +38,7 @@ export default async function handler(req, res) {
         
         try {
             // Sprawdź czy Upstash Redis jest skonfigurowany
-            if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+            if (!redis || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
                 throw new Error('Upstash Redis not configured');
             }
 
