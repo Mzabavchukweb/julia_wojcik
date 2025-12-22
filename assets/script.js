@@ -3,7 +3,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    // TEST: Premiera za 60 sekund (1 minuta) - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 60000); // 60 sekund od teraz
+    const premiereDate = testPremiereDate.getTime(); // Dla testu
+    // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
     
     // Sprawdź czy premiera już minęła
@@ -46,30 +49,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Oblicz dni, godziny, minuty (bez sekund)
+            // Oblicz dni, godziny, minuty, sekundy
             const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
             
             // Zaktualizuj wyświetlane wartości
             const daysEl = document.getElementById('premiere-days');
             const hoursEl = document.getElementById('premiere-hours');
             const minutesEl = document.getElementById('premiere-minutes');
+            const secondsEl = document.getElementById('premiere-seconds');
             
             if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
             if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
             if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
         }
         
-        // Aktualizuj odliczanie co minutę (60000 ms)
+        // Aktualizuj odliczanie co sekundę (1000 ms)
         updatePremiereCountdown();
         const premiereInterval = setInterval(() => {
             updatePremiereCountdown();
             const now = new Date().getTime();
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
+                // Cron job w Vercel automatycznie wywoła endpoint do wysłania powiadomień
+                console.log('✅ Premiere time reached - notifications will be sent by cron job');
             }
-        }, 60000);
+        }, 1000);
         
         // Obsługa formularza newslettera w splash screen
         const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');

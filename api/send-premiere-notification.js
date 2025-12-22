@@ -1,5 +1,6 @@
 // Vercel Serverless Function - Wysyłanie powiadomień o premierze e-booka
 import { Resend } from 'resend';
+import { kv } from '@vercel/kv';
 
 // Inicjalizuj Resend
 let resend = null;
@@ -22,17 +23,21 @@ export default async function handler(req, res) {
 
     // Sprawdź czy to wywołanie z cron job (Vercel dodaje header) lub ręczne z auth
     const isCronJob = req.headers['user-agent']?.includes('vercel-cron') || 
-                      req.headers['x-vercel-cron'] === '1';
+                      req.headers['x-vercel-cron'] === '1' ||
+                      req.headers['x-vercel-signature']; // Vercel cron signature
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    // Jeśli to nie cron job, wymagaj autoryzacji
-    if (!isCronJob && authHeader !== `Bearer ${cronSecret}`) {
+    // Jeśli to nie cron job, wymagaj autoryzacji (tylko dla POST)
+    if (req.method === 'POST' && !isCronJob && authHeader !== `Bearer ${cronSecret}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-        const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+        // TEST: Premiera za 60 sekund - zmień na '2025-12-30T00:00:00' dla produkcji
+        const testPremiereDate = new Date(Date.now() + 60000); // 60 sekund od teraz
+        const premiereDate = testPremiereDate.getTime(); // Dla testu
+        // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
         const now = new Date().getTime();
 
         // Sprawdź czy premiera już minęła
@@ -44,11 +49,30 @@ export default async function handler(req, res) {
             });
         }
 
-        // Lista emaili subskrybentów - w produkcji powinno być z bazy danych
-        // Na razie użyjemy zmiennej środowiskowej lub można dodać Vercel KV
-        const subscribers = process.env.NEWSLETTER_SUBSCRIBERS 
-            ? process.env.NEWSLETTER_SUBSCRIBERS.split(',').map(e => e.trim())
-            : [];
+        // Pobierz listę subskrybentów z Vercel KV
+        let subscribers = [];
+        try {
+            const subscribersListKey = 'newsletter:subscribers:list';
+            const subscribersList = await kv.get(subscribersListKey);
+            
+            if (Array.isArray(subscribersList) && subscribersList.length > 0) {
+                subscribers = subscribersList;
+                console.log(`✅ Found ${subscribers.length} subscribers in KV`);
+            } else {
+                // Fallback: użyj zmiennej środowiskowej jeśli KV jest puste
+                subscribers = process.env.NEWSLETTER_SUBSCRIBERS 
+                    ? process.env.NEWSLETTER_SUBSCRIBERS.split(',').map(e => e.trim()).filter(Boolean)
+                    : [];
+                console.log(`⚠️ KV empty, using env var: ${subscribers.length} subscribers`);
+            }
+        } catch (kvError) {
+            console.error('❌ KV Error:', kvError);
+            // Fallback: użyj zmiennej środowiskowej
+            subscribers = process.env.NEWSLETTER_SUBSCRIBERS 
+                ? process.env.NEWSLETTER_SUBSCRIBERS.split(',').map(e => e.trim()).filter(Boolean)
+                : [];
+            console.log(`⚠️ Using env var fallback: ${subscribers.length} subscribers`);
+        }
 
         if (subscribers.length === 0) {
             console.log('⚠️ No subscribers found');
@@ -70,6 +94,27 @@ export default async function handler(req, res) {
             try {
                 if (!resend) {
                     throw new Error('Resend not initialized');
+                }
+
+                // Personalizacja - wyciągnij imię z emaila
+                let greeting = 'Cześć';
+                try {
+                    const emailName = subscriberEmail.split('@')[0].replace(/[0-9._-]/g, ' ').trim();
+                    if (emailName.length > 2 && emailName.length < 20) {
+                        const capitalizedName = emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase();
+                        greeting = `Cześć ${capitalizedName}`;
+                    }
+                } catch (nameError) {
+                    // Użyj domyślnego powitania
+                }
+
+                // Pobierz dane subskrybenta z KV (jeśli dostępne)
+                let subscriberData = null;
+                try {
+                    const subscriberKey = `newsletter:${subscriberEmail.toLowerCase()}`;
+                    subscriberData = await kv.get(subscriberKey);
+                } catch (kvError) {
+                    // Ignoruj błąd - użyj domyślnych danych
                 }
 
                 const emailResult = await resend.emails.send({
@@ -203,7 +248,7 @@ export default async function handler(req, res) {
                                     </div>
                                     
                                     <div class="content">
-                                        <p>Cześć!</p>
+                                        <p>${greeting}!</p>
                                         <p>Dziękuję za zapisanie się do newslettera! Mam dla Ciebie wspaniałą wiadomość — <strong style="color: #212121;">e-book "Korekta bez skrótów" jest już dostępny do zakupu!</strong></p>
                                         <p>To kompleksowy przewodnik po stylizacji paznokci, który pomoże Ci pracować pewniej, szybciej i czyściej.</p>
                                         
