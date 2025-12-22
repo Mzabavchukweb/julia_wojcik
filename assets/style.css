@@ -5530,6 +5530,220 @@ a {
 }
 
 /* ===== E-BOOK SECTION ===== */
+/* ===== COUNTDOWN TIMER SECTION ===== */
+.countdown-section {
+    padding: 8rem 0;
+    background: linear-gradient(135deg, var(--beige) 0%, var(--beige-light) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.countdown-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent);
+}
+
+.countdown-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.countdown-content {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+.countdown-image-wrapper {
+    position: relative;
+}
+
+.countdown-image {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    object-fit: cover;
+    aspect-ratio: 3/4;
+}
+
+.countdown-text-wrapper {
+    text-align: center;
+}
+
+.countdown-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.countdown-title {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    color: var(--black);
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+.countdown-description {
+    font-size: 1.125rem;
+    color: var(--gray);
+    margin-bottom: 3rem;
+    line-height: 1.8;
+}
+
+.countdown-timer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.countdown-number {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 3.5rem;
+    font-weight: 400;
+    color: var(--black);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    background: var(--white);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    min-width: 100px;
+    text-align: center;
+    transition: all var(--transition-base);
+}
+
+.countdown-number:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-gold);
+    border-color: var(--gold);
+}
+
+.countdown-label-small {
+    font-size: 0.875rem;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+}
+
+.countdown-separator {
+    font-size: 2.5rem;
+    color: var(--gold);
+    font-weight: 300;
+    margin: 0 0.5rem;
+    line-height: 1;
+}
+
+.countdown-premiere {
+    text-align: center;
+    padding: 2rem;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    border: 2px solid var(--gold);
+}
+
+.countdown-premiere h3 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 2rem;
+    color: var(--black);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.countdown-premiere p {
+    font-size: 1.125rem;
+    color: var(--gray);
+    line-height: 1.8;
+}
+
+@media (max-width: 968px) {
+    .countdown-content {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+    
+    .countdown-image-wrapper {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .countdown-title {
+        font-size: 2rem;
+    }
+    
+    .countdown-number {
+        font-size: 2.5rem;
+        min-width: 80px;
+        padding: 0.75rem 1rem;
+    }
+    
+    .countdown-separator {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .countdown-section {
+        padding: 4rem 0;
+    }
+    
+    .countdown-title {
+        font-size: 1.75rem;
+    }
+    
+    .countdown-timer {
+        gap: 1rem;
+    }
+    
+    .countdown-number {
+        font-size: 2rem;
+        min-width: 70px;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .countdown-separator {
+        font-size: 1.5rem;
+        margin: 0 0.25rem;
+    }
+    
+    .countdown-item {
+        min-width: 70px;
+    }
+    
+    .countdown-label-small {
+        font-size: 0.75rem;
+    }
+}
+
 .ebook-section {
     padding: 8rem 0;
     background-color: var(--beige-light);
