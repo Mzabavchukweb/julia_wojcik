@@ -46,25 +46,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Oblicz dni, godziny, minuty, sekundy
+            // Oblicz dni, godziny, minuty (bez sekund)
             const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
             
             // Zaktualizuj wyświetlane wartości
             const daysEl = document.getElementById('premiere-days');
             const hoursEl = document.getElementById('premiere-hours');
             const minutesEl = document.getElementById('premiere-minutes');
-            const secondsEl = document.getElementById('premiere-seconds');
             
             if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
             if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
             if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
-            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
         }
         
-        // Aktualizuj odliczanie co sekundę
+        // Aktualizuj odliczanie co minutę (60000 ms)
         updatePremiereCountdown();
         const premiereInterval = setInterval(() => {
             updatePremiereCountdown();
@@ -72,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
             }
-        }, 1000);
+        }, 60000);
         
         // Obsługa formularza newslettera w splash screen
         const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
@@ -93,8 +90,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Wyślij formularz
+                // Zapisz email do naszego endpointu + wyślij przez FormSubmit
                 const formData = new FormData(premiereNewsletterForm);
+                
+                // Najpierw zapisz do naszego endpointu
+                fetch('/api/newsletter-subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email })
+                }).catch(err => {
+                    console.log('Newsletter subscription save error:', err);
+                });
+                
+                // Potem wyślij przez FormSubmit (backup)
                 fetch(premiereNewsletterForm.action, {
                     method: 'POST',
                     body: formData

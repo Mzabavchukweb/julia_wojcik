@@ -5,8 +5,20 @@
     },
     "api/download-ebook.js": {
       "maxDuration": 30
+    },
+    "api/newsletter-subscribe.js": {
+      "maxDuration": 10
+    },
+    "api/send-premiere-notification.js": {
+      "maxDuration": 30
     }
   },
+  "crons": [
+    {
+      "path": "/api/send-premiere-notification",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/webhook",
