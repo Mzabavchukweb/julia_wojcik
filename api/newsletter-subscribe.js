@@ -7,10 +7,18 @@ console.log('[INIT] ✅ Module newsletter-subscribe.js loaded successfully');
 
 export default async function handler(req, res) {
     console.log('[NEWSLETTER] Request received:', req.method, req.url);
+    console.log('[NEWSLETTER] Request body:', req.body);
+    console.log('[NEWSLETTER] Request headers:', req.headers);
     
     // Sprawdź metodę na początku
     if (req.method !== 'POST') {
+        console.log('[NEWSLETTER] Method not allowed:', req.method);
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+    
+    // CORS headers dla preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).json({});
     }
     
     // Inicjalizuj Redis w handlerze (automatycznie używa zmiennych środowiskowych)
