@@ -130,166 +130,51 @@ export default async function handler(req, res) {
                 const emailResult = await resend.emails.send({
                     from: emailFrom,
                     to: subscriberEmail,
-                    subject: '🎉 E-book jest już dostępny!',
+                    subject: 'Informacja od Julii Wójcik',
+                    text: `${greeting}!
+
+Dziękuję, że zapisałaś się na powiadomienie o moim e-booku "Korekta bez skrótów".
+
+Właśnie udostępniłam go na stronie - możesz go zobaczyć tutaj:
+${ebookPageUrl}
+
+Jeśli masz jakiekolwiek pytania, odpisz na tego maila - chętnie odpowiem.
+
+Pozdrawiam serdecznie,
+Julia Wójcik
+
+--
+Julia Wójcik
+Profesjonalna Stylizacja Paznokci
+Szczecin
+juliawojcikszkolenia.pl`,
                     html: `
                         <!DOCTYPE html>
                         <html>
                         <head>
                             <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;500&display=swap" rel="stylesheet">
-                            <style>
-                                body { 
-                                    font-family: 'Roboto Condensed', Arial, sans-serif; 
-                                    line-height: 1.8; 
-                                    color: #6b6b6b; 
-                                    margin: 0; 
-                                    padding: 0; 
-                                    background: #f3f1ee;
-                                }
-                                .wrapper {
-                                    background: #f3f1ee;
-                                    padding: 40px 20px;
-                                }
-                                .container { 
-                                    max-width: 600px; 
-                                    margin: 0 auto; 
-                                    background: #ffffff;
-                                    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-                                }
-                                .logo-section {
-                                    background: #ffffff;
-                                    padding: 40px 40px 0 40px;
-                                    text-align: center;
-                                }
-                                .logo {
-                                    font-family: 'Instrument Serif', Georgia, serif;
-                                    font-size: 18px;
-                                    font-weight: 400;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.15em;
-                                    color: #212121;
-                                    margin: 0;
-                                }
-                                .gold-line {
-                                    width: 60px;
-                                    height: 2px;
-                                    background: #C5A572;
-                                    margin: 24px auto 0 auto;
-                                }
-                                .header { 
-                                    background: #ffffff; 
-                                    padding: 32px 40px 40px 40px; 
-                                    text-align: center; 
-                                }
-                                .header h1 { 
-                                    font-family: 'Instrument Serif', Georgia, serif;
-                                    margin: 0; 
-                                    font-size: 32px; 
-                                    font-weight: 400;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.06em;
-                                    color: #212121;
-                                    line-height: 1.2;
-                                }
-                                .content { 
-                                    background: #ffffff; 
-                                    padding: 0 40px 48px 40px; 
-                                }
-                                .content p {
-                                    margin: 0 0 20px 0;
-                                    color: #6b6b6b;
-                                    font-size: 16px;
-                                }
-                                .button-wrapper {
-                                    text-align: center;
-                                    margin: 36px 0;
-                                }
-                                .button { 
-                                    display: inline-block; 
-                                    background: #212121; 
-                                    color: #ffffff !important; 
-                                    padding: 18px 42px; 
-                                    text-decoration: none; 
-                                    font-family: 'Roboto Condensed', Arial, sans-serif;
-                                    font-weight: 500; 
-                                    font-size: 14px;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.1em;
-                                }
-                                .button-arrow {
-                                    margin-left: 12px;
-                                    font-size: 16px;
-                                }
-                                .footer { 
-                                    text-align: center; 
-                                    padding: 32px 40px; 
-                                    background: #212121;
-                                }
-                                .footer-brand {
-                                    font-family: 'Instrument Serif', Georgia, serif;
-                                    font-size: 14px;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.12em;
-                                    color: #ffffff;
-                                    margin: 0 0 8px 0;
-                                }
-                                .footer p {
-                                    margin: 0 0 6px 0;
-                                    color: #8a8a8a;
-                                    font-size: 12px;
-                                }
-                                .footer a { 
-                                    color: #C5A572; 
-                                    text-decoration: none;
-                                }
-                            </style>
                         </head>
-                        <body>
-                            <div class="wrapper">
-                                <div class="container">
-                                    <div class="logo-section">
-                                        <p class="logo">Julia Wójcik</p>
-                                        <div class="gold-line"></div>
-                                    </div>
-                                    
-                                    <div class="header">
-                                        <h1>🎉 E-book już dostępny!</h1>
-                                    </div>
-                                    
-                                    <div class="content">
-                                        <p>${greeting}!</p>
-                                        <p>Dziękuję za zapisanie się do newslettera! Mam dla Ciebie wspaniałą wiadomość — <strong style="color: #212121;">e-book "Korekta bez skrótów" jest już dostępny do zakupu!</strong></p>
-                                        <p>To kompleksowy przewodnik po stylizacji paznokci, który pomoże Ci pracować pewniej, szybciej i czyściej.</p>
-                                        
-                                        <div class="button-wrapper">
-                                            <a href="${ebookPageUrl}" class="button" style="color: #ffffff !important;">
-                                                ZOBACZ E-BOOK<span class="button-arrow">→</span>
-                                            </a>
-                                        </div>
-                                        
-                                        <p>W e-booku znajdziesz m.in.:</p>
-                                        <ul style="color: #6b6b6b; padding-left: 20px;">
-                                            <li>Wszystko na temat ściągania masy</li>
-                                            <li>Korektę na krótkich paznokciach</li>
-                                            <li>Obszerną korektę na kształt kwadrat</li>
-                                            <li>Zmianę kształtu bez użycia form</li>
-                                            <li>Sposoby na podniesienie wolnego brzegu</li>
-                                            <li>Schematy pracy, które skracają czas stylizacji</li>
-                                            <li><strong>GRATIS: korekta na kształt migdał</strong></li>
-                                        </ul>
-                                        
-                                        <p style="margin-top: 30px;">Cena: <strong style="color: #212121;">300 zł</strong></p>
-                                        <p>Dostęp na zawsze — bez limitu czasu.</p>
-                                    </div>
-                                    
-                                    <div class="footer">
-                                        <p class="footer-brand">Julia Wójcik</p>
-                                        <p>Profesjonalna Stylizacja Paznokci</p>
-                                        <p>Szczecin · <a href="https://juliawojcikszkolenia.pl">juliawojcikszkolenia.pl</a></p>
-                                    </div>
-                                </div>
-                            </div>
+                        <body style="font-family: Georgia, serif; font-size: 16px; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <p>${greeting}!</p>
+                            
+                            <p>Dziękuję, że zapisałaś się na powiadomienie o moim e-booku "Korekta bez skrótów".</p>
+                            
+                            <p>Właśnie udostępniłam go na stronie - możesz go zobaczyć tutaj:<br>
+                            <a href="${ebookPageUrl}" style="color: #8B4513;">${ebookPageUrl}</a></p>
+                            
+                            <p>Jeśli masz jakiekolwiek pytania, odpisz na tego maila - chętnie odpowiem.</p>
+                            
+                            <p>Pozdrawiam serdecznie,<br>
+                            <strong>Julia Wójcik</strong></p>
+                            
+                            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                            
+                            <p style="font-size: 14px; color: #666;">
+                                Julia Wójcik<br>
+                                Profesjonalna Stylizacja Paznokci<br>
+                                Szczecin<br>
+                                <a href="https://juliawojcikszkolenia.pl" style="color: #8B4513;">juliawojcikszkolenia.pl</a>
+                            </p>
                         </body>
                         </html>
                     `
