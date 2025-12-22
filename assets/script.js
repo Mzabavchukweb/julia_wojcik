@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    // TEST: Premiera za 60 sekund (1 minuta) - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 60000); // 60 sekund od teraz
+    // TEST: Premiera za 6 minut - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 360000); // 6 minut od teraz (6 * 60 * 1000)
     const premiereDate = testPremiereDate.getTime(); // Dla testu
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
@@ -74,8 +74,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const now = new Date().getTime();
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
-                // Cron job w Vercel automatycznie wywoła endpoint do wysłania powiadomień
-                console.log('✅ Premiere time reached - notifications will be sent by cron job');
+                // Wywołaj endpoint do wysłania powiadomień o premierze
+                console.log('✅ Premiere time reached - sending notifications...');
+                fetch('/api/send-premiere-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Premiere notifications sent:', data);
+                })
+                .catch(error => {
+                    console.error('❌ Error sending premiere notifications:', error);
+                });
             }
         }, 1000);
         

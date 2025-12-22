@@ -34,20 +34,21 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    // Jeśli to nie cron job, wymagaj autoryzacji (tylko dla POST)
-    if (req.method === 'POST' && !isCronJob && authHeader !== `Bearer ${cronSecret}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
+    // TEST: Premiera za 6 minut - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 360000); // 6 minut od teraz (6 * 60 * 1000)
+    const premiereDate = testPremiereDate.getTime(); // Dla testu
+    // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
+    const now = new Date().getTime();
+    const premierePassed = now >= premiereDate;
+
+    // Jeśli to nie cron job i premiera jeszcze nie minęła, wymagaj autoryzacji (tylko dla POST)
+    if (req.method === 'POST' && !isCronJob && !premierePassed && authHeader !== `Bearer ${cronSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized - premiere not yet passed' });
     }
 
     try {
-        // TEST: Premiera za 60 sekund - zmień na '2025-12-30T00:00:00' dla produkcji
-        const testPremiereDate = new Date(Date.now() + 60000); // 60 sekund od teraz
-        const premiereDate = testPremiereDate.getTime(); // Dla testu
-        // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
-        const now = new Date().getTime();
-
         // Sprawdź czy premiera już minęła
-        if (now < premiereDate) {
+        if (!premierePassed) {
             return res.status(200).json({ 
                 message: 'Premiera jeszcze nie minęła',
                 premiereDate: new Date(premiereDate).toISOString(),
