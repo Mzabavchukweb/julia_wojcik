@@ -10,7 +10,7 @@
     "vercel:dev": "vercel dev --listen 3000"
   },
   "dependencies": {
-    "@vercel/kv": "^1.0.1",
+    "@upstash/redis": "^1.35.8",
     "raw-body": "^3.0.2",
     "resend": "^3.0.0",
     "stripe": "^14.25.0"

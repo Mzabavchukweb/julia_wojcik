@@ -1,6 +1,12 @@
 // Vercel Serverless Function - Wysyłanie powiadomień o premierze e-booka
 import { Resend } from 'resend';
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Inicjalizuj Redis (automatycznie używa zmiennych środowiskowych)
+const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 // Inicjalizuj Resend
 let resend = null;
@@ -49,29 +55,33 @@ export default async function handler(req, res) {
             });
         }
 
-        // Pobierz listę subskrybentów z Vercel KV (automatyczne)
+        // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
         try {
-            const subscribersListKey = 'newsletter:subscribers:list';
-            const subscribersList = await kv.get(subscribersListKey);
-            
-            if (Array.isArray(subscribersList) && subscribersList.length > 0) {
-                subscribers = subscribersList;
-                console.log(`✅ Found ${subscribers.length} subscribers in Vercel KV (automatic)`);
-            } else {
-                // Fallback: użyj zmiennej środowiskowej jeśli KV jest puste
-                if (process.env.NEWSLETTER_SUBSCRIBERS) {
-                    subscribers = process.env.NEWSLETTER_SUBSCRIBERS
-                        .split(',')
-                        .map(e => e.trim().toLowerCase())
-                        .filter(Boolean);
-                    console.log(`⚠️ KV empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+            if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+                const subscribersListKey = 'newsletter:subscribers:list';
+                const subscribersList = await redis.get(subscribersListKey);
+                
+                if (Array.isArray(subscribersList) && subscribersList.length > 0) {
+                    subscribers = subscribersList;
+                    console.log(`✅ Found ${subscribers.length} subscribers in Upstash Redis (automatic)`);
                 } else {
-                    console.log('⚠️ No subscribers found in KV or NEWSLETTER_SUBSCRIBERS');
+                    // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
+                    if (process.env.NEWSLETTER_SUBSCRIBERS) {
+                        subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                            .split(',')
+                            .map(e => e.trim().toLowerCase())
+                            .filter(Boolean);
+                        console.log(`⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+                    } else {
+                        console.log('⚠️ No subscribers found in Redis or NEWSLETTER_SUBSCRIBERS');
+                    }
                 }
+            } else {
+                throw new Error('Upstash Redis not configured');
             }
-        } catch (kvError) {
-            console.error('❌ KV Error:', kvError);
+        } catch (redisError) {
+            console.error('❌ Redis Error:', redisError);
             // Fallback: użyj zmiennej środowiskowej
             if (process.env.NEWSLETTER_SUBSCRIBERS) {
                 subscribers = process.env.NEWSLETTER_SUBSCRIBERS
@@ -80,7 +90,7 @@ export default async function handler(req, res) {
                     .filter(Boolean);
                 console.log(`⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
             } else {
-                console.log('⚠️ KV not available and NEWSLETTER_SUBSCRIBERS not set');
+                console.log('⚠️ Redis not available and NEWSLETTER_SUBSCRIBERS not set');
             }
         }
 

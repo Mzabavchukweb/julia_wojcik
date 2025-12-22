@@ -1,5 +1,11 @@
 // Vercel Serverless Function - Zapisywanie subskrybentów newslettera
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Inicjalizuj Redis (automatycznie używa zmiennych środowiskowych)
+const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -16,16 +22,15 @@ export default async function handler(req, res) {
         const emailLower = email.toLowerCase().trim();
         
         try {
-            // Zapisz email do Vercel KV (automatyczne zapisywanie)
-            const subscriberKey = `newsletter:${emailLower}`;
-            const subscriberData = {
-                email: emailLower,
-                subscribedAt: new Date().toISOString(),
-                source: 'premiere-splash'
-            };
+            // Sprawdź czy Upstash Redis jest skonfigurowany
+            if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+                throw new Error('Upstash Redis not configured');
+            }
 
             // Sprawdź czy już istnieje
-            const existing = await kv.get(subscriberKey);
+            const subscriberKey = `newsletter:${emailLower}`;
+            const existing = await redis.get(subscriberKey);
+            
             if (existing) {
                 console.log('📧 Subscriber already exists:', email);
                 return res.status(200).json({ 
@@ -35,12 +40,17 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Zapisz do KV
-            await kv.set(subscriberKey, subscriberData);
+            // Zapisz dane subskrybenta
+            const subscriberData = {
+                email: emailLower,
+                subscribedAt: new Date().toISOString(),
+                source: 'premiere-splash'
+            };
+            await redis.set(subscriberKey, subscriberData);
             
             // Dodaj do listy wszystkich subskrybentów
             const subscribersListKey = 'newsletter:subscribers:list';
-            let subscribersList = await kv.get(subscribersListKey);
+            let subscribersList = await redis.get(subscribersListKey);
             
             if (!Array.isArray(subscribersList)) {
                 subscribersList = [];
@@ -49,10 +59,10 @@ export default async function handler(req, res) {
             // Dodaj email jeśli jeszcze nie ma
             if (!subscribersList.includes(emailLower)) {
                 subscribersList.push(emailLower);
-                await kv.set(subscribersListKey, subscribersList);
+                await redis.set(subscribersListKey, subscribersList);
             }
 
-            console.log('✅ Newsletter subscription saved automatically to KV:', email);
+            console.log('✅ Newsletter subscription saved automatically to Upstash Redis:', email);
             console.log('📅 Subscription date:', subscriberData.subscribedAt);
             console.log('📊 Total subscribers:', subscribersList.length);
 
@@ -62,16 +72,17 @@ export default async function handler(req, res) {
                 email: email
             });
 
-        } catch (kvError) {
-            console.error('❌ KV Error:', kvError);
-            console.error('💡 Make sure Vercel KV is created in Vercel Dashboard → Storage → KV');
+        } catch (redisError) {
+            console.error('❌ Redis Error:', redisError);
+            console.error('💡 Make sure Upstash Redis is configured in Vercel Environment Variables');
+            console.error('💡 Get free Redis at: https://console.upstash.com/');
             
             // Fallback: zwróć sukces (email i tak jest zapisywany przez FormSubmit)
             return res.status(200).json({ 
                 success: true,
                 message: 'Email zapisany pomyślnie. Otrzymasz powiadomienie o premierze!',
                 email: email,
-                warning: 'KV storage not available - email recorded via FormSubmit. Create Vercel KV for automatic storage.'
+                warning: 'Redis storage not available - email recorded via FormSubmit. Configure Upstash Redis for automatic storage.'
             });
         }
 
