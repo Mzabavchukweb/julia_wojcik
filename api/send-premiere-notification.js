@@ -43,29 +43,16 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    // TEST: Premiera za 1 minutę - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 60000); // 1 minuta od teraz (1 * 60 * 1000)
-    const premiereDate = testPremiereDate.getTime(); // Dla testu
-    // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
-    const now = new Date().getTime();
-    const premierePassed = now >= premiereDate;
-
-    // Jeśli to nie cron job i premiera jeszcze nie minęła, wymagaj autoryzacji (tylko dla POST)
-    // Gdy premiera już minęła, pozwól na POST bez autoryzacji (dla wywołań z frontendu)
-    if (req.method === 'POST' && !isCronJob && !premierePassed && authHeader !== `Bearer ${cronSecret}`) {
-        return res.status(401).json({ error: 'Unauthorized - premiere not yet passed' });
-    }
-    // Gdy premiera minęła, nie wymagaj autoryzacji dla POST (frontend może wywołać)
+    // TEST MODE: Wyłączono sprawdzanie autoryzacji i daty premiery
+    // Dla produkcji odkomentuj poniższe linie:
+    // const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    // const now = new Date().getTime();
+    // if (now < premiereDate) {
+    //     return res.status(200).json({ message: 'Premiera jeszcze nie minęła' });
+    // }
 
     try {
-        // Sprawdź czy premiera już minęła
-        if (!premierePassed) {
-            return res.status(200).json({ 
-                message: 'Premiera jeszcze nie minęła',
-                premiereDate: new Date(premiereDate).toISOString(),
-                currentDate: new Date().toISOString()
-            });
-        }
+        console.log('[PREMIERE] Processing notification request...');
 
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
