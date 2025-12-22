@@ -1,5 +1,6 @@
 // Vercel Serverless Function - Wysyłanie powiadomień o premierze e-booka
 import { Resend } from 'resend';
+import { kv } from '@vercel/kv';
 
 // Inicjalizuj Resend
 let resend = null;
@@ -48,16 +49,39 @@ export default async function handler(req, res) {
             });
         }
 
-        // Pobierz listę subskrybentów z zmiennej środowiskowej NEWSLETTER_SUBSCRIBERS
+        // Pobierz listę subskrybentów z Vercel KV (automatyczne)
         let subscribers = [];
-        if (process.env.NEWSLETTER_SUBSCRIBERS) {
-            subscribers = process.env.NEWSLETTER_SUBSCRIBERS
-                .split(',')
-                .map(e => e.trim().toLowerCase())
-                .filter(Boolean);
-            console.log(`✅ Found ${subscribers.length} subscribers from NEWSLETTER_SUBSCRIBERS`);
-        } else {
-            console.log('⚠️ NEWSLETTER_SUBSCRIBERS not set - no subscribers to notify');
+        try {
+            const subscribersListKey = 'newsletter:subscribers:list';
+            const subscribersList = await kv.get(subscribersListKey);
+            
+            if (Array.isArray(subscribersList) && subscribersList.length > 0) {
+                subscribers = subscribersList;
+                console.log(`✅ Found ${subscribers.length} subscribers in Vercel KV (automatic)`);
+            } else {
+                // Fallback: użyj zmiennej środowiskowej jeśli KV jest puste
+                if (process.env.NEWSLETTER_SUBSCRIBERS) {
+                    subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                        .split(',')
+                        .map(e => e.trim().toLowerCase())
+                        .filter(Boolean);
+                    console.log(`⚠️ KV empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+                } else {
+                    console.log('⚠️ No subscribers found in KV or NEWSLETTER_SUBSCRIBERS');
+                }
+            }
+        } catch (kvError) {
+            console.error('❌ KV Error:', kvError);
+            // Fallback: użyj zmiennej środowiskowej
+            if (process.env.NEWSLETTER_SUBSCRIBERS) {
+                subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                    .split(',')
+                    .map(e => e.trim().toLowerCase())
+                    .filter(Boolean);
+                console.log(`⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
+            } else {
+                console.log('⚠️ KV not available and NEWSLETTER_SUBSCRIBERS not set');
+            }
         }
 
         if (subscribers.length === 0) {
