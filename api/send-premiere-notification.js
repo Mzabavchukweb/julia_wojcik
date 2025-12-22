@@ -1,6 +1,5 @@
 // Vercel Serverless Function - Wysyłanie powiadomień o premierze e-booka
 import { Resend } from 'resend';
-import { kv } from '@vercel/kv';
 
 // Inicjalizuj Resend
 let resend = null;
@@ -49,29 +48,16 @@ export default async function handler(req, res) {
             });
         }
 
-        // Pobierz listę subskrybentów z Vercel KV
+        // Pobierz listę subskrybentów z zmiennej środowiskowej NEWSLETTER_SUBSCRIBERS
         let subscribers = [];
-        try {
-            const subscribersListKey = 'newsletter:subscribers:list';
-            const subscribersList = await kv.get(subscribersListKey);
-            
-            if (Array.isArray(subscribersList) && subscribersList.length > 0) {
-                subscribers = subscribersList;
-                console.log(`✅ Found ${subscribers.length} subscribers in KV`);
-            } else {
-                // Fallback: użyj zmiennej środowiskowej jeśli KV jest puste
-                subscribers = process.env.NEWSLETTER_SUBSCRIBERS 
-                    ? process.env.NEWSLETTER_SUBSCRIBERS.split(',').map(e => e.trim()).filter(Boolean)
-                    : [];
-                console.log(`⚠️ KV empty, using env var: ${subscribers.length} subscribers`);
-            }
-        } catch (kvError) {
-            console.error('❌ KV Error:', kvError);
-            // Fallback: użyj zmiennej środowiskowej
-            subscribers = process.env.NEWSLETTER_SUBSCRIBERS 
-                ? process.env.NEWSLETTER_SUBSCRIBERS.split(',').map(e => e.trim()).filter(Boolean)
-                : [];
-            console.log(`⚠️ Using env var fallback: ${subscribers.length} subscribers`);
+        if (process.env.NEWSLETTER_SUBSCRIBERS) {
+            subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                .split(',')
+                .map(e => e.trim().toLowerCase())
+                .filter(Boolean);
+            console.log(`✅ Found ${subscribers.length} subscribers from NEWSLETTER_SUBSCRIBERS`);
+        } else {
+            console.log('⚠️ NEWSLETTER_SUBSCRIBERS not set - no subscribers to notify');
         }
 
         if (subscribers.length === 0) {
@@ -106,15 +92,6 @@ export default async function handler(req, res) {
                     }
                 } catch (nameError) {
                     // Użyj domyślnego powitania
-                }
-
-                // Pobierz dane subskrybenta z KV (jeśli dostępne)
-                let subscriberData = null;
-                try {
-                    const subscriberKey = `newsletter:${subscriberEmail.toLowerCase()}`;
-                    subscriberData = await kv.get(subscriberKey);
-                } catch (kvError) {
-                    // Ignoruj błąd - użyj domyślnych danych
                 }
 
                 const emailResult = await resend.emails.send({
