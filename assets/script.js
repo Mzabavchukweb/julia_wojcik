@@ -70,10 +70,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Aktualizuj odliczanie co sekundę (1000 ms)
         updatePremiereCountdown();
         const premiereInterval = setInterval(() => {
-            updatePremiereCountdown();
             const now = new Date().getTime();
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
+                
+                // Natychmiast ukryj splash i pokaż stronę
+                if (premiereSplash) {
+                    premiereSplash.classList.add('hidden');
+                    setTimeout(() => {
+                        premiereSplash.style.display = 'none';
+                    }, 300);
+                }
+                if (mainContent) {
+                    mainContent.style.display = 'block';
+                }
+                
                 // Wywołaj endpoint do wysłania powiadomień o premierze (używamy pełnego URL)
                 console.log('✅ Premiere time reached - sending notifications...');
                 fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
@@ -82,13 +93,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Content-Type': 'application/json',
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     console.log('✅ Premiere notifications sent:', data);
                 })
                 .catch(error => {
                     console.error('❌ Error sending premiere notifications:', error);
                 });
+            } else {
+                updatePremiereCountdown();
             }
         }, 1000);
         

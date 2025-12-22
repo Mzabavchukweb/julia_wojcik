@@ -51,9 +51,11 @@ export default async function handler(req, res) {
     const premierePassed = now >= premiereDate;
 
     // Jeśli to nie cron job i premiera jeszcze nie minęła, wymagaj autoryzacji (tylko dla POST)
+    // Gdy premiera już minęła, pozwól na POST bez autoryzacji (dla wywołań z frontendu)
     if (req.method === 'POST' && !isCronJob && !premierePassed && authHeader !== `Bearer ${cronSecret}`) {
         return res.status(401).json({ error: 'Unauthorized - premiere not yet passed' });
     }
+    // Gdy premiera minęła, nie wymagaj autoryzacji dla POST (frontend może wywołać)
 
     try {
         // Sprawdź czy premiera już minęła
