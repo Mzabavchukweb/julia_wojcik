@@ -102,8 +102,7 @@ export default async function handler(req, res) {
         }
 
         const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
-        const ebookUrl = process.env.PUBLIC_URL || process.env.NEXT_PUBLIC_URL || 'https://julia-wojcik.vercel.app';
-        const ebookPageUrl = `${ebookUrl}/pages/ebook.html`;
+        const ebookPageUrl = 'https://juliawojcikszkolenia.pl/pages/ebook.html';
 
         let successCount = 0;
         let errorCount = 0;
@@ -130,51 +129,296 @@ export default async function handler(req, res) {
                 const emailResult = await resend.emails.send({
                     from: emailFrom,
                     to: subscriberEmail,
-                    subject: 'Informacja od Julii Wójcik',
-                    text: `${greeting}!
-
-Dziękuję, że zapisałaś się na powiadomienie o moim e-booku "Korekta bez skrótów".
-
-Właśnie udostępniłam go na stronie - możesz go zobaczyć tutaj:
-${ebookPageUrl}
-
-Jeśli masz jakiekolwiek pytania, odpisz na tego maila - chętnie odpowiem.
-
-Pozdrawiam serdecznie,
-Julia Wójcik
-
---
-Julia Wójcik
-Profesjonalna Stylizacja Paznokci
-Szczecin
-juliawojcikszkolenia.pl`,
+                    subject: 'E-book jest już dostępny',
                     html: `
                         <!DOCTYPE html>
                         <html>
                         <head>
                             <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <!--[if mso]>
+                            <style type="text/css">
+                                body, table, td {font-family: Arial, sans-serif !important;}
+                            </style>
+                            <![endif]-->
+                            <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;500&display=swap" rel="stylesheet">
+                            <style>
+                                body { 
+                                    font-family: 'Roboto Condensed', 'Avenir Next Condensed', Arial, sans-serif; 
+                                    line-height: 1.8; 
+                                    color: #6b6b6b; 
+                                    margin: 0; 
+                                    padding: 0; 
+                                    background: #f3f1ee;
+                                    -webkit-font-smoothing: antialiased;
+                                }
+                                .wrapper {
+                                    background: #f3f1ee;
+                                    padding: 40px 20px;
+                                }
+                                .container { 
+                                    max-width: 600px; 
+                                    margin: 0 auto; 
+                                    background: #ffffff;
+                                    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+                                }
+                                .logo-section {
+                                    background: #ffffff;
+                                    padding: 40px 40px 0 40px;
+                                    text-align: center;
+                                }
+                                .logo {
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    font-size: 18px;
+                                    font-weight: 400;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.15em;
+                                    color: #212121;
+                                    margin: 0;
+                                }
+                                .gold-line {
+                                    width: 60px;
+                                    height: 2px;
+                                    background: #C5A572;
+                                    margin: 24px auto 0 auto;
+                                }
+                                .header { 
+                                    background: #ffffff; 
+                                    padding: 32px 40px 40px 40px; 
+                                    text-align: center; 
+                                }
+                                .header h1 { 
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    margin: 0; 
+                                    font-size: 32px; 
+                                    font-weight: 400;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.06em;
+                                    color: #212121;
+                                    line-height: 1.2;
+                                }
+                                .header-subtitle {
+                                    font-size: 15px;
+                                    color: #8a8a8a;
+                                    margin-top: 12px;
+                                }
+                                .content { 
+                                    background: #ffffff; 
+                                    padding: 0 40px 48px 40px; 
+                                }
+                                .content p {
+                                    margin: 0 0 20px 0;
+                                    color: #6b6b6b;
+                                    font-size: 16px;
+                                }
+                                .button-wrapper {
+                                    text-align: center;
+                                    margin: 36px 0;
+                                }
+                                .button { 
+                                    display: inline-block; 
+                                    background: #212121; 
+                                    color: #ffffff !important; 
+                                    padding: 18px 42px; 
+                                    text-decoration: none; 
+                                    font-family: 'Roboto Condensed', Arial, sans-serif;
+                                    font-weight: 500; 
+                                    font-size: 14px;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.1em;
+                                }
+                                .button-arrow {
+                                    margin-left: 12px;
+                                    font-size: 16px;
+                                }
+                                .info-box { 
+                                    background: #f9f8f6; 
+                                    border-left: 3px solid #C5A572; 
+                                    padding: 24px; 
+                                    margin: 32px 0; 
+                                }
+                                .info-box-title {
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    font-size: 16px;
+                                    font-weight: 400;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.05em;
+                                    color: #212121;
+                                    margin: 0 0 16px 0;
+                                }
+                                .info-box ul {
+                                    margin: 0;
+                                    padding-left: 20px;
+                                    color: #6b6b6b;
+                                }
+                                .info-box li {
+                                    margin-bottom: 10px;
+                                    font-size: 15px;
+                                }
+                                .contact-section {
+                                    margin-top: 36px;
+                                    padding-top: 28px;
+                                    border-top: 1px solid #e8e5e0;
+                                    text-align: center;
+                                }
+                                .contact-title {
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    font-size: 14px;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.05em;
+                                    color: #212121;
+                                    margin: 0 0 20px 0;
+                                }
+                                .social-links {
+                                    margin: 0;
+                                    padding: 0;
+                                }
+                                .social-link {
+                                    display: inline-block;
+                                    margin: 0 12px;
+                                    padding: 12px 24px;
+                                    background: #f9f8f6;
+                                    color: #212121 !important;
+                                    text-decoration: none;
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    letter-spacing: 0.05em;
+                                }
+                                .social-icon {
+                                    width: 16px;
+                                    height: 16px;
+                                    vertical-align: middle;
+                                    margin-right: 8px;
+                                }
+                                .signature {
+                                    margin-top: 40px;
+                                    text-align: center;
+                                }
+                                .signature p {
+                                    margin: 0 0 4px 0;
+                                    color: #6b6b6b;
+                                }
+                                .signature-name {
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    font-size: 20px;
+                                    color: #212121;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.08em;
+                                    margin-top: 16px !important;
+                                }
+                                .footer { 
+                                    text-align: center; 
+                                    padding: 32px 40px; 
+                                    background: #212121;
+                                }
+                                .footer-brand {
+                                    font-family: 'Instrument Serif', Georgia, serif;
+                                    font-size: 14px;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.12em;
+                                    color: #ffffff;
+                                    margin: 0 0 8px 0;
+                                }
+                                .footer p {
+                                    margin: 0 0 6px 0;
+                                    color: #8a8a8a;
+                                    font-size: 12px;
+                                }
+                                .footer a { 
+                                    color: #C5A572; 
+                                    text-decoration: none;
+                                }
+                                .footer-gold-line {
+                                    width: 40px;
+                                    height: 1px;
+                                    background: #C5A572;
+                                    margin: 16px auto;
+                                }
+                                .credits {
+                                    margin-top: 20px;
+                                    padding-top: 16px;
+                                    border-top: 1px solid #3a3a3a;
+                                    font-size: 10px;
+                                    color: #555555;
+                                }
+                                .credits a {
+                                    color: #6b6b6b;
+                                }
+                            </style>
                         </head>
-                        <body style="font-family: Georgia, serif; font-size: 16px; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                            <p>${greeting}!</p>
-                            
-                            <p>Dziękuję, że zapisałaś się na powiadomienie o moim e-booku "Korekta bez skrótów".</p>
-                            
-                            <p>Właśnie udostępniłam go na stronie - możesz go zobaczyć tutaj:<br>
-                            <a href="${ebookPageUrl}" style="color: #8B4513;">${ebookPageUrl}</a></p>
-                            
-                            <p>Jeśli masz jakiekolwiek pytania, odpisz na tego maila - chętnie odpowiem.</p>
-                            
-                            <p>Pozdrawiam serdecznie,<br>
-                            <strong>Julia Wójcik</strong></p>
-                            
-                            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-                            
-                            <p style="font-size: 14px; color: #666;">
-                                Julia Wójcik<br>
-                                Profesjonalna Stylizacja Paznokci<br>
-                                Szczecin<br>
-                                <a href="https://juliawojcikszkolenia.pl" style="color: #8B4513;">juliawojcikszkolenia.pl</a>
-                            </p>
+                        <body>
+                            <div class="wrapper">
+                            <div class="container">
+                                    <!-- Logo Section -->
+                                    <div class="logo-section">
+                                        <p class="logo">Julia Wójcik</p>
+                                        <div class="gold-line"></div>
+                                    </div>
+                                    
+                                    <!-- Header -->
+                                <div class="header">
+                                        <h1>E-book już dostępny</h1>
+                                        <p class="header-subtitle">Korekta bez skrótów</p>
+                                    </div>
+                                    
+                                    <!-- Content -->
+                                    <div class="content">
+                                        <p>${greeting}!</p>
+                                        <p>Dziękuję, że zapisałaś się na powiadomienie o moim e-booku <strong style="color: #212121;">Korekta bez skrótów</strong>.</p>
+                                        <p>Właśnie udostępniłam go na stronie — kliknij poniższy przycisk, aby zobaczyć szczegóły i zakupić:</p>
+                                        
+                                        <div class="button-wrapper">
+                                            <a href="${ebookPageUrl}" class="button" style="color: #ffffff !important;">
+                                                ZOBACZ E-BOOK<span class="button-arrow">→</span>
+                                            </a>
+                                        </div>
+                                        
+                                    <div class="info-box">
+                                            <p class="info-box-title">Co znajdziesz w e-booku</p>
+                                            <ul>
+                                                <li>Wszystko na temat ściągania masy</li>
+                                                <li>Korektę na krótkich paznokciach</li>
+                                                <li>Obszerną korektę na kształt kwadrat</li>
+                                                <li>Zmianę kształtu bez użycia form</li>
+                                                <li>Sposoby na podniesienie wolnego brzegu</li>
+                                                <li><strong style="color: #212121;">GRATIS:</strong> korekta na kształt migdał</li>
+                                        </ul>
+                                    </div>
+                                        
+                                        <!-- Contact Section with Social Icons -->
+                                        <div class="contact-section">
+                                            <p class="contact-title">Masz pytania? Napisz do mnie</p>
+                                            <div class="social-links">
+                                                <a href="https://www.instagram.com/juliawojcik_instruktor/" class="social-link" style="color: #212121 !important;">
+                                                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                                                    Instagram
+                                                </a>
+                                                <a href="https://www.tiktok.com/@nailsbyjul_kawojcik" class="social-link" style="color: #212121 !important;">
+                                                    <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                                                    TikTok
+                                                </a>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Signature -->
+                                        <div class="signature">
+                                    <p>Pozdrawiam serdecznie,</p>
+                                            <p class="signature-name">Julia Wójcik</p>
+                                        </div>
+                                </div>
+                                    
+                                    <!-- Footer -->
+                                <div class="footer">
+                                        <p class="footer-brand">Julia Wójcik</p>
+                                        <div class="footer-gold-line"></div>
+                                        <p>Profesjonalna Stylizacja Paznokci</p>
+                                        <p>Szczecin · <a href="https://juliawojcikszkolenia.pl">juliawojcikszkolenia.pl</a></p>
+                                        <div class="credits">
+                                            <p>Projekt i wykonanie: <a href="https://codingmaks.com">codingmaks.com</a></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </body>
                         </html>
                     `
