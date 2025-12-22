@@ -8,6 +8,11 @@ console.log('[INIT] ✅ Module newsletter-subscribe.js loaded successfully');
 export default async function handler(req, res) {
     console.log('[NEWSLETTER] Request received:', req.method, req.url);
     
+    // Sprawdź metodę na początku
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+    
     // Inicjalizuj Redis w handlerze (automatycznie używa zmiennych środowiskowych)
     let redis = null;
     try {
@@ -23,12 +28,19 @@ export default async function handler(req, res) {
     } catch (redisInitError) {
         console.error('[NEWSLETTER] ❌ Redis initialization error:', redisInitError);
     }
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
 
     try {
-        const { email } = req.body;
+        // Parsuj body - może być string lub już obiekt
+        let body = req.body;
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                console.error('[NEWSLETTER] Error parsing body:', e);
+            }
+        }
+        
+        const { email } = body || {};
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({ error: 'Invalid email address' });
