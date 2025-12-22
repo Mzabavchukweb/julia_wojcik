@@ -1014,46 +1014,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    const countdownTimer = document.getElementById('countdown-timer');
-    const countdownPremiere = document.getElementById('countdown-premiere');
-    const countdownSection = document.getElementById('countdown-section');
+    // Data premiery: 30 grudnia 2025, 00:00:00
+    const premiereDate = new Date('2025-12-30T00:00:00').getTime();
     
-    if (countdownTimer) {
-        // Data premiery: 30 grudnia 2025, 00:00:00
-        const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
+        const now = new Date().getTime();
+        const distance = premiereDate - now;
         
-        function updateCountdown() {
-            const now = new Date().getTime();
-            const distance = premiereDate - now;
-            
-            if (distance < 0) {
-                // Premiera już minęła - pokaż informację o premierze
-                if (countdownTimer) countdownTimer.style.display = 'none';
-                if (countdownPremiere) countdownPremiere.style.display = 'block';
-                return;
-            }
-            
-            // Oblicz dni, godziny, minuty, sekundy
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
-            // Zaktualizuj wyświetlane wartości
-            const daysEl = document.getElementById('days');
-            const hoursEl = document.getElementById('hours');
-            const minutesEl = document.getElementById('minutes');
-            const secondsEl = document.getElementById('seconds');
-            
-            if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
-            if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
-            if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
-            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        const countdownTimer = document.getElementById(timerId);
+        const countdownPremiere = document.getElementById(premiereId);
+        
+        if (distance < 0) {
+            // Premiera już minęła - pokaż informację o premierze
+            if (countdownTimer) countdownTimer.style.display = 'none';
+            if (countdownPremiere) countdownPremiere.style.display = 'block';
+            return;
         }
         
-        // Aktualizuj odliczanie co sekundę
-        updateCountdown();
-        const countdownInterval = setInterval(updateCountdown, 1000);
+        // Oblicz dni, godziny, minuty, sekundy
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        // Zaktualizuj wyświetlane wartości
+        const daysEl = document.getElementById(daysId);
+        const hoursEl = document.getElementById(hoursId);
+        const minutesEl = document.getElementById(minutesId);
+        const secondsEl = document.getElementById(secondsId);
+        
+        if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+        if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+        if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+        if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+    }
+    
+    // Timer na stronie ebook.html
+    const countdownTimer = document.getElementById('countdown-timer');
+    const countdownPremiere = document.getElementById('countdown-premiere');
+    
+    if (countdownTimer) {
+        updateCountdown('countdown-timer', 'countdown-premiere', 'days', 'hours', 'minutes', 'seconds');
+        const countdownInterval = setInterval(() => {
+            updateCountdown('countdown-timer', 'countdown-premiere', 'days', 'hours', 'minutes', 'seconds');
+        }, 1000);
         
         // Sprawdź czy premiera już minęła przy załadowaniu strony
         const now = new Date().getTime();
@@ -1061,6 +1065,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if (countdownTimer) countdownTimer.style.display = 'none';
             if (countdownPremiere) countdownPremiere.style.display = 'block';
             clearInterval(countdownInterval);
+        }
+    }
+    
+    // Timer na stronie głównej (index.html)
+    const countdownTimerHome = document.getElementById('countdown-timer-home');
+    const countdownPremiereHome = document.getElementById('countdown-premiere-home');
+    
+    if (countdownTimerHome) {
+        updateCountdown('countdown-timer-home', 'countdown-premiere-home', 'days-home', 'hours-home', 'minutes-home', 'seconds-home');
+        const countdownIntervalHome = setInterval(() => {
+            updateCountdown('countdown-timer-home', 'countdown-premiere-home', 'days-home', 'hours-home', 'minutes-home', 'seconds-home');
+        }, 1000);
+        
+        // Sprawdź czy premiera już minęła przy załadowaniu strony
+        const now = new Date().getTime();
+        if (premiereDate - now < 0) {
+            if (countdownTimerHome) countdownTimerHome.style.display = 'none';
+            if (countdownPremiereHome) countdownPremiereHome.style.display = 'block';
+            clearInterval(countdownIntervalHome);
         }
     }
 });
