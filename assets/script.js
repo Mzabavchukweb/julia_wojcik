@@ -74,9 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const now = new Date().getTime();
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
-                // Wywołaj endpoint do wysłania powiadomień o premierze
+                // Wywołaj endpoint do wysłania powiadomień o premierze (używamy pełnego URL)
                 console.log('✅ Premiere time reached - sending notifications...');
-                fetch('/api/send-premiere-notification', {
+                fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -114,8 +114,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Zapisz email do naszego endpointu + wyślij przez FormSubmit
                 const formData = new FormData(premiereNewsletterForm);
                 
-                // Najpierw zapisz do naszego endpointu
-                fetch('/api/newsletter-subscribe', {
+                // Najpierw zapisz do naszego endpointu (używamy pełnego URL bo juliawojcikszkolenia.pl nie obsługuje serverless)
+                fetch('https://julia-wojcik.vercel.app/api/newsletter-subscribe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
