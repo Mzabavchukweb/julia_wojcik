@@ -112,36 +112,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Zapisz email do naszego endpointu + wyślij przez FormSubmit
-                const formData = new FormData(premiereNewsletterForm);
-                
-                // Najpierw zapisz do naszego endpointu (używamy pełnego URL bo juliawojcikszkolenia.pl nie obsługuje serverless)
+                // Zapisz do naszego endpointu (używamy pełnego URL bo juliawojcikszkolenia.pl nie obsługuje serverless)
                 fetch('https://julia-wojcik.vercel.app/api/newsletter-subscribe', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ email: email })
-                }).catch(err => {
-                    console.log('Newsletter subscription save error:', err);
-                });
-                
-                // Potem wyślij przez FormSubmit (backup)
-                fetch(premiereNewsletterForm.action, {
-                    method: 'POST',
-                    body: formData
                 })
-                .then(response => {
-                    if (response.ok) {
-                        if (premiereNewsletterMessage) {
-                            premiereNewsletterMessage.textContent = 'Dziękujemy! Otrzymasz powiadomienie o premierze e-booka.';
-                            premiereNewsletterMessage.className = 'premiere-newsletter-message success';
-                        }
-                        emailInput.value = '';
-                    } else {
-                        throw new Error('Błąd wysyłania formularza');
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Newsletter subscription result:', data);
+                    if (premiereNewsletterMessage) {
+                        premiereNewsletterMessage.textContent = 'Dziękujemy! Otrzymasz powiadomienie o premierze e-booka.';
+                        premiereNewsletterMessage.className = 'premiere-newsletter-message success';
                     }
+                    emailInput.value = '';
                 })
                 .catch(error => {
+                    console.error('Newsletter subscription error:', error);
                     if (premiereNewsletterMessage) {
                         premiereNewsletterMessage.textContent = 'Wystąpił błąd. Spróbuj ponownie później.';
                         premiereNewsletterMessage.className = 'premiere-newsletter-message error';
