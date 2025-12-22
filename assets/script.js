@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    // TEST: Premiera za 4 minuty - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 240000); // 4 minuty od teraz (4 * 60 * 1000)
+    // TEST: Premiera za 1 minutę - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 60000); // 1 minuta od teraz (1 * 60 * 1000)
     const premiereDate = testPremiereDate.getTime(); // Dla testu
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
