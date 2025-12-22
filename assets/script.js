@@ -1,5 +1,124 @@
 // Advanced Scroll Animations and Interactions
 document.addEventListener('DOMContentLoaded', function() {
+    // ===== PREMIERE SPLASH SCREEN CONTROL =====
+    const premiereSplash = document.getElementById('premiere-splash');
+    const mainContent = document.getElementById('main-content');
+    const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    const now = new Date().getTime();
+    
+    // Sprawdź czy premiera już minęła
+    if (now >= premiereDate) {
+        // Premiera już minęła - ukryj splash screen i pokaż stronę
+        if (premiereSplash) {
+            premiereSplash.classList.add('hidden');
+            setTimeout(() => {
+                premiereSplash.style.display = 'none';
+            }, 800);
+        }
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+    } else {
+        // Premiera jeszcze nie minęła - pokaż splash screen i ukryj stronę
+        if (premiereSplash) {
+            premiereSplash.style.display = 'flex';
+        }
+        if (mainContent) {
+            mainContent.style.display = 'none';
+        }
+        
+        // Aktualizuj countdown timer
+        function updatePremiereCountdown() {
+            const now = new Date().getTime();
+            const distance = premiereDate - now;
+            
+            if (distance < 0) {
+                // Premiera minęła - ukryj splash i pokaż stronę
+                if (premiereSplash) {
+                    premiereSplash.classList.add('hidden');
+                    setTimeout(() => {
+                        premiereSplash.style.display = 'none';
+                    }, 800);
+                }
+                if (mainContent) {
+                    mainContent.style.display = 'block';
+                }
+                return;
+            }
+            
+            // Oblicz dni, godziny, minuty, sekundy
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            // Zaktualizuj wyświetlane wartości
+            const daysEl = document.getElementById('premiere-days');
+            const hoursEl = document.getElementById('premiere-hours');
+            const minutesEl = document.getElementById('premiere-minutes');
+            const secondsEl = document.getElementById('premiere-seconds');
+            
+            if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+            if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+            if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        }
+        
+        // Aktualizuj odliczanie co sekundę
+        updatePremiereCountdown();
+        const premiereInterval = setInterval(() => {
+            updatePremiereCountdown();
+            const now = new Date().getTime();
+            if (now >= premiereDate) {
+                clearInterval(premiereInterval);
+            }
+        }, 1000);
+        
+        // Obsługa formularza newslettera w splash screen
+        const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
+        const premiereNewsletterMessage = document.getElementById('premiere-newsletter-message');
+        
+        if (premiereNewsletterForm) {
+            premiereNewsletterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const emailInput = document.getElementById('premiere-newsletter-email');
+                const email = emailInput.value.trim();
+                
+                if (!email) {
+                    if (premiereNewsletterMessage) {
+                        premiereNewsletterMessage.textContent = 'Proszę podać adres email';
+                        premiereNewsletterMessage.className = 'premiere-newsletter-message error';
+                    }
+                    return;
+                }
+                
+                // Wyślij formularz
+                const formData = new FormData(premiereNewsletterForm);
+                fetch(premiereNewsletterForm.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        if (premiereNewsletterMessage) {
+                            premiereNewsletterMessage.textContent = 'Dziękujemy! Otrzymasz powiadomienie o premierze e-booka.';
+                            premiereNewsletterMessage.className = 'premiere-newsletter-message success';
+                        }
+                        emailInput.value = '';
+                    } else {
+                        throw new Error('Błąd wysyłania formularza');
+                    }
+                })
+                .catch(error => {
+                    if (premiereNewsletterMessage) {
+                        premiereNewsletterMessage.textContent = 'Wystąpił błąd. Spróbuj ponownie później.';
+                        premiereNewsletterMessage.className = 'premiere-newsletter-message error';
+                    }
+                });
+            });
+        }
+    }
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const navMenu = document.querySelector('.nav-menu');

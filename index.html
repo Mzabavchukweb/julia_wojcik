@@ -50,6 +50,60 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet"></noscript>
 </head>
 <body>
+    <!-- PREMIERE SPLASH SCREEN - Full Screen Preview -->
+    <div class="premiere-splash" id="premiere-splash">
+        <div class="premiere-splash-content">
+            <div class="premiere-splash-image">
+                <img src="images/profile/julia.webp" alt="Julia Wójcik" class="premiere-image">
+            </div>
+            <div class="premiere-splash-text">
+                <span class="premiere-label">PREMIERA</span>
+                <h1 class="premiere-title">E-BOOK WKRÓTCE DOSTĘPNY</h1>
+                <p class="premiere-subtitle">Premiera e-booka już za:</p>
+                <div class="premiere-countdown" id="premiere-countdown">
+                    <div class="premiere-countdown-item">
+                        <div class="premiere-countdown-number" id="premiere-days">00</div>
+                        <div class="premiere-countdown-label">Dni</div>
+                    </div>
+                    <div class="premiere-countdown-separator">:</div>
+                    <div class="premiere-countdown-item">
+                        <div class="premiere-countdown-number" id="premiere-hours">00</div>
+                        <div class="premiere-countdown-label">Godzin</div>
+                    </div>
+                    <div class="premiere-countdown-separator">:</div>
+                    <div class="premiere-countdown-item">
+                        <div class="premiere-countdown-number" id="premiere-minutes">00</div>
+                        <div class="premiere-countdown-label">Minut</div>
+                    </div>
+                    <div class="premiere-countdown-separator">:</div>
+                    <div class="premiere-countdown-item">
+                        <div class="premiere-countdown-number" id="premiere-seconds">00</div>
+                        <div class="premiere-countdown-label">Sekund</div>
+                    </div>
+                </div>
+                
+                <!-- Newsletter Form -->
+                <div class="premiere-newsletter">
+                    <p class="premiere-newsletter-text">Zapisz się do newslettera, aby otrzymać powiadomienie o premierze e-booka!</p>
+                    <form class="premiere-newsletter-form" id="premiere-newsletter-form" action="https://formsubmit.co/juliajula08@icloud.com" method="POST">
+                        <input type="hidden" name="_subject" value="Zapis do newslettera - Premiera E-booka">
+                        <input type="hidden" name="_next" value="https://juliawojcikszkolenia.pl/?newsletter=success">
+                        <input type="hidden" name="_captcha" value="false">
+                        <input type="hidden" name="_template" value="box">
+                        <div class="premiere-newsletter-input-wrapper">
+                            <input type="email" id="premiere-newsletter-email" name="email" placeholder="Twój adres email" required>
+                            <button type="submit" class="btn btn-primary">
+                                <span>Zapisz się</span>
+                                <span class="btn-arrow">→</span>
+                            </button>
+                        </div>
+                        <div id="premiere-newsletter-message" class="premiere-newsletter-message"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Floating Decorative Elements -->
     <div class="floating-element floating-element-1"></div>
     <div class="floating-element floating-element-2"></div>
@@ -82,7 +136,7 @@
         </div>
     </nav>
 
-    <main id="main-content" role="main">
+    <main id="main-content" role="main" style="display: none;">
         <section class="hero" data-scroll-section>
             <div class="hero-background">
                 <div class="hero-overlay"></div>
@@ -342,43 +396,6 @@
                         <span class="section-label">WIEDZA</span>
                         <h2>E-BOOK</h2>
                         <p>Kompleksowy przewodnik po stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki w jednym miejscu.</p>
-                        
-                        <!-- Countdown Timer na stronie głównej -->
-                        <div class="countdown-section-home" id="countdown-section-home">
-                            <div class="countdown-content-home">
-                                <div class="countdown-text-wrapper-home">
-                                    <span class="countdown-label-home">PREMIERA</span>
-                                    <h3 class="countdown-title-home">E-BOOK WKRÓTCE DOSTĘPNY</h3>
-                                    <p class="countdown-description-home">Premiera e-booka już za:</p>
-                                    <div class="countdown-timer-home" id="countdown-timer-home">
-                                        <div class="countdown-item-home">
-                                            <div class="countdown-number-home" id="days-home">00</div>
-                                            <div class="countdown-label-small-home">Dni</div>
-                                        </div>
-                                        <div class="countdown-separator-home">:</div>
-                                        <div class="countdown-item-home">
-                                            <div class="countdown-number-home" id="hours-home">00</div>
-                                            <div class="countdown-label-small-home">Godzin</div>
-                                        </div>
-                                        <div class="countdown-separator-home">:</div>
-                                        <div class="countdown-item-home">
-                                            <div class="countdown-number-home" id="minutes-home">00</div>
-                                            <div class="countdown-label-small-home">Minut</div>
-                                        </div>
-                                        <div class="countdown-separator-home">:</div>
-                                        <div class="countdown-item-home">
-                                            <div class="countdown-number-home" id="seconds-home">00</div>
-                                            <div class="countdown-label-small-home">Sekund</div>
-                                        </div>
-                                    </div>
-                                    <div class="countdown-premiere-home" id="countdown-premiere-home" style="display: none;">
-                                        <h4>🎉 PREMIERA JUŻ DZIŚ!</h4>
-                                        <p>E-book jest już dostępny do zakupu!</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="ebook-cta-buttons">
                             <a href="pages/ebook.html" class="btn btn-secondary">
                                 <span>Sprawdź e-book</span>
@@ -475,7 +492,7 @@
                 <div class="newsletter-wrapper">
                     <div class="newsletter-content" data-scroll data-scroll-opacity>
                         <span class="section-label">NEWSLETTER</span>
-                        <h2>ZOSTAŃ W KONTAKCIE</h2>
+                        <h2>OSTAŃ W KONTAKCIE</h2>
                         <p>Otrzymuj informacje o nowych kursach, ekskluzywnych ofertach i praktycznych wskazówkach dotyczących stylizacji paznokci. Dołącz do grona pasjonatek perfekcji.</p>
                         <form class="newsletter-form" id="newsletter-form" action="https://formsubmit.co/juliajula08@icloud.com" method="POST">
                             <!-- FormSubmit configuration -->
