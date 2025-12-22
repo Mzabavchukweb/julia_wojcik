@@ -817,10 +817,10 @@ export default async function handler(req, res) {
                         });
                     }
                     
-                    console.log('✅ Email sent successfully!');
-                    console.log('Email result:', JSON.stringify(emailResult, null, 2));
-                    console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
-                    console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
+                        console.log('✅ Email sent successfully!');
+                        console.log('Email result:', JSON.stringify(emailResult, null, 2));
+                        console.log('Email ID:', emailResult?.id || emailResult?.data?.id || 'N/A');
+                        console.log('Email status:', emailResult?.data ? 'sent' : 'unknown');
                     } catch (emailError) {
                         console.error(`[${requestId}] ❌ ERROR: Failed to send email`);
                         console.error(`[${requestId}] Email error name:`, emailError.name);

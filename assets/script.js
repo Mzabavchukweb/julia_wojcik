@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    // TEST: Premiera za 6 minut - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 360000); // 6 minut od teraz (6 * 60 * 1000)
+    // TEST: Premiera za 4 minuty - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 240000); // 4 minuty od teraz (4 * 60 * 1000)
     const premiereDate = testPremiereDate.getTime(); // Dla testu
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
@@ -1164,12 +1164,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    // Data premiery: 30 grudnia 2025, 00:00:00
-    const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    // Data premiery: 30 grudnia 2025, 00:00:00 (stary timer dla innych sekcji)
+    const ebookPremiereDate = new Date('2025-12-30T00:00:00').getTime();
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();
-        const distance = premiereDate - now;
+        const distance = ebookPremiereDate - now;
         
         const countdownTimer = document.getElementById(timerId);
         const countdownPremiere = document.getElementById(premiereId);
@@ -1211,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Sprawdź czy premiera już minęła przy załadowaniu strony
         const now = new Date().getTime();
-        if (premiereDate - now < 0) {
+        if (ebookPremiereDate - now < 0) {
             if (countdownTimer) countdownTimer.style.display = 'none';
             if (countdownPremiere) countdownPremiere.style.display = 'block';
             clearInterval(countdownInterval);
@@ -1230,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Sprawdź czy premiera już minęła przy załadowaniu strony
         const now = new Date().getTime();
-        if (premiereDate - now < 0) {
+        if (ebookPremiereDate - now < 0) {
             if (countdownTimerHome) countdownTimerHome.style.display = 'none';
             if (countdownPremiereHome) countdownPremiereHome.style.display = 'block';
             clearInterval(countdownIntervalHome);

@@ -34,8 +34,8 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    // TEST: Premiera za 6 minut - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 360000); // 6 minut od teraz (6 * 60 * 1000)
+    // TEST: Premiera za 4 minuty - zmień na '2025-12-30T00:00:00' dla produkcji
+    const testPremiereDate = new Date(Date.now() + 240000); // 4 minuty od teraz (4 * 60 * 1000)
     const premiereDate = testPremiereDate.getTime(); // Dla testu
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
