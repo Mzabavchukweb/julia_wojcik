@@ -19,13 +19,24 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(response => response.json())
     .then(data => {
         if (data.ended === true) {
-            // Banner już się zakończył globalnie - nie pokazuj go
+            // Banner już się zakończył globalnie - całkowicie usuń go z DOM
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
+                premiereSplash.style.visibility = 'hidden';
+                premiereSplash.style.opacity = '0';
+                // Usuń banner z DOM całkowicie
+                setTimeout(() => {
+                    if (premiereSplash && premiereSplash.parentNode) {
+                        premiereSplash.parentNode.removeChild(premiereSplash);
+                    }
+                }, 100);
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
+            // Upewnij się że scroll jest odblokowany
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
             return;
         }
         
@@ -53,7 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
+                premiereSplash.style.visibility = 'hidden';
+                premiereSplash.style.opacity = '0';
             }
+            // Upewnij się że scroll jest odblokowany
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
             return;
         }
         
@@ -154,10 +170,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (initialDistance <= 0) {
-            // Czas już minął - nie pokazuj bannera, tylko wyślij powiadomienia
-            console.log('⏰ Czas odliczania już minął - nie pokazuję bannera');
+            // Czas już minął - całkowicie usuń banner z DOM
+            console.log('⏰ Czas odliczania już minął - usuwam banner całkowicie');
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
+                premiereSplash.style.visibility = 'hidden';
+                premiereSplash.style.opacity = '0';
+                // Usuń banner z DOM całkowicie
+                setTimeout(() => {
+                    if (premiereSplash && premiereSplash.parentNode) {
+                        premiereSplash.parentNode.removeChild(premiereSplash);
+                    }
+                }, 100);
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
@@ -170,7 +194,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ markEnded: true })
             }).catch(err => console.error('Error marking banner as ended:', err));
-            console.log('⏰ Banner zakończony - powiadomienia wyśle automatycznie serwer (cron job)');
+            // Upewnij się że scroll jest odblokowany
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            // Odblokuj navbar jeśli był ukryty
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = '';
+            }
+            console.log('⏰ Banner zakończony i usunięty - powiadomienia wyśle automatycznie serwer (cron job)');
             return;
         }
         
@@ -271,11 +303,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     console.log('⏰ Banner zakończony - powiadomienia wyśle automatycznie serwer (cron job)');
                     
-                    // Ukryj banner
+                    // Ukryj i całkowicie usuń banner z DOM
                     if (premiereSplash) {
                         premiereSplash.classList.add('hidden');
+                        premiereSplash.style.display = 'none';
+                        premiereSplash.style.visibility = 'hidden';
+                        premiereSplash.style.opacity = '0';
+                        // Usuń banner z DOM całkowicie po animacji
                         setTimeout(() => {
-                            premiereSplash.style.display = 'none';
+                            if (premiereSplash && premiereSplash.parentNode) {
+                                premiereSplash.parentNode.removeChild(premiereSplash);
+                                console.log('🗑️ Banner całkowicie usunięty z DOM');
+                            }
                         }, 800);
                     }
                     if (mainContent) {
