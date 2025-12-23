@@ -50,20 +50,19 @@ export default async function handler(req, res) {
         if (isCronJob) {
             const premiereStartKey = 'premiere:banner:start:time';
             const bannerEndedKey = 'premiere:banner:ended';
+            const notificationsSentKey = 'premiere:notifications:sent';
+            
             const startTime = await redis.get(premiereStartKey);
             const bannerEnded = await redis.get(bannerEndedKey);
+            const notificationsSent = await redis.get(notificationsSentKey);
             
-            // Jeśli banner już został oznaczony jako zakończony, sprawdź czy powiadomienia zostały wysłane
-            if (bannerEnded === 'true') {
-                const notificationsSentKey = 'premiere:notifications:sent';
-                const notificationsSent = await redis.get(notificationsSentKey);
-                if (notificationsSent === 'true') {
-                    console.log('[PREMIERE] Banner zakończony i powiadomienia już wysłane - pomijam');
-                    return res.status(200).json({ 
-                        message: 'Banner ended and notifications already sent',
-                        alreadySent: true
-                    });
-                }
+            // Jeśli powiadomienia już zostały wysłane, nie rób nic
+            if (notificationsSent === 'true') {
+                console.log('[PREMIERE] Powiadomienia już wysłane - pomijam');
+                return res.status(200).json({ 
+                    message: 'Notifications already sent',
+                    alreadySent: true
+                });
             }
             
             // Sprawdź czy czas się zakończył
@@ -89,8 +88,11 @@ export default async function handler(req, res) {
                     await redis.set(bannerEndedKey, 'true');
                     console.log('[PREMIERE] ✅ Banner time ended - marked as ended, proceeding with notifications');
                 } else {
-                    console.log('[PREMIERE] Banner already marked as ended, checking if notifications sent');
+                    console.log('[PREMIERE] Banner already marked as ended, proceeding with notifications');
                 }
+                
+                // WAŻNE: Kontynuuj dalej do wysyłania powiadomień (nie zwracaj tutaj!)
+                console.log('[PREMIERE] ⏰ Czas minął - przechodzę do wysyłania powiadomień');
             } else {
                 // Brak czasu start - nie ma aktywnego bannera
                 console.log('[PREMIERE] No active banner - no start time found');
