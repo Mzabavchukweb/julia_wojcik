@@ -123,6 +123,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 mainContent.style.display = 'none';
             }
             
+            // Zablokuj nawigację - ukryj navbar
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = 'none';
+            }
+            
+            // Zablokuj scrollowanie strony
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            
+            // Zablokuj wszystkie linki nawigacyjne
+            const allLinks = document.querySelectorAll('a[href]');
+            allLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }, true);
+                
+                // Dodaj wizualną wskazówkę że link jest zablokowany
+                link.style.pointerEvents = 'none';
+                link.style.cursor = 'not-allowed';
+                link.style.opacity = '0.5';
+            });
+            
+            // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
+            let bannerActive = true;
+            window.addEventListener('beforeunload', function(e) {
+                if (bannerActive) {
+                    e.preventDefault();
+                    e.returnValue = 'Odliczanie jeszcze trwa. Poczekaj aż się zakończy.';
+                    return e.returnValue;
+                }
+            });
+            
+            // Zablokuj nawigację przez historię przeglądarki
+            window.addEventListener('popstate', function(e) {
+                if (bannerActive) {
+                    e.preventDefault();
+                    window.history.pushState(null, null, window.location.href);
+                }
+            });
+            
+            // Dodaj stan do historii, aby zablokować przycisk "wstecz"
+            window.history.pushState(null, null, window.location.href);
+            
             // Zaktualizuj odliczanie co sekundę
             updatePremiereCountdown();
             const premiereInterval = setInterval(() => {
@@ -131,6 +177,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (bannerEndTime - currentTime < 0) {
                     clearInterval(premiereInterval);
                     console.log('⏰ Banner zakończył odliczanie');
+                    
+                    // Odblokuj nawigację
+                    bannerActive = false;
+                    if (navbar) {
+                        navbar.style.display = '';
+                    }
+                    document.body.style.overflow = '';
+                    document.documentElement.style.overflow = '';
+                    
+                    // Odblokuj wszystkie linki
+                    allLinks.forEach(link => {
+                        link.style.pointerEvents = '';
+                        link.style.cursor = '';
+                        link.style.opacity = '';
+                    });
+                    
                     // Wyślij powiadomienia gdy odliczanie się kończy
                     sendPremiereNotifications();
                 }
