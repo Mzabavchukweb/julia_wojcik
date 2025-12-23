@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePremiereCountdown() {
         const now = new Date().getTime();
         const distance = bannerEndTime - now;
-        
+    
         if (distance < 0) {
             // 4 minuty minęły - ukryj banner
             if (premiereSplash) {
@@ -48,8 +48,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Zawsze pokaż banner na 4 minuty (bez localStorage)
     if (premiereSplash) {
+        console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
         // Pokaż banner i ukryj główną treść
         premiereSplash.style.display = 'flex';
+        premiereSplash.style.visibility = 'visible';
+        premiereSplash.style.opacity = '1';
         if (mainContent) {
             mainContent.style.display = 'none';
         }
@@ -61,9 +64,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const now = new Date().getTime();
             if (bannerEndTime - now < 0) {
                 clearInterval(premiereInterval);
+                console.log('⏰ Banner zakończył odliczanie');
             }
         }, 1000);
     } else {
+        console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
         // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
         if (mainContent) {
             mainContent.style.display = 'block';
