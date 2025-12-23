@@ -1,6 +1,11 @@
 // Advanced Scroll Animations and Interactions
 document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH BANNER =====
+    // Sprawdź czy jesteśmy na stronie głównej (index.html)
+    const isHomePage = window.location.pathname === '/' || 
+                       window.location.pathname.endsWith('index.html') ||
+                       window.location.pathname.endsWith('/');
+    
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
@@ -22,6 +27,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 mainContent.style.display = 'block';
             }
             return;
+        }
+        
+        // Jeśli banner jest aktywny i NIE jesteśmy na stronie głównej - przekieruj na index.html
+        if (!isHomePage && data.startTime) {
+            const startTime = data.startTime;
+            const serverTimeOnLoad = data.currentTime || new Date().getTime();
+            const bannerEndTime = startTime + (4 * 60 * 1000);
+            const initialDistance = bannerEndTime - serverTimeOnLoad;
+            
+            if (initialDistance > 0) {
+                // Banner jest aktywny - przekieruj na stronę główną
+                console.log('🚫 Banner aktywny - przekierowanie na stronę główną');
+                window.location.href = '/index.html';
+                return;
+            }
         }
         
         if (!data.startTime) {
@@ -295,8 +315,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     sendPremiereNotifications();
                 }
             }, 1000);
-        } else {
-            console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
+        } else if (isHomePage) {
+            console.warn('⚠️ Banner premiere-splash nie został znaleziony na stronie głównej!');
             // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
             if (mainContent) {
                 mainContent.style.display = 'block';
