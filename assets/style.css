@@ -14,7 +14,7 @@
     height: 100vh;
     background: linear-gradient(135deg, var(--beige) 0%, var(--beige-light) 100%);
     z-index: 99999;
-    display: flex;
+    display: none; /* Domyślnie ukryty - JavaScript pokaże tylko jeśli czas jeszcze nie minął */
     align-items: center;
     justify-content: center;
     overflow-y: auto;
