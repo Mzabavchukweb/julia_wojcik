@@ -28,16 +28,35 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const startTime = data.startTime;
         const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od globalnego czasu rozpoczęcia
+        const currentTimeCheck = new Date().getTime();
         
-        console.log(`🎬 Banner start time: ${new Date(startTime).toISOString()}, end time: ${new Date(bannerEndTime).toISOString()}`);
+        console.log(`🎬 Banner start time: ${new Date(startTime).toISOString()}, end time: ${new Date(bannerEndTime).toISOString()}, current: ${new Date(currentTimeCheck).toISOString()}`);
+        
+        // Sprawdź czy odliczanie już się zakończyło PRZED pokazaniem bannera
+        if (currentTimeCheck >= bannerEndTime) {
+            // Odliczanie już się zakończyło - nie pokazuj bannera
+            console.log('⏰ Odliczanie już się zakończyło - nie pokazuję bannera');
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            
+            // Wyślij powiadomienia jeśli jeszcze nie zostały wysłane
+            sendPremiereNotifications();
+            return;
+        }
         
         // Funkcja aktualizująca odliczanie bannera
         function updatePremiereCountdown() {
             const currentTime = new Date().getTime();
             const distance = bannerEndTime - currentTime;
         
-            if (distance < 0) {
+            if (distance <= 0) {
                 // 4 minuty minęły - ukryj banner i wyślij powiadomienia
+                console.log('⏰ Odliczanie zakończone - ukrywam banner');
+                
                 // Oznacz w Redis że banner się zakończył (globalnie)
                 fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                     method: 'POST',
@@ -56,6 +75,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (mainContent) {
                     mainContent.style.display = 'block';
                 }
+                
+                // Odblokuj nawigację
+                const navbar = document.querySelector('.navbar');
+                if (navbar) {
+                    navbar.style.display = '';
+                }
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+                
+                // Odblokuj wszystkie linki
+                const allLinks = document.querySelectorAll('a[href]');
+                allLinks.forEach(link => {
+                    link.style.pointerEvents = '';
+                    link.style.cursor = '';
+                    link.style.opacity = '';
+                });
                 
                 // Wyślij powiadomienia o premierze do wszystkich subskrybentów
                 sendPremiereNotifications();
@@ -110,14 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
-        const currentTimeCheck = new Date().getTime();
-        if (bannerEndTime - currentTimeCheck < 0) {
-            // Odliczanie już się zakończyło - wyślij powiadomienia jeśli jeszcze nie zostały wysłane
-            sendPremiereNotifications();
-        }
-        
-        // Pokaż banner i ukryj główną treść
+        // Pokaż banner i ukryj główną treść (tylko jeśli odliczanie jeszcze trwa)
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
             premiereSplash.style.display = 'flex';
@@ -178,27 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const premiereInterval = setInterval(() => {
                 updatePremiereCountdown();
                 const currentTime = new Date().getTime();
-                if (bannerEndTime - currentTime < 0) {
+                if (bannerEndTime - currentTime <= 0) {
                     clearInterval(premiereInterval);
-                    console.log('⏰ Banner zakończył odliczanie');
-                    
-                    // Odblokuj nawigację
-                    bannerActive = false;
-                    if (navbar) {
-                        navbar.style.display = '';
-                    }
-                    document.body.style.overflow = '';
-                    document.documentElement.style.overflow = '';
-                    
-                    // Odblokuj wszystkie linki
-                    allLinks.forEach(link => {
-                        link.style.pointerEvents = '';
-                        link.style.cursor = '';
-                        link.style.opacity = '';
-                    });
-                    
-                    // Wyślij powiadomienia gdy odliczanie się kończy
-                    sendPremiereNotifications();
+                    console.log('⏰ Banner zakończył odliczanie - interval zatrzymany');
                 }
             }, 1000);
         } else {
