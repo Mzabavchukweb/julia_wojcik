@@ -1,10 +1,94 @@
 // Advanced Scroll Animations and Interactions
 document.addEventListener('DOMContentLoaded', function() {
-    // ===== MAIN CONTENT DISPLAY =====
-    // Upewnij się że main-content jest zawsze widoczny
+    // ===== PREMIERE SPLASH BANNER =====
+    const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-        mainContent.style.display = 'block';
+    
+    // Ustaw odliczanie na 4 minuty od teraz
+    const nowForBanner = new Date().getTime();
+    const fourMinutesFromNow = nowForBanner + (4 * 60 * 1000); // 4 minuty w milisekundach
+    const bannerEndTime = fourMinutesFromNow;
+    
+    // Funkcja aktualizująca odliczanie bannera
+    function updatePremiereCountdown() {
+        const now = new Date().getTime();
+        const distance = bannerEndTime - now;
+        
+        if (distance < 0) {
+            // 4 minuty minęły - ukryj banner
+            if (premiereSplash) {
+                premiereSplash.classList.add('hidden');
+                setTimeout(() => {
+                    premiereSplash.style.display = 'none';
+                }, 800);
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            // Zapisz w localStorage, że banner już się pokazał
+            localStorage.setItem('premiere_banner_shown', 'true');
+            return;
+        }
+        
+        // Oblicz minuty i sekundy
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        // Zaktualizuj wyświetlane wartości
+        const minutesEl = document.getElementById('premiere-minutes');
+        const secondsEl = document.getElementById('premiere-seconds');
+        
+        if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+        if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        
+        // Dni i godziny zawsze 00 dla 4 minut
+        const daysEl = document.getElementById('premiere-days');
+        const hoursEl = document.getElementById('premiere-hours');
+        if (daysEl) daysEl.textContent = '00';
+        if (hoursEl) hoursEl.textContent = '00';
+    }
+    
+    // Sprawdź czy banner już był pokazany
+    const bannerShown = localStorage.getItem('premiere_banner_shown');
+    const currentTime = new Date().getTime();
+    
+    if (premiereSplash) {
+        if (bannerShown === 'true') {
+            // Banner już był pokazany - ukryj go
+            premiereSplash.style.display = 'none';
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+        } else {
+            // Pokaż banner i ukryj główną treść
+            premiereSplash.style.display = 'flex';
+            if (mainContent) {
+                mainContent.style.display = 'none';
+            }
+            
+            // Zaktualizuj odliczanie co sekundę
+            updatePremiereCountdown();
+            const premiereInterval = setInterval(() => {
+                updatePremiereCountdown();
+                const now = new Date().getTime();
+                if (bannerEndTime - now < 0) {
+                    clearInterval(premiereInterval);
+                }
+            }, 1000);
+        }
+    } else {
+        // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+    }
+    
+    // ===== MAIN CONTENT DISPLAY =====
+    // Upewnij się że main-content jest widoczny jeśli nie ma bannera
+    if (!premiereSplash || premiereSplash.style.display === 'none') {
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
     }
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
@@ -751,6 +835,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // ===== PREMIERE NEWSLETTER FORM =====
+    const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
+    if (premiereNewsletterForm) {
+        premiereNewsletterForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('premiere-newsletter-email').value.trim();
+            const messageEl = document.getElementById('premiere-newsletter-message');
+            
+            if (!email) {
+                if (messageEl) {
+                    messageEl.textContent = 'Proszę podać adres email';
+                    messageEl.classList.remove('success');
+                    messageEl.classList.add('error');
+                }
+                return;
+            }
+            
+            try {
+                const response = await fetch('https://julia-wojcik.vercel.app/api/newsletter-subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email, source: 'premiere-splash' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (messageEl) {
+                        messageEl.textContent = 'Dziękuję za zapisanie się do newslettera!';
+                        messageEl.classList.remove('error');
+                        messageEl.classList.add('success');
+                    }
+                    premiereNewsletterForm.reset();
+                } else {
+                    throw new Error(result.error || 'Błąd podczas zapisywania');
+                }
+            } catch (error) {
+                console.error('❌ Error subscribing to newsletter:', error);
+                if (messageEl) {
+                    messageEl.textContent = 'Wystąpił błąd. Spróbuj ponownie.';
+                    messageEl.classList.remove('success');
+                    messageEl.classList.add('error');
+                }
+            }
+        });
+    }
+    
     const newsletterForm = document.getElementById('newsletter-form');
     if (newsletterForm) {
         // FormSubmit handles submission, we just show loading state
@@ -1071,10 +1204,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    // Ustaw odliczanie na 5 minut od teraz
+    // Ustaw odliczanie na 4 minuty od teraz (dla innych sekcji countdown na innych stronach)
     const nowForPremiere = new Date().getTime();
-    const fiveMinutesFromNow = nowForPremiere + (5 * 60 * 1000); // 5 minut w milisekundach
-    const ebookPremiereDate = fiveMinutesFromNow;
+    const fourMinutesFromNow = nowForPremiere + (4 * 60 * 1000); // 4 minuty w milisekundach
+    const ebookPremiereDate = fourMinutesFromNow;
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();
