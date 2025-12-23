@@ -146,7 +146,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const initialServerTime = serverTimeOnLoad;
         const initialDistance = bannerEndTime - initialServerTime;
         
-        if (initialDistance < 0) {
+        console.log('🔍 Debug info:', {
+            startTime: new Date(startTime).toISOString(),
+            bannerEndTime: new Date(bannerEndTime).toISOString(),
+            currentTime: new Date(initialServerTime).toISOString(),
+            distance: initialDistance,
+            distanceMinutes: Math.floor(initialDistance / 60000)
+        });
+        
+        if (initialDistance <= 0) {
             // Czas już minął - nie pokazuj bannera, tylko wyślij powiadomienia
             console.log('⏰ Czas odliczania już minął - nie pokazuję bannera');
             if (premiereSplash) {
@@ -166,6 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
             sendPremiereNotifications();
             return;
         }
+        
+        // Czas jeszcze nie minął - pokaż banner
+        console.log(`⏱️ Banner będzie widoczny przez ${Math.floor(initialDistance / 60000)} minut i ${Math.floor((initialDistance % 60000) / 1000)} sekund`);
         
         // Pokaż banner i ukryj główną treść (tylko jeśli czas jeszcze nie minął)
         if (premiereSplash) {
