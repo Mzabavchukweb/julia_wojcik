@@ -16,7 +16,7 @@
   "crons": [
     {
       "path": "/api/send-premiere-notification",
-      "schedule": "0 0 * * *"
+      "schedule": "* * * * *"
     }
   ],
   "rewrites": [

@@ -43,16 +43,60 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    // TEST MODE: Wyłączono sprawdzanie autoryzacji i daty premiery
-    // Dla produkcji odkomentuj poniższe linie:
-    // const premiereDate = new Date('2025-12-30T00:00:00').getTime();
-    // const now = new Date().getTime();
-    // if (now < premiereDate) {
-    //     return res.status(200).json({ message: 'Premiera jeszcze nie minęła' });
-    // }
-
     try {
         console.log('[PREMIERE] Processing notification request...');
+        
+        // Jeśli to cron job, sprawdź czy czas bannera się zakończył
+        if (isCronJob) {
+            const premiereStartKey = 'premiere:banner:start:time';
+            const bannerEndedKey = 'premiere:banner:ended';
+            const startTime = await redis.get(premiereStartKey);
+            const bannerEnded = await redis.get(bannerEndedKey);
+            
+            // Jeśli banner już został oznaczony jako zakończony, sprawdź czy powiadomienia zostały wysłane
+            if (bannerEnded === 'true') {
+                const notificationsSentKey = 'premiere:notifications:sent';
+                const notificationsSent = await redis.get(notificationsSentKey);
+                if (notificationsSent === 'true') {
+                    console.log('[PREMIERE] Banner zakończony i powiadomienia już wysłane - pomijam');
+                    return res.status(200).json({ 
+                        message: 'Banner ended and notifications already sent',
+                        alreadySent: true
+                    });
+                }
+            }
+            
+            // Sprawdź czy czas się zakończył
+            if (startTime) {
+                const startTimeNum = parseInt(startTime);
+                const bannerEndTime = startTimeNum + (4 * 60 * 1000); // 4 minuty
+                const now = new Date().getTime();
+                const distance = bannerEndTime - now;
+                
+                if (distance > 0) {
+                    // Czas jeszcze nie minął - nie wysyłaj powiadomień
+                    console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut`);
+                    return res.status(200).json({ 
+                        message: 'Banner time not ended yet',
+                        timeRemaining: distance,
+                        timeRemainingMinutes: Math.floor(distance / 60000)
+                    });
+                }
+                
+                // Czas minął - oznacz banner jako zakończony
+                if (bannerEnded !== 'true') {
+                    await redis.set(bannerEndedKey, 'true');
+                    console.log('[PREMIERE] Banner time ended - marked as ended');
+                }
+            } else {
+                // Brak czasu start - nie ma aktywnego bannera
+                console.log('[PREMIERE] No active banner - no start time found');
+                return res.status(200).json({ 
+                    message: 'No active banner',
+                    noBanner: true
+                });
+            }
+        }
 
         // Sprawdź czy powiadomienia już zostały wysłane (zapobiegaj podwójnym wysyłkom)
         // Użyj atomowej operacji SETNX - zapobiega race condition przy równoczesnych żądaniach
