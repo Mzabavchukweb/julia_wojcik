@@ -1,51 +1,60 @@
 // Advanced Scroll Animations and Interactions
 document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
+    // Tylko na stronie głównej (index.html) - inne strony nie mają splash screen
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
-    // Sprawdź czy premiera już minęła (z localStorage)
-    const premierePassedKey = 'premiere_passed';
-    const premierePassed = localStorage.getItem(premierePassedKey) === 'true';
-    
-    // TEST: Premiera za 1 minutę - zmień na '2025-12-30T00:00:00' dla produkcji
-    const testPremiereDate = new Date(Date.now() + 60000); // 1 minuta od teraz (1 * 60 * 1000)
-    const premiereDate = testPremiereDate.getTime(); // Dla testu
-    // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
-    const now = new Date().getTime();
-    
-    // Jeśli premiera już minęła (z localStorage), nie pokazuj bannera
-    if (premierePassed) {
-        if (premiereSplash) {
-            premiereSplash.style.display = 'none';
-        }
+    // Jeśli nie ma splash screen (nie jesteśmy na index.html), pokaż main-content i zakończ
+    if (!premiereSplash) {
         if (mainContent) {
             mainContent.style.display = 'block';
         }
-        return; // Nie uruchamiaj countdown
-    }
-    
-    // Sprawdź czy premiera już minęła (według czasu)
-    if (now >= premiereDate) {
-        // Premiera już minęła - zapisz w localStorage i ukryj splash screen
-        localStorage.setItem(premierePassedKey, 'true');
-        if (premiereSplash) {
-            premiereSplash.classList.add('hidden');
-            setTimeout(() => {
-                premiereSplash.style.display = 'none';
-            }, 800);
-        }
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
+        // Kontynuuj dalej - nie ma splash screen, więc nie ma co kontrolować
     } else {
-        // Premiera jeszcze nie minęła - pokaż splash screen i ukryj stronę
-        if (premiereSplash) {
-            premiereSplash.style.display = 'flex';
+        // Jesteśmy na index.html - kontroluj splash screen
+        // Sprawdź czy premiera już minęła (z localStorage)
+        const premierePassedKey = 'premiere_passed';
+        const premierePassed = localStorage.getItem(premierePassedKey) === 'true';
+        
+        // TEST: Premiera za 1 minutę - zmień na '2025-12-30T00:00:00' dla produkcji
+        const testPremiereDate = new Date(Date.now() + 60000); // 1 minuta od teraz (1 * 60 * 1000)
+        const premiereDate = testPremiereDate.getTime(); // Dla testu
+        // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
+        const now = new Date().getTime();
+        
+        // Jeśli premiera już minęła (z localStorage), nie pokazuj bannera
+        if (premierePassed) {
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            return; // Nie uruchamiaj countdown
         }
-        if (mainContent) {
-            mainContent.style.display = 'none';
-        }
+        
+        // Sprawdź czy premiera już minęła (według czasu)
+        if (now >= premiereDate) {
+            // Premiera już minęła - zapisz w localStorage i ukryj splash screen
+            localStorage.setItem(premierePassedKey, 'true');
+            if (premiereSplash) {
+                premiereSplash.classList.add('hidden');
+                setTimeout(() => {
+                    premiereSplash.style.display = 'none';
+                }, 800);
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+        } else {
+            // Premiera jeszcze nie minęła - pokaż splash screen i ukryj stronę
+            if (premiereSplash) {
+                premiereSplash.style.display = 'flex';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'none';
+            }
         
         // Aktualizuj countdown timer
         function updatePremiereCountdown() {
@@ -130,9 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 updatePremiereCountdown();
             }
         }, 1000);
+        } // Koniec bloku else (tylko jeśli jest premiereSplash)
         
-        // Obsługa formularza newslettera w splash screen
-        const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
+        // Obsługa formularza newslettera w splash screen (tylko jeśli jest premiereSplash)
+        if (premiereSplash) {
+            const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
         const premiereNewsletterMessage = document.getElementById('premiere-newsletter-message');
         
         if (premiereNewsletterForm) {
@@ -177,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         }
+        } // Koniec bloku if (premiereSplash)
     }
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
