@@ -55,21 +55,24 @@ export default async function handler(req, res) {
         console.log('[PREMIERE] Processing notification request...');
 
         // Sprawdź czy powiadomienia już zostały wysłane (zapobiegaj podwójnym wysyłkom)
+        // Użyj SETNX (set if not exists) dla atomowej operacji - zapobiega race condition
         const notificationsSentKey = 'premiere:notifications:sent';
-        try {
-            const notificationsAlreadySent = await redis.get(notificationsSentKey);
-            if (notificationsAlreadySent === 'true') {
-                console.log('[PREMIERE] ⚠️ Notifications already sent - skipping to prevent duplicates');
-                return res.status(200).json({ 
-                    message: 'Notifications already sent',
-                    alreadySent: true,
-                    count: 0
-                });
-            }
-        } catch (checkError) {
-            console.error('[PREMIERE] ❌ Error checking if notifications were sent:', checkError);
-            // Kontynuuj - jeśli nie można sprawdzić, wyślij (lepiej wysłać niż nie wysłać)
+        
+        // Próbuj ustawić flagę atomowo - jeśli już istnieje, zwróci 0
+        const setResult = await redis.set(notificationsSentKey, 'true', { ex: 86400, nx: true }); // nx = only if not exists, ex = expire after 24h
+        
+        if (setResult === null || setResult === 0) {
+            // Flaga już istnieje - powiadomienia już zostały wysłane
+            console.log('📧 Powiadomienia już zostały wysłane wcześniej - pomijam wysyłkę');
+            return res.status(200).json({ 
+                success: true,
+                message: 'Notifications already sent',
+                alreadySent: true
+            });
         }
+        
+        // Flaga została ustawiona - możemy wysłać powiadomienia
+        console.log('📧 Flaga ustawiona - rozpoczynam wysyłanie powiadomień');
 
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
@@ -454,13 +457,10 @@ export default async function handler(req, res) {
             }
         }
 
-        // Zapisz flagę że powiadomienia zostały wysłane (zapobiegaj podwójnym wysyłkom)
-        try {
-            await redis.set(notificationsSentKey, 'true');
-            console.log('[PREMIERE] ✅ Marked notifications as sent in Redis');
-        } catch (markError) {
-            console.error('[PREMIERE] ❌ Error marking notifications as sent:', markError);
-            // Kontynuuj - nawet jeśli nie można zapisać flagi, zwróć sukces
+        // Oznacz w Redis, że powiadomienia zostały wysłane (zapobiegaj podwójnym wysyłkom)
+        if (successCount > 0) {
+            // Flaga już została ustawiona na początku (SETNX) - nie trzeba ponownie ustawiać
+            console.log('✅ Notifications sent successfully (flag was set at start)');
         }
 
         return res.status(200).json({ 
