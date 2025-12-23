@@ -1071,8 +1071,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    // Data premiery: 30 grudnia 2025, 00:00:00 (stary timer dla innych sekcji)
-    const ebookPremiereDate = new Date('2025-12-30T00:00:00').getTime();
+    // Ustaw odliczanie na 5 minut od teraz
+    const nowForPremiere = new Date().getTime();
+    const fiveMinutesFromNow = nowForPremiere + (5 * 60 * 1000); // 5 minut w milisekundach
+    const ebookPremiereDate = fiveMinutesFromNow;
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();
