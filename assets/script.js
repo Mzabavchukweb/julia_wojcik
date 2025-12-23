@@ -4,29 +4,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
-    // Sprawdź czy banner już się zakończył
-    const bannerEnded = localStorage.getItem('premiere_banner_ended');
-    if (bannerEnded === 'true') {
-        // Banner już się zakończył - nie pokazuj go
-        if (premiereSplash) {
-            premiereSplash.style.display = 'none';
+    // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
+    fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
         }
-        if (mainContent) {
-            mainContent.style.display = 'block';
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ended === true) {
+            // Banner już się zakończył globalnie - nie pokazuj go
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            return;
         }
-    } else {
-        // Sprawdź czy banner już się rozpoczął
-        let bannerStartTime = localStorage.getItem('premiere_banner_start');
-        const now = new Date().getTime();
         
-        if (!bannerStartTime) {
-            // Pierwsze uruchomienie - zapisz czas rozpoczęcia
-            bannerStartTime = now.toString();
-            localStorage.setItem('premiere_banner_start', bannerStartTime);
-        }
-        
-        const startTime = parseInt(bannerStartTime);
-        const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od czasu rozpoczęcia
+        const startTime = data.startTime;
+        const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od globalnego czasu rozpoczęcia
         
         // Funkcja aktualizująca odliczanie bannera
         function updatePremiereCountdown() {
@@ -35,7 +34,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
             if (distance < 0) {
                 // 4 minuty minęły - ukryj banner i wyślij powiadomienia
-                localStorage.setItem('premiere_banner_ended', 'true');
+                // Oznacz w Redis że banner się zakończył (globalnie)
+                fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ markEnded: true })
+                }).catch(err => console.error('Error marking banner as ended:', err));
+                
                 if (premiereSplash) {
                     premiereSplash.classList.add('hidden');
                     setTimeout(() => {
@@ -77,13 +84,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            const notificationsSentFlag = localStorage.getItem('premiere_notifications_sent');
-            if (notificationsSentFlag === 'true') {
-                console.log('📧 Powiadomienia już zostały wysłane (z localStorage)');
-                notificationsSent = true;
-                return;
-            }
-            
             console.log('📧 Wysyłanie powiadomień o premierze...');
             fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
                 method: 'POST',
@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(result => {
                 console.log('✅ Powiadomienia o premierze wysłane:', result);
-                localStorage.setItem('premiere_notifications_sent', 'true');
                 notificationsSent = true;
             })
             .catch(error => {
@@ -143,7 +142,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 mainContent.style.display = 'block';
             }
         }
-    }
+    })
+    .catch(error => {
+        console.error('❌ Błąd podczas pobierania czasu premiery:', error);
+        // Fallback: pokaż główną treść jeśli nie można pobrać czasu
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+        if (premiereSplash) {
+            premiereSplash.style.display = 'none';
+        }
+    });
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const navMenu = document.querySelector('.nav-menu');
