@@ -5,12 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
-    // Jeśli nie ma splash screen (nie jesteśmy na index.html), pokaż main-content i zakończ
+    // Jeśli nie ma splash screen (nie jesteśmy na index.html), pokaż main-content
     if (!premiereSplash) {
         if (mainContent) {
             mainContent.style.display = 'block';
         }
-        // Kontynuuj dalej - nie ma splash screen, więc nie ma co kontrolować
     } else {
         // Jesteśmy na index.html - kontroluj splash screen
         // Sprawdź czy premiera już minęła (z localStorage)
