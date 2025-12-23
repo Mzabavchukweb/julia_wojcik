@@ -1,5 +1,5 @@
 // Translations for Julia Wójcik website
-const translations = {
+window.translations = {
     pl: {
         // Navigation
         'nav.home': 'Strona główna',
@@ -271,4 +271,9 @@ const translations = {
         'about.subtitle': 'Learn my story and passion',
     }
 };
+
+// Make translations available globally
+if (typeof window !== 'undefined') {
+    window.translations = translations;
+}
 
