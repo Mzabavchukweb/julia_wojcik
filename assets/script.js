@@ -4,6 +4,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
+    // Funkcja wysyłająca powiadomienia o premierze (zdefiniowana wcześniej, aby była dostępna wszędzie)
+    let notificationsSent = false;
+    function sendPremiereNotifications() {
+        if (notificationsSent) {
+            console.log('📧 Powiadomienia już zostały wysłane');
+            return;
+        }
+        
+        console.log('📧 Wysyłanie powiadomień o premierze...');
+        fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(result => {
+            console.log('✅ Powiadomienia o premierze wysłane:', result);
+            notificationsSent = true;
+        })
+        .catch(error => {
+            console.error('❌ Błąd podczas wysyłania powiadomień:', error);
+        });
+    }
+    
     // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
     // Czas jest ustawiany automatycznie przy pierwszym wywołaniu API i działa globalnie
     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
@@ -12,11 +42,30 @@ document.addEventListener('DOMContentLoaded', function() {
             'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('📡 API Response:', data);
+        
         if (data.ended === true) {
             // Banner już się zakończył globalnie - nie pokazuj go
             console.log('⏰ Banner już się zakończył globalnie');
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            return;
+        }
+        
+        if (!data.startTime) {
+            console.error('❌ Brak startTime w odpowiedzi API');
+            // Fallback: pokaż główną treść
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
             }
@@ -31,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentTimeCheck = new Date().getTime();
         
         console.log(`🎬 Banner start time: ${new Date(startTime).toISOString()}, end time: ${new Date(bannerEndTime).toISOString()}, current: ${new Date(currentTimeCheck).toISOString()}`);
+        console.log(`⏱️ Distance: ${bannerEndTime - currentTimeCheck}ms (${Math.floor((bannerEndTime - currentTimeCheck) / 1000)}s)`);
         
         // Sprawdź czy odliczanie już się zakończyło PRZED pokazaniem bannera
         if (currentTimeCheck >= bannerEndTime) {
@@ -115,36 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
-        // Funkcja wysyłająca powiadomienia o premierze
-        let notificationsSent = false;
-        function sendPremiereNotifications() {
-            if (notificationsSent) {
-                console.log('📧 Powiadomienia już zostały wysłane');
-                return;
-            }
-            
-            console.log('📧 Wysyłanie powiadomień o premierze...');
-            fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                console.log('✅ Powiadomienia o premierze wysłane:', result);
-                notificationsSent = true;
-            })
-            .catch(error => {
-                console.error('❌ Błąd podczas wysyłania powiadomień:', error);
-            });
-        }
-        
         // Pokaż banner i ukryj główną treść (tylko jeśli odliczanie jeszcze trwa)
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
@@ -221,13 +241,46 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .catch(error => {
         console.error('❌ Błąd podczas pobierania czasu premiery:', error);
-        // Fallback: pokaż główną treść jeśli nie można pobrać czasu
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
+        // Fallback: jeśli nie można pobrać czasu, pokaż banner z domyślnym czasem (4 minuty od teraz)
+        console.log('⚠️ Używam fallback - pokazuję banner z czasem od teraz');
+        const fallbackStartTime = new Date().getTime();
+        const fallbackEndTime = fallbackStartTime + (4 * 60 * 1000);
+        
         if (premiereSplash) {
-            premiereSplash.style.display = 'none';
+            premiereSplash.style.display = 'flex';
+            premiereSplash.style.visibility = 'visible';
+            premiereSplash.style.opacity = '1';
         }
+        if (mainContent) {
+            mainContent.style.display = 'none';
+        }
+        
+        // Funkcja aktualizująca odliczanie (fallback)
+        function updateFallbackCountdown() {
+            const currentTime = new Date().getTime();
+            const distance = fallbackEndTime - currentTime;
+            
+            if (distance <= 0) {
+                if (premiereSplash) {
+                    premiereSplash.style.display = 'none';
+                }
+                if (mainContent) {
+                    mainContent.style.display = 'block';
+                }
+                return;
+            }
+            
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            const minutesEl = document.getElementById('premiere-minutes');
+            const secondsEl = document.getElementById('premiere-seconds');
+            if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+        }
+        
+        updateFallbackCountdown();
+        setInterval(updateFallbackCountdown, 1000);
     });
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
