@@ -55,6 +55,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Jeśli nie jesteśmy na stronie głównej, już przekierowaliśmy wyżej - tutaj tylko dla index.html
+        if (!isHomePage) {
+            return;
+        }
+        
         const startTime = data.startTime;
         const serverTimeOnLoad = data.currentTime || new Date().getTime();
         const localTimeOnLoad = new Date().getTime();
