@@ -272,8 +272,3 @@ window.translations = {
     }
 };
 
-// Make translations available globally
-if (typeof window !== 'undefined') {
-    window.translations = translations;
-}
-
