@@ -10,7 +10,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainContent) {
             mainContent.style.display = 'block';
         }
+        // Kontynuuj dalej - nie ma splash screen, więc nie ma co kontrolować
     } else {
+        // Jesteśmy na index.html - upewnij się że main-content jest widoczny jeśli premiera minęła
+        if (mainContent && mainContent.style.display === 'none') {
+            // Sprawdź localStorage
+            const premierePassedKey = 'premiere_passed';
+            const premierePassed = localStorage.getItem(premierePassedKey) === 'true';
+            if (premierePassed) {
+                mainContent.style.display = 'block';
+            }
+        }
         // Jesteśmy na index.html - kontroluj splash screen
         // Sprawdź czy premiera już minęła (z localStorage)
         const premierePassedKey = 'premiere_passed';
