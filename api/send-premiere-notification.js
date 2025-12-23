@@ -37,9 +37,27 @@ export default async function handler(req, res) {
     }
 
     // Sprawdź czy to wywołanie z cron job (Vercel dodaje header) lub ręczne z auth
-    const isCronJob = req.headers['user-agent']?.includes('vercel-cron') || 
-                      req.headers['x-vercel-cron'] === '1' ||
-                      req.headers['x-vercel-signature']; // Vercel cron signature
+    // Vercel cron jobs mogą używać różnych headerów - sprawdź wszystkie możliwe
+    const userAgent = req.headers['user-agent'] || '';
+    const xVercelCron = req.headers['x-vercel-cron'];
+    const xVercelSignature = req.headers['x-vercel-signature'];
+    const authorization = req.headers['authorization'];
+    
+    // Wykryj cron job na podstawie różnych sygnałów
+    const isCronJob = userAgent.includes('vercel-cron') || 
+                      userAgent.includes('cron') ||
+                      xVercelCron === '1' ||
+                      !!xVercelSignature ||
+                      // Jeśli nie ma authorization i to GET request, prawdopodobnie to cron job
+                      (req.method === 'GET' && !authorization && !req.query?.manual);
+    
+    console.log('[PREMIERE] Cron detection:', {
+        userAgent,
+        xVercelCron,
+        xVercelSignature: xVercelSignature ? 'present' : 'missing',
+        method: req.method,
+        isCronJob
+    });
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
