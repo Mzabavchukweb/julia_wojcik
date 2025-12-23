@@ -1,4 +1,19 @@
 // Vercel Serverless Function - Zapisywanie subskrybentów newslettera
+import { Redis } from '@upstash/redis';
+
+// Inicjalizuj Redis (automatycznie używa zmiennych środowiskowych)
+let redis = null;
+try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        redis = new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        console.log('[NEWSLETTER] ✅ Redis initialized');
+    }
+} catch (error) {
+    console.error('[NEWSLETTER] ❌ Failed to initialize Redis:', error.message);
+}
 
 export default async function handler(req, res) {
     console.log('[NEWSLETTER] Request received:', req.method);
@@ -35,22 +50,18 @@ export default async function handler(req, res) {
 
         const emailLower = email.toLowerCase().trim();
         
-        // Próbuj zapisać do Redis jeśli skonfigurowany
+        // Zapisz do Redis jeśli skonfigurowany
         let savedToRedis = false;
         
-        if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        if (redis) {
             try {
-                // Użyj fetch zamiast biblioteki Redis
-                const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-                const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+                const subscriberKey = `newsletter:${emailLower}`;
+                const subscribersListKey = 'newsletter:subscribers:list';
                 
                 // Sprawdź czy email już istnieje
-                const getResponse = await fetch(`${redisUrl}/get/newsletter:${emailLower}`, {
-                    headers: { Authorization: `Bearer ${redisToken}` }
-                });
-                const getData = await getResponse.json();
+                const existingSubscriber = await redis.get(subscriberKey);
                 
-                if (getData.result) {
+                if (existingSubscriber) {
                     console.log('📧 Subscriber already exists:', email);
                     return res.status(200).json({ 
                         success: true,
@@ -66,23 +77,22 @@ export default async function handler(req, res) {
                     source: 'premiere-splash'
                 };
                 
-                await fetch(`${redisUrl}/set/newsletter:${emailLower}`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${redisToken}` },
-                    body: JSON.stringify(subscriberData)
-                });
+                await redis.set(subscriberKey, subscriberData);
                 
-                // Pobierz listę subskrybentów
-                const listResponse = await fetch(`${redisUrl}/get/newsletter:subscribers:list`, {
-                    headers: { Authorization: `Bearer ${redisToken}` }
-                });
-                const listData = await listResponse.json();
+                // Pobierz aktualną listę subskrybentów
+                let subscribersList = await redis.get(subscribersListKey);
                 
-                let subscribersList = [];
-                if (listData.result) {
+                console.log('[NEWSLETTER] Current subscribers list from Redis:', typeof subscribersList, subscribersList);
+                
+                // Obsłuż różne formaty danych
+                if (!subscribersList) {
+                    subscribersList = [];
+                } else if (typeof subscribersList === 'string') {
+                    // Jeśli to JSON string, sparsuj
                     try {
-                        subscribersList = JSON.parse(listData.result);
+                        subscribersList = JSON.parse(subscribersList);
                     } catch (e) {
+                        console.warn('[NEWSLETTER] Failed to parse subscribers list, starting fresh');
                         subscribersList = [];
                     }
                 }
@@ -94,11 +104,13 @@ export default async function handler(req, res) {
                 // Dodaj email jeśli jeszcze nie ma
                 if (!subscribersList.includes(emailLower)) {
                     subscribersList.push(emailLower);
-                    await fetch(`${redisUrl}/set/newsletter:subscribers:list`, {
-                        method: 'POST',
-                        headers: { Authorization: `Bearer ${redisToken}` },
-                        body: JSON.stringify(subscribersList)
-                    });
+                    
+                    // Zapisz zaktualizowaną listę - używamy set() z biblioteki @upstash/redis
+                    // która automatycznie serializuje tablice do JSON
+                    await redis.set(subscribersListKey, subscribersList);
+                    
+                    console.log('[NEWSLETTER] ✅ Added email to list:', emailLower);
+                    console.log('[NEWSLETTER] 📊 Updated subscribers list:', subscribersList);
                 }
                 
                 savedToRedis = true;
@@ -107,7 +119,10 @@ export default async function handler(req, res) {
                 
             } catch (redisError) {
                 console.error('❌ Redis Error:', redisError);
+                // Nie zwracaj błędu - spróbuj fallback
             }
+        } else {
+            console.warn('⚠️ Redis not initialized');
         }
 
         return res.status(200).json({ 

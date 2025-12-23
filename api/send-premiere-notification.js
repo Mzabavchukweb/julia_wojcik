@@ -62,9 +62,19 @@ export default async function handler(req, res) {
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
     try {
+        console.log('[PREMIERE] ========================================');
         console.log('[PREMIERE] Processing notification request...');
-        console.log('[PREMIERE] isCronJob:', isCronJob);
-        console.log('[PREMIERE] User-Agent:', req.headers['user-agent']);
+        console.log('[PREMIERE] Request info:', {
+            method: req.method,
+            isCronJob,
+            userAgent: req.headers['user-agent'],
+            timestamp: new Date().toISOString()
+        });
+        console.log('[PREMIERE] Service status:', {
+            resendInitialized: !!resend,
+            redisConfigured: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+            emailFrom: process.env.EMAIL_FROM || 'default'
+        });
         
         // Sprawdź czy czas bannera się zakończył (dla wszystkich żądań - cron job lub frontend)
         const premiereStartKey = 'premiere:banner:start:time';
@@ -87,16 +97,30 @@ export default async function handler(req, res) {
         }
         
         // Sprawdź czy czas się zakończył
-        if (startTime) {
-            const startTimeNum = parseInt(startTime);
+        if (startTime !== null && startTime !== undefined) {
+            // Konwertuj na liczbę - może być string lub number z Redis
+            const startTimeNum = typeof startTime === 'number' ? startTime : Number(startTime);
+            
+            if (isNaN(startTimeNum)) {
+                console.error('[PREMIERE] ❌ Invalid startTime format:', startTime, typeof startTime);
+                return res.status(200).json({ 
+                    message: 'Invalid startTime format',
+                    error: true,
+                    startTimeValue: startTime,
+                    startTimeType: typeof startTime
+                });
+            }
+            
             const bannerEndTime = startTimeNum + (2 * 60 * 1000); // 2 minuty
-            const now = new Date().getTime();
+            const now = Date.now();
             const distance = bannerEndTime - now;
             
             console.log('[PREMIERE] Time check:', { 
-                startTime: new Date(startTimeNum).toISOString(),
-                bannerEndTime: new Date(bannerEndTime).toISOString(),
-                now: new Date(now).toISOString(),
+                startTimeRaw: startTime,
+                startTimeType: typeof startTime,
+                startTimeNum,
+                bannerEndTime,
+                now,
                 distance,
                 distanceSeconds: Math.floor(distance / 1000)
             });
@@ -165,32 +189,45 @@ export default async function handler(req, res) {
                 const subscribersListKey = 'newsletter:subscribers:list';
                 const subscribersList = await redis.get(subscribersListKey);
                 
-                console.log('[PREMIERE] Subscribers list from Redis:', typeof subscribersList, subscribersList);
+                console.log('[PREMIERE] Raw subscribers list from Redis:', {
+                    type: typeof subscribersList,
+                    value: subscribersList,
+                    isArray: Array.isArray(subscribersList),
+                    stringified: JSON.stringify(subscribersList)
+                });
                 
                 // Obsłuż różne formaty danych z Redis
                 if (subscribersList) {
                     if (Array.isArray(subscribersList)) {
-                        // Jeśli to już tablica
+                        // Jeśli to już tablica (biblioteka @upstash/redis automatycznie parsuje JSON)
                         subscribers = subscribersList.filter(Boolean);
+                        console.log('[PREMIERE] ✅ Parsed as array directly:', subscribers);
                     } else if (typeof subscribersList === 'string') {
                         // Jeśli to JSON string, sparsuj
                         try {
                             const parsed = JSON.parse(subscribersList);
                             if (Array.isArray(parsed)) {
                                 subscribers = parsed.filter(Boolean);
+                                console.log('[PREMIERE] ✅ Parsed JSON string to array:', subscribers);
+                            } else {
+                                console.warn('[PREMIERE] ⚠️ Parsed JSON is not an array:', typeof parsed, parsed);
                             }
                         } catch (e) {
-                            console.warn('[PREMIERE] Failed to parse subscribers list as JSON:', e);
+                            console.warn('[PREMIERE] ❌ Failed to parse subscribers list as JSON:', e.message);
+                            console.warn('[PREMIERE] Raw value that failed to parse:', subscribersList);
                         }
+                    } else if (typeof subscribersList === 'object') {
+                        // Może być obiekt z innymi właściwościami
+                        console.warn('[PREMIERE] ⚠️ Subscribers list is an object (not array):', subscribersList);
                     }
                     
                     if (subscribers.length > 0) {
-                        console.log(`✅ Found ${subscribers.length} subscribers in Upstash Redis`);
+                        console.log(`[PREMIERE] ✅ Found ${subscribers.length} subscribers in Upstash Redis:`, subscribers);
                     } else {
-                        console.log('⚠️ Subscribers list is empty or invalid format');
+                        console.log('[PREMIERE] ⚠️ Subscribers list is empty or invalid format');
                     }
                 } else {
-                    console.log('⚠️ No subscribers list found in Redis');
+                    console.log('[PREMIERE] ⚠️ No subscribers list found in Redis (value is null/undefined)');
                 }
                 
                 // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
@@ -199,22 +236,23 @@ export default async function handler(req, res) {
                         .split(',')
                         .map(e => e.trim().toLowerCase())
                         .filter(Boolean);
-                    console.log(`⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+                    console.log(`[PREMIERE] ⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
                 }
             } else {
-                throw new Error('Upstash Redis not configured');
+                throw new Error('Upstash Redis not configured - missing env vars');
             }
         } catch (redisError) {
-            console.error('❌ Redis Error:', redisError);
+            console.error('[PREMIERE] ❌ Redis Error:', redisError.message);
+            console.error('[PREMIERE] ❌ Redis Error Stack:', redisError.stack);
             // Fallback: użyj zmiennej środowiskowej
             if (process.env.NEWSLETTER_SUBSCRIBERS) {
                 subscribers = process.env.NEWSLETTER_SUBSCRIBERS
                     .split(',')
                     .map(e => e.trim().toLowerCase())
                     .filter(Boolean);
-                console.log(`⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
+                console.log(`[PREMIERE] ⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
             } else {
-                console.log('⚠️ Redis not available and NEWSLETTER_SUBSCRIBERS not set');
+                console.log('[PREMIERE] ⚠️ Redis not available and NEWSLETTER_SUBSCRIBERS not set');
             }
         }
 
