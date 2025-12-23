@@ -55,13 +55,12 @@ export default async function handler(req, res) {
         console.log('[PREMIERE] Processing notification request...');
 
         // Sprawdź czy powiadomienia już zostały wysłane (zapobiegaj podwójnym wysyłkom)
-        // Użyj SETNX (set if not exists) dla atomowej operacji - zapobiega race condition
+        // Użyj atomowej operacji SETNX - zapobiega race condition przy równoczesnych żądaniach
         const notificationsSentKey = 'premiere:notifications:sent';
         
-        // Próbuj ustawić flagę atomowo - jeśli już istnieje, zwróci 0
-        const setResult = await redis.set(notificationsSentKey, 'true', { ex: 86400, nx: true }); // nx = only if not exists, ex = expire after 24h
-        
-        if (setResult === null || setResult === 0) {
+        // Sprawdź czy flaga już istnieje
+        const existingFlag = await redis.get(notificationsSentKey);
+        if (existingFlag === 'true') {
             // Flaga już istnieje - powiadomienia już zostały wysłane
             console.log('📧 Powiadomienia już zostały wysłane wcześniej - pomijam wysyłkę');
             return res.status(200).json({ 
@@ -69,6 +68,28 @@ export default async function handler(req, res) {
                 message: 'Notifications already sent',
                 alreadySent: true
             });
+        }
+        
+        // Ustaw flagę PRZED wysyłaniem (atomowo) - zapobiega podwójnym wysyłkom
+        // Użyj SETNX - ustaw tylko jeśli nie istnieje
+        try {
+            const setResult = await redis.set(notificationsSentKey, 'true', { ex: 86400, nx: true });
+            if (setResult === null || setResult === 0 || setResult === false) {
+                // Ktoś inny już ustawił flagę między GET a SET - sprawdź ponownie
+                const doubleCheck = await redis.get(notificationsSentKey);
+                if (doubleCheck === 'true') {
+                    console.log('📧 Powiadomienia już zostały wysłane (race condition detected) - pomijam wysyłkę');
+                    return res.status(200).json({ 
+                        success: true,
+                        message: 'Notifications already sent',
+                        alreadySent: true
+                    });
+                }
+            }
+        } catch (setError) {
+            // Jeśli SETNX nie działa, użyj zwykłego SET (fallback)
+            console.warn('⚠️ SETNX failed, using regular SET:', setError.message);
+            await redis.set(notificationsSentKey, 'true', { ex: 86400 });
         }
         
         // Flaga została ustawiona - możemy wysłać powiadomienia
