@@ -444,6 +444,7 @@ a {
     opacity: 0;
     transform: translateY(40px);
     transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
+    margin-bottom: 0.8rem;
 }
 
 .title-line.visible {
@@ -1298,7 +1299,7 @@ a {
 .hero-title {
     font-size: clamp(2rem, 5.5vw, 4.5rem);
     margin-bottom: 3rem;
-    line-height: 0.95;
+    line-height: 1.4;
     color: var(--black);
 }
 
