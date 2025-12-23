@@ -90,7 +90,7 @@ export default async function handler(req, res) {
             // Sprawdź czy czas się zakończył
             if (startTime) {
                 const startTimeNum = parseInt(startTime);
-                const bannerEndTime = startTimeNum + (4 * 60 * 1000); // 4 minuty
+                const bannerEndTime = startTimeNum + (2 * 60 * 1000); // 2 minuty
                 const now = new Date().getTime();
                 const distance = bannerEndTime - now;
                 

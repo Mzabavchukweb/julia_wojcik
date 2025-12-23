@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isHomePage && data.startTime) {
             const startTime = data.startTime;
             const serverTimeOnLoad = data.currentTime || new Date().getTime();
-            const bannerEndTime = startTime + (4 * 60 * 1000);
+            const bannerEndTime = startTime + (2 * 60 * 1000);
             const initialDistance = bannerEndTime - serverTimeOnLoad;
             
             if (initialDistance > 0) {
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const serverTimeOnLoad = data.currentTime || new Date().getTime();
         const localTimeOnLoad = new Date().getTime();
         let timeOffset = serverTimeOnLoad - localTimeOnLoad; // Różnica między czasem serwera a lokalnym (let, bo aktualizujemy)
-        const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od globalnego czasu rozpoczęcia
+        const bannerEndTime = startTime + (2 * 60 * 1000); // 2 minuty od globalnego czasu rozpoczęcia
         
         // Funkcja aktualizująca odliczanie bannera
         // Używa czasu serwera (lokalny czas + offset) dla dokładności
@@ -1488,10 +1488,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    // Ustaw odliczanie na 4 minuty od teraz (dla innych sekcji countdown na innych stronach)
+    // Ustaw odliczanie na 2 minuty od teraz (dla innych sekcji countdown na innych stronach)
     const nowForPremiere = new Date().getTime();
-    const ebookFourMinutesFromNow = nowForPremiere + (4 * 60 * 1000); // 4 minuty w milisekundach
-    const ebookPremiereDate = ebookFourMinutesFromNow;
+    const ebookTwoMinutesFromNow = nowForPremiere + (2 * 60 * 1000); // 2 minuty w milisekundach
+    const ebookPremiereDate = ebookTwoMinutesFromNow;
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();
