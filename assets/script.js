@@ -3,15 +3,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH SCREEN CONTROL =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
+    
+    // Sprawdź czy premiera już minęła (z localStorage)
+    const premierePassedKey = 'premiere_passed';
+    const premierePassed = localStorage.getItem(premierePassedKey) === 'true';
+    
     // TEST: Premiera za 1 minutę - zmień na '2025-12-30T00:00:00' dla produkcji
     const testPremiereDate = new Date(Date.now() + 60000); // 1 minuta od teraz (1 * 60 * 1000)
     const premiereDate = testPremiereDate.getTime(); // Dla testu
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime(); // Dla produkcji
     const now = new Date().getTime();
     
-    // Sprawdź czy premiera już minęła
+    // Jeśli premiera już minęła (z localStorage), nie pokazuj bannera
+    if (premierePassed) {
+        if (premiereSplash) {
+            premiereSplash.style.display = 'none';
+        }
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+        return; // Nie uruchamiaj countdown
+    }
+    
+    // Sprawdź czy premiera już minęła (według czasu)
     if (now >= premiereDate) {
-        // Premiera już minęła - ukryj splash screen i pokaż stronę
+        // Premiera już minęła - zapisz w localStorage i ukryj splash screen
+        localStorage.setItem(premierePassedKey, 'true');
         if (premiereSplash) {
             premiereSplash.classList.add('hidden');
             setTimeout(() => {
@@ -36,12 +53,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const distance = premiereDate - now;
             
             if (distance < 0) {
-                // Premiera minęła - ukryj splash i pokaż stronę
+                // Premiera minęła - zapisz w localStorage, ukryj splash i pokaż stronę
+                localStorage.setItem(premierePassedKey, 'true');
                 if (premiereSplash) {
                     premiereSplash.classList.add('hidden');
                     setTimeout(() => {
                         premiereSplash.style.display = 'none';
-                    }, 800);
+                    }, 300);
                 }
                 if (mainContent) {
                     mainContent.style.display = 'block';
@@ -73,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const now = new Date().getTime();
             if (now >= premiereDate) {
                 clearInterval(premiereInterval);
+                
+                // Zapisz w localStorage że premiera minęła
+                localStorage.setItem(premierePassedKey, 'true');
                 
                 // Natychmiast ukryj splash i pokaż stronę
                 if (premiereSplash) {
