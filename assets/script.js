@@ -39,7 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (initialDistance > 0) {
                 // Banner jest aktywny - przekieruj na stronę główną
                 console.log('🚫 Banner aktywny - przekierowanie na stronę główną');
-                window.location.href = '/index.html';
+                // Użyj pełnego URL lub względnej ścieżki w zależności od struktury
+                const baseUrl = window.location.origin;
+                window.location.href = baseUrl + '/index.html';
                 return;
             }
         }
