@@ -737,6 +737,30 @@ document.addEventListener('DOMContentLoaded', function() {
         statsObserver.observe(item);
     });
 
+    // ===== E-BOOK PROMO BUY BUTTON =====
+    const ebookPromoBuyBtn = document.getElementById('ebook-promo-buy-btn');
+    if (ebookPromoBuyBtn) {
+        // Sprawdź czy stripe-config.js jest załadowany
+        if (typeof ebook !== 'undefined' && ebook.paymentLink) {
+            ebookPromoBuyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (ebook.paymentLink && !ebook.paymentLink.includes('YOUR_EBOOK_PAYMENT_LINK_URL')) {
+                    // Otwórz w nowej karcie, żeby użytkownik mógł wrócić
+                    window.open(ebook.paymentLink, '_blank');
+                } else {
+                    // Fallback - przekieruj do strony e-booka
+                    window.location.href = 'pages/ebook.html';
+                }
+            });
+        } else {
+            // Jeśli stripe-config.js nie jest załadowany, użyj fallback
+            ebookPromoBuyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'pages/ebook.html';
+            });
+        }
+    }
+
     // ===== NEWSLETTER FORM =====
     // Check for success message from FormSubmit
     const newsletterUrlParams = new URLSearchParams(window.location.search);
