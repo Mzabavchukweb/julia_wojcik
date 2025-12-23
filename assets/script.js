@@ -24,6 +24,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        if (!data.startTime) {
+            console.error('❌ Brak startTime w odpowiedzi API');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            return;
+        }
+        
         const startTime = data.startTime;
         const serverTimeOnLoad = data.currentTime || new Date().getTime();
         const localTimeOnLoad = new Date().getTime();
@@ -199,7 +210,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
+            // Zaktualizuj odliczanie co sekundę
+            // Użyj czasu serwera dla dokładności (odliczanie działa nawet gdy okno jest zamknięte)
             let bannerActive = true;
+            let intervalCleared = false;
+            
+            // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
             window.addEventListener('beforeunload', function(e) {
                 if (bannerActive) {
                     e.preventDefault();
@@ -218,11 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Dodaj stan do historii, aby zablokować przycisk "wstecz"
             window.history.pushState(null, null, window.location.href);
-            
-            // Zaktualizuj odliczanie co sekundę
-            // Użyj czasu serwera dla dokładności (odliczanie działa nawet gdy okno jest zamknięte)
-            let bannerActive = true;
-            let intervalCleared = false;
             
             // Najpierw zaktualizuj wyświetlanie od razu
             const initialCurrentTime = new Date().getTime() + timeOffset;
