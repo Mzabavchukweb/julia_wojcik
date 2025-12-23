@@ -45,6 +45,10 @@ export default async function handler(req, res) {
     
     try {
         console.log('[PREMIERE] Processing notification request...');
+        console.log('[PREMIERE] isCronJob:', isCronJob);
+        console.log('[PREMIERE] User-Agent:', req.headers['user-agent']);
+        console.log('[PREMIERE] X-Vercel-Cron:', req.headers['x-vercel-cron']);
+        console.log('[PREMIERE] X-Vercel-Signature:', req.headers['x-vercel-signature'] ? 'present' : 'missing');
         
         // Jeśli to cron job, sprawdź czy czas bannera się zakończył
         if (isCronJob) {
@@ -151,20 +155,41 @@ export default async function handler(req, res) {
                 const subscribersListKey = 'newsletter:subscribers:list';
                 const subscribersList = await redis.get(subscribersListKey);
                 
-                if (Array.isArray(subscribersList) && subscribersList.length > 0) {
-                    subscribers = subscribersList;
-                    console.log(`✅ Found ${subscribers.length} subscribers in Upstash Redis (automatic)`);
-                } else {
-                    // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
-                    if (process.env.NEWSLETTER_SUBSCRIBERS) {
-                        subscribers = process.env.NEWSLETTER_SUBSCRIBERS
-                            .split(',')
-                            .map(e => e.trim().toLowerCase())
-                            .filter(Boolean);
-                        console.log(`⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
-                    } else {
-                        console.log('⚠️ No subscribers found in Redis or NEWSLETTER_SUBSCRIBERS');
+                console.log('[PREMIERE] Subscribers list from Redis:', typeof subscribersList, subscribersList);
+                
+                // Obsłuż różne formaty danych z Redis
+                if (subscribersList) {
+                    if (Array.isArray(subscribersList)) {
+                        // Jeśli to już tablica
+                        subscribers = subscribersList.filter(Boolean);
+                    } else if (typeof subscribersList === 'string') {
+                        // Jeśli to JSON string, sparsuj
+                        try {
+                            const parsed = JSON.parse(subscribersList);
+                            if (Array.isArray(parsed)) {
+                                subscribers = parsed.filter(Boolean);
+                            }
+                        } catch (e) {
+                            console.warn('[PREMIERE] Failed to parse subscribers list as JSON:', e);
+                        }
                     }
+                    
+                    if (subscribers.length > 0) {
+                        console.log(`✅ Found ${subscribers.length} subscribers in Upstash Redis`);
+                    } else {
+                        console.log('⚠️ Subscribers list is empty or invalid format');
+                    }
+                } else {
+                    console.log('⚠️ No subscribers list found in Redis');
+                }
+                
+                // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
+                if (subscribers.length === 0 && process.env.NEWSLETTER_SUBSCRIBERS) {
+                    subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                        .split(',')
+                        .map(e => e.trim().toLowerCase())
+                        .filter(Boolean);
+                    console.log(`⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
                 }
             } else {
                 throw new Error('Upstash Redis not configured');
