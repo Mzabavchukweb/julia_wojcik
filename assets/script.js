@@ -70,29 +70,14 @@ document.addEventListener('DOMContentLoaded', function() {
         function updateCountdownDisplay(currentServerTime) {
             const distance = bannerEndTime - currentServerTime;
         
+            // NIE ukrywaj bannera tutaj - to jest tylko funkcja aktualizująca wyświetlanie
+            // Ukrywanie bannera jest obsługiwane w setInterval
             if (distance < 0) {
-                // 4 minuty minęły - ukryj banner i wyślij powiadomienia
-                // Oznacz w Redis że banner się zakończył (globalnie)
-                fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ markEnded: true })
-                }).catch(err => console.error('Error marking banner as ended:', err));
-                
-                if (premiereSplash) {
-                    premiereSplash.classList.add('hidden');
-                    setTimeout(() => {
-                        premiereSplash.style.display = 'none';
-                    }, 800);
-                }
-                if (mainContent) {
-                    mainContent.style.display = 'block';
-                }
-                
-                // Wyślij powiadomienia o premierze do wszystkich subskrybentów
-                sendPremiereNotifications();
+                // Czas minął - ustaw wartości na 00:00
+                const minutesEl = document.getElementById('premiere-minutes');
+                const secondsEl = document.getElementById('premiere-seconds');
+                if (minutesEl) minutesEl.textContent = '00';
+                if (secondsEl) secondsEl.textContent = '00';
                 return;
             }
             
@@ -236,15 +221,49 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Zaktualizuj odliczanie co sekundę
             // Użyj czasu serwera dla dokładności (odliczanie działa nawet gdy okno jest zamknięte)
-            updatePremiereCountdown();
+            let bannerActive = true;
+            let intervalCleared = false;
+            
+            // Najpierw zaktualizuj wyświetlanie od razu
+            const initialCurrentTime = new Date().getTime() + timeOffset;
+            updateCountdownDisplay(initialCurrentTime);
+            
             const premiereInterval = setInterval(() => {
+                if (!bannerActive || intervalCleared) {
+                    clearInterval(premiereInterval);
+                    return;
+                }
+                
                 updatePremiereCountdown();
                 
                 // Sprawdź czy czas minął (używając czasu serwera z offsetem)
                 const currentServerTime = new Date().getTime() + timeOffset;
-                if (bannerEndTime - currentServerTime < 0) {
+                const distance = bannerEndTime - currentServerTime;
+                
+                if (distance <= 0) {
+                    intervalCleared = true;
                     clearInterval(premiereInterval);
                     console.log('⏰ Banner zakończył odliczanie');
+                    
+                    // Oznacz w Redis że banner się zakończył (globalnie)
+                    fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ markEnded: true })
+                    }).catch(err => console.error('Error marking banner as ended:', err));
+                    
+                    // Ukryj banner
+                    if (premiereSplash) {
+                        premiereSplash.classList.add('hidden');
+                        setTimeout(() => {
+                            premiereSplash.style.display = 'none';
+                        }, 800);
+                    }
+                    if (mainContent) {
+                        mainContent.style.display = 'block';
+                    }
                     
                     // Odblokuj nawigację
                     bannerActive = false;
@@ -261,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.opacity = '';
                     });
                     
-                    // Wyślij powiadomienia gdy odliczanie się kończy
+                    // Wyślij powiadomienia gdy odliczanie się kończy (tylko raz!)
                     sendPremiereNotifications();
                 }
             }, 1000);
