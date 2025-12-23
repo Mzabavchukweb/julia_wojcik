@@ -4,10 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
-    // Ustaw odliczanie na 4 minuty od teraz
+    // Ustaw odliczanie na 4 minuty od teraz (sztywno)
     const nowForBanner = new Date().getTime();
-    const fourMinutesFromNow = nowForBanner + (4 * 60 * 1000); // 4 minuty w milisekundach
-    const bannerEndTime = fourMinutesFromNow;
+    const bannerFourMinutesFromNow = nowForBanner + (4 * 60 * 1000); // 4 minuty w milisekundach
+    const bannerEndTime = bannerFourMinutesFromNow;
     
     // Funkcja aktualizująca odliczanie bannera
     function updatePremiereCountdown() {
@@ -25,8 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
-            // Zapisz w localStorage, że banner już się pokazał
-            localStorage.setItem('premiere_banner_shown', 'true');
             return;
         }
         
@@ -48,44 +46,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hoursEl) hoursEl.textContent = '00';
     }
     
-    // Sprawdź czy banner już był pokazany
-    const bannerShown = localStorage.getItem('premiere_banner_shown');
-    const currentTime = new Date().getTime();
-    
+    // Zawsze pokaż banner na 4 minuty (bez localStorage)
     if (premiereSplash) {
-        if (bannerShown === 'true') {
-            // Banner już był pokazany - ukryj go
-            premiereSplash.style.display = 'none';
-            if (mainContent) {
-                mainContent.style.display = 'block';
-            }
-        } else {
-            // Pokaż banner i ukryj główną treść
-            premiereSplash.style.display = 'flex';
-            if (mainContent) {
-                mainContent.style.display = 'none';
-            }
-            
-            // Zaktualizuj odliczanie co sekundę
-            updatePremiereCountdown();
-            const premiereInterval = setInterval(() => {
-                updatePremiereCountdown();
-                const now = new Date().getTime();
-                if (bannerEndTime - now < 0) {
-                    clearInterval(premiereInterval);
-                }
-            }, 1000);
+        // Pokaż banner i ukryj główną treść
+        premiereSplash.style.display = 'flex';
+        if (mainContent) {
+            mainContent.style.display = 'none';
         }
+        
+        // Zaktualizuj odliczanie co sekundę
+        updatePremiereCountdown();
+        const premiereInterval = setInterval(() => {
+            updatePremiereCountdown();
+            const now = new Date().getTime();
+            if (bannerEndTime - now < 0) {
+                clearInterval(premiereInterval);
+            }
+        }, 1000);
     } else {
         // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
-    }
-    
-    // ===== MAIN CONTENT DISPLAY =====
-    // Upewnij się że main-content jest widoczny jeśli nie ma bannera
-    if (!premiereSplash || premiereSplash.style.display === 'none') {
         if (mainContent) {
             mainContent.style.display = 'block';
         }
@@ -1206,8 +1185,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== COUNTDOWN TIMER =====
     // Ustaw odliczanie na 4 minuty od teraz (dla innych sekcji countdown na innych stronach)
     const nowForPremiere = new Date().getTime();
-    const fourMinutesFromNow = nowForPremiere + (4 * 60 * 1000); // 4 minuty w milisekundach
-    const ebookPremiereDate = fourMinutesFromNow;
+    const ebookFourMinutesFromNow = nowForPremiere + (4 * 60 * 1000); // 4 minuty w milisekundach
+    const ebookPremiereDate = ebookFourMinutesFromNow;
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();
