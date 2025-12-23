@@ -137,33 +137,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
-        // Funkcja wysyłająca powiadomienia o premierze
-        // Używa Redis do śledzenia czy już zostały wysłane (zapobiega podwójnym wysyłkom)
-        function sendPremiereNotifications() {
-            console.log('📧 Wysyłanie powiadomień o premierze...');
-            fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result.alreadySent) {
-                    console.log('📧 Powiadomienia już zostały wysłane wcześniej');
-                } else {
-                    console.log('✅ Powiadomienia o premierze wysłane:', result);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Błąd podczas wysyłania powiadomień:', error);
-            });
-        }
+        // UWAGA: Powiadomienia są wysyłane TYLKO przez serwer (cron job)
+        // Frontend NIE wysyła powiadomień - tylko oznacza banner jako zakończony
+        // Cron job sprawdza co minutę i automatycznie wysyła powiadomienia gdy czas się kończy
         
         // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony (używając czasu serwera)
         const initialServerTime = serverTimeOnLoad;
@@ -186,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
-            // Oznacz banner jako zakończony i wyślij powiadomienia
+            // Oznacz banner jako zakończony (powiadomienia wyśle automatycznie cron job)
             fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                 method: 'POST',
                 headers: {
@@ -194,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ markEnded: true })
             }).catch(err => console.error('Error marking banner as ended:', err));
-            sendPremiereNotifications();
+            console.log('⏰ Banner zakończony - powiadomienia wyśle automatycznie serwer (cron job)');
             return;
         }
         
@@ -284,6 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('⏰ Banner zakończył odliczanie');
                     
                     // Oznacz w Redis że banner się zakończył (globalnie)
+                    // Powiadomienia wyśle automatycznie serwer (cron job) - NIE wysyłamy z frontendu
                     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                         method: 'POST',
                         headers: {
@@ -291,6 +268,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         },
                         body: JSON.stringify({ markEnded: true })
                     }).catch(err => console.error('Error marking banner as ended:', err));
+                    
+                    console.log('⏰ Banner zakończony - powiadomienia wyśle automatycznie serwer (cron job)');
                     
                     // Ukryj banner
                     if (premiereSplash) {
@@ -317,9 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.cursor = '';
                         link.style.opacity = '';
                     });
-                    
-                    // Wyślij powiadomienia gdy odliczanie się kończy (tylko raz!)
-                    sendPremiereNotifications();
                 }
             }, 1000);
         } else if (isHomePage) {
