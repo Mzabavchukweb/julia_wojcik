@@ -75,18 +75,21 @@ export default async function handler(req, res) {
                 
                 if (distance > 0) {
                     // Czas jeszcze nie minął - nie wysyłaj powiadomień
-                    console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut`);
+                    console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut i ${Math.floor((distance % 60000) / 1000)} sekund`);
                     return res.status(200).json({ 
                         message: 'Banner time not ended yet',
                         timeRemaining: distance,
-                        timeRemainingMinutes: Math.floor(distance / 60000)
+                        timeRemainingMinutes: Math.floor(distance / 60000),
+                        timeRemainingSeconds: Math.floor((distance % 60000) / 1000)
                     });
                 }
                 
-                // Czas minął - oznacz banner jako zakończony
+                // Czas minął - oznacz banner jako zakończony (jeśli jeszcze nie został oznaczony)
                 if (bannerEnded !== 'true') {
                     await redis.set(bannerEndedKey, 'true');
-                    console.log('[PREMIERE] Banner time ended - marked as ended');
+                    console.log('[PREMIERE] ✅ Banner time ended - marked as ended, proceeding with notifications');
+                } else {
+                    console.log('[PREMIERE] Banner already marked as ended, checking if notifications sent');
                 }
             } else {
                 // Brak czasu start - nie ma aktywnego bannera
