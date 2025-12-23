@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const distance = bannerEndTime - currentTime;
         
             if (distance < 0) {
-                // 4 minuty minęły - ukryj banner
+                // 4 minuty minęły - ukryj banner i wyślij powiadomienia
                 localStorage.setItem('premiere_banner_ended', 'true');
                 if (premiereSplash) {
                     premiereSplash.classList.add('hidden');
@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (mainContent) {
                     mainContent.style.display = 'block';
                 }
+                
+                // Wyślij powiadomienia o premierze do wszystkich subskrybentów
+                sendPremiereNotifications();
                 return;
             }
             
@@ -66,6 +69,51 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
+        // Funkcja wysyłająca powiadomienia o premierze
+        let notificationsSent = false;
+        function sendPremiereNotifications() {
+            if (notificationsSent) {
+                console.log('📧 Powiadomienia już zostały wysłane');
+                return;
+            }
+            
+            const notificationsSentFlag = localStorage.getItem('premiere_notifications_sent');
+            if (notificationsSentFlag === 'true') {
+                console.log('📧 Powiadomienia już zostały wysłane (z localStorage)');
+                notificationsSent = true;
+                return;
+            }
+            
+            console.log('📧 Wysyłanie powiadomień o premierze...');
+            fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('✅ Powiadomienia o premierze wysłane:', result);
+                localStorage.setItem('premiere_notifications_sent', 'true');
+                notificationsSent = true;
+            })
+            .catch(error => {
+                console.error('❌ Błąd podczas wysyłania powiadomień:', error);
+            });
+        }
+        
+        // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
+        const currentTimeCheck = new Date().getTime();
+        if (bannerEndTime - currentTimeCheck < 0) {
+            // Odliczanie już się zakończyło - wyślij powiadomienia jeśli jeszcze nie zostały wysłane
+            sendPremiereNotifications();
+        }
+        
         // Pokaż banner i ukryj główną treść
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
@@ -84,6 +132,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (bannerEndTime - currentTime < 0) {
                     clearInterval(premiereInterval);
                     console.log('⏰ Banner zakończył odliczanie');
+                    // Wyślij powiadomienia gdy odliczanie się kończy
+                    sendPremiereNotifications();
                 }
             }, 1000);
         } else {
