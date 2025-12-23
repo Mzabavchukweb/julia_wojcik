@@ -65,86 +65,78 @@ export default async function handler(req, res) {
         console.log('[PREMIERE] Processing notification request...');
         console.log('[PREMIERE] isCronJob:', isCronJob);
         console.log('[PREMIERE] User-Agent:', req.headers['user-agent']);
-        console.log('[PREMIERE] X-Vercel-Cron:', req.headers['x-vercel-cron']);
-        console.log('[PREMIERE] X-Vercel-Signature:', req.headers['x-vercel-signature'] ? 'present' : 'missing');
         
-        // Jeśli to cron job, sprawdź czy czas bannera się zakończył
-        if (isCronJob) {
-            const premiereStartKey = 'premiere:banner:start:time';
-            const bannerEndedKey = 'premiere:banner:ended';
-            const notificationsSentKey = 'premiere:notifications:sent';
-            
-            const startTime = await redis.get(premiereStartKey);
-            const bannerEnded = await redis.get(bannerEndedKey);
-            const notificationsSent = await redis.get(notificationsSentKey);
-            
-            // Jeśli powiadomienia już zostały wysłane, nie rób nic
-            if (notificationsSent === 'true') {
-                console.log('[PREMIERE] Powiadomienia już wysłane - pomijam');
-                return res.status(200).json({ 
-                    message: 'Notifications already sent',
-                    alreadySent: true
-                });
-            }
-            
-            // Sprawdź czy czas się zakończył
-            if (startTime) {
-                const startTimeNum = parseInt(startTime);
-                const bannerEndTime = startTimeNum + (2 * 60 * 1000); // 2 minuty
-                const now = new Date().getTime();
-                const distance = bannerEndTime - now;
-                
-                if (distance > 0) {
-                    // Czas jeszcze nie minął - nie wysyłaj powiadomień
-                    console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut i ${Math.floor((distance % 60000) / 1000)} sekund`);
-                    return res.status(200).json({ 
-                        message: 'Banner time not ended yet',
-                        timeRemaining: distance,
-                        timeRemainingMinutes: Math.floor(distance / 60000),
-                        timeRemainingSeconds: Math.floor((distance % 60000) / 1000)
-                    });
-                }
-                
-                // Czas minął - oznacz banner jako zakończony (jeśli jeszcze nie został oznaczony)
-                if (bannerEnded !== 'true') {
-                    await redis.set(bannerEndedKey, 'true');
-                    console.log('[PREMIERE] ✅ Banner time ended - marked as ended, proceeding with notifications');
-                } else {
-                    console.log('[PREMIERE] Banner already marked as ended, proceeding with notifications');
-                }
-                
-                // WAŻNE: Kontynuuj dalej do wysyłania powiadomień (nie zwracaj tutaj!)
-                console.log('[PREMIERE] ⏰ Czas minął - przechodzę do wysyłania powiadomień');
-            } else {
-                // Brak czasu start - nie ma aktywnego bannera
-                console.log('[PREMIERE] No active banner - no start time found');
-                return res.status(200).json({ 
-                    message: 'No active banner',
-                    noBanner: true
-                });
-            }
-        }
-
-        // Sprawdź czy powiadomienia już zostały wysłane (zapobiegaj podwójnym wysyłkom)
-        // Użyj atomowej operacji SETNX - zapobiega race condition przy równoczesnych żądaniach
+        // Sprawdź czy czas bannera się zakończył (dla wszystkich żądań - cron job lub frontend)
+        const premiereStartKey = 'premiere:banner:start:time';
+        const bannerEndedKey = 'premiere:banner:ended';
         const notificationsSentKey = 'premiere:notifications:sent';
         
-        // Sprawdź czy flaga już istnieje
-        const existingFlag = await redis.get(notificationsSentKey);
-        if (existingFlag === 'true') {
-            // Flaga już istnieje - powiadomienia już zostały wysłane
-            console.log('📧 Powiadomienia już zostały wysłane wcześniej - pomijam wysyłkę');
+        const startTime = await redis.get(premiereStartKey);
+        const bannerEnded = await redis.get(bannerEndedKey);
+        const notificationsSent = await redis.get(notificationsSentKey);
+        
+        console.log('[PREMIERE] Redis state:', { startTime, bannerEnded, notificationsSent });
+        
+        // Jeśli powiadomienia już zostały wysłane, nie rób nic
+        if (notificationsSent === 'true') {
+            console.log('[PREMIERE] Powiadomienia już wysłane - pomijam');
             return res.status(200).json({ 
-                success: true,
                 message: 'Notifications already sent',
                 alreadySent: true
             });
         }
         
+        // Sprawdź czy czas się zakończył
+        if (startTime) {
+            const startTimeNum = parseInt(startTime);
+            const bannerEndTime = startTimeNum + (2 * 60 * 1000); // 2 minuty
+            const now = new Date().getTime();
+            const distance = bannerEndTime - now;
+            
+            console.log('[PREMIERE] Time check:', { 
+                startTime: new Date(startTimeNum).toISOString(),
+                bannerEndTime: new Date(bannerEndTime).toISOString(),
+                now: new Date(now).toISOString(),
+                distance,
+                distanceSeconds: Math.floor(distance / 1000)
+            });
+            
+            if (distance > 0) {
+                // Czas jeszcze nie minął - nie wysyłaj powiadomień
+                console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut i ${Math.floor((distance % 60000) / 1000)} sekund`);
+                return res.status(200).json({ 
+                    message: 'Banner time not ended yet',
+                    timeRemaining: distance,
+                    timeRemainingMinutes: Math.floor(distance / 60000),
+                    timeRemainingSeconds: Math.floor((distance % 60000) / 1000)
+                });
+            }
+            
+            // Czas minął - oznacz banner jako zakończony (jeśli jeszcze nie został oznaczony)
+            if (bannerEnded !== 'true') {
+                await redis.set(bannerEndedKey, 'true');
+                console.log('[PREMIERE] ✅ Banner time ended - marked as ended, proceeding with notifications');
+            } else {
+                console.log('[PREMIERE] Banner already marked as ended, proceeding with notifications');
+            }
+            
+            // WAŻNE: Kontynuuj dalej do wysyłania powiadomień (nie zwracaj tutaj!)
+            console.log('[PREMIERE] ⏰ Czas minął - przechodzę do wysyłania powiadomień');
+        } else {
+            // Brak czasu start - nie ma aktywnego bannera
+            console.log('[PREMIERE] No active banner - no start time found');
+            return res.status(200).json({ 
+                message: 'No active banner',
+                noBanner: true
+            });
+        }
+
         // Ustaw flagę PRZED wysyłaniem (atomowo) - zapobiega podwójnym wysyłkom
         // Użyj SETNX - ustaw tylko jeśli nie istnieje
+        console.log('[PREMIERE] Próba ustawienia flagi notificationsSent...');
         try {
             const setResult = await redis.set(notificationsSentKey, 'true', { ex: 86400, nx: true });
+            console.log('[PREMIERE] Set result:', setResult);
             if (setResult === null || setResult === 0 || setResult === false) {
                 // Ktoś inny już ustawił flagę między GET a SET - sprawdź ponownie
                 const doubleCheck = await redis.get(notificationsSentKey);

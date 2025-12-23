@@ -300,7 +300,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('⏰ Banner zakończył odliczanie');
                     
                     // Oznacz w Redis że banner się zakończył (globalnie)
-                    // Powiadomienia wyśle automatycznie serwer (cron job) - NIE wysyłamy z frontendu
                     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                         method: 'POST',
                         headers: {
@@ -309,7 +308,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         body: JSON.stringify({ markEnded: true })
                     }).catch(err => console.error('Error marking banner as ended:', err));
                     
-                    console.log('⏰ Banner zakończony - powiadomienia wyśle automatycznie serwer (cron job)');
+                    // Wyślij powiadomienia do subskrybentów (backup - na wypadek gdyby cron job nie działał)
+                    // Serwer sprawdzi czy powiadomienia już zostały wysłane i nie wyśle duplikatów
+                    console.log('📧 Wysyłanie powiadomień do subskrybentów...');
+                    fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
+                        method: 'GET',
+                        headers: {
+                            'User-Agent': 'frontend-backup/1.0',
+                            'X-Vercel-Cron': '1'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('📧 Powiadomienia wysłane:', data);
+                    })
+                    .catch(err => console.error('❌ Błąd wysyłania powiadomień:', err));
+                    
+                    console.log('⏰ Banner zakończony');
                     
                     // Ukryj i całkowicie usuń banner z DOM
                     if (premiereSplash) {
