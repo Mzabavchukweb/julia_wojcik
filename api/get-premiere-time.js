@@ -52,11 +52,28 @@ export default async function handler(req, res) {
         
         if (!startTime) {
             // Jeśli nie ma, ustaw czas rozpoczęcia na teraz i zapisz
+            // To automatycznie ustawi czas przy pierwszym wywołaniu API (nawet jeśli okno jest zamknięte)
             startTime = new Date().getTime();
             await redis.set(premiereStartKey, startTime.toString());
-            console.log(`[PREMIERE] ✅ Set global premiere start time: ${startTime}`);
+            console.log(`[PREMIERE] ✅ Set global premiere start time: ${startTime} (${new Date(startTime).toISOString()})`);
         } else {
-            console.log(`[PREMIERE] ✅ Retrieved global premiere start time: ${startTime}`);
+            console.log(`[PREMIERE] ✅ Retrieved global premiere start time: ${startTime} (${new Date(parseInt(startTime)).toISOString()})`);
+        }
+        
+        // Sprawdź czy odliczanie już się zakończyło (niezależnie od tego czy ktoś ma otwartą stronę)
+        const currentTime = new Date().getTime();
+        const bannerEndTime = parseInt(startTime) + (4 * 60 * 1000); // 4 minuty
+        
+        if (currentTime >= bannerEndTime) {
+            // Odliczanie się zakończyło - oznacz banner jako zakończony
+            await redis.set(bannerEndedKey, 'true');
+            console.log(`[PREMIERE] ✅ Banner time expired - marked as ended`);
+            return res.status(200).json({
+                ended: true,
+                currentTime: currentTime,
+                startTime: parseInt(startTime),
+                endTime: bannerEndTime
+            });
         }
         
         return res.status(200).json({

@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainContent = document.getElementById('main-content');
     
     // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
+    // Czas jest ustawiany automatycznie przy pierwszym wywołaniu API i działa globalnie
     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
         method: 'GET',
         headers: {
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
         if (data.ended === true) {
             // Banner już się zakończył globalnie - nie pokazuj go
+            console.log('⏰ Banner już się zakończył globalnie');
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
             }
@@ -26,6 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const startTime = data.startTime;
         const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od globalnego czasu rozpoczęcia
+        
+        console.log(`🎬 Banner start time: ${new Date(startTime).toISOString()}, end time: ${new Date(bannerEndTime).toISOString()}`);
         
         // Funkcja aktualizująca odliczanie bannera
         function updatePremiereCountdown() {
