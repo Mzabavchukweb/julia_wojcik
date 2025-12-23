@@ -611,7 +611,9 @@ export default async function handler(req, res) {
             message: 'Premiere notifications sent',
             total: subscribers.length,
             successCount: successCount,
-            errorCount: errorCount
+            errorCount: errorCount,
+            subscribersSent: subscribers,
+            emailFrom: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>'
         });
 
     } catch (error) {
