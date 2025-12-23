@@ -54,6 +54,23 @@ export default async function handler(req, res) {
     try {
         console.log('[PREMIERE] Processing notification request...');
 
+        // Sprawdź czy powiadomienia już zostały wysłane (zapobiegaj podwójnym wysyłkom)
+        const notificationsSentKey = 'premiere:notifications:sent';
+        try {
+            const notificationsAlreadySent = await redis.get(notificationsSentKey);
+            if (notificationsAlreadySent === 'true') {
+                console.log('[PREMIERE] ⚠️ Notifications already sent - skipping to prevent duplicates');
+                return res.status(200).json({ 
+                    message: 'Notifications already sent',
+                    alreadySent: true,
+                    count: 0
+                });
+            }
+        } catch (checkError) {
+            console.error('[PREMIERE] ❌ Error checking if notifications were sent:', checkError);
+            // Kontynuuj - jeśli nie można sprawdzić, wyślij (lepiej wysłać niż nie wysłać)
+        }
+
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
         try {
@@ -435,6 +452,15 @@ export default async function handler(req, res) {
                 errorCount++;
                 console.error(`❌ Error sending to ${subscriberEmail}:`, emailError.message);
             }
+        }
+
+        // Zapisz flagę że powiadomienia zostały wysłane (zapobiegaj podwójnym wysyłkom)
+        try {
+            await redis.set(notificationsSentKey, 'true');
+            console.log('[PREMIERE] ✅ Marked notifications as sent in Redis');
+        } catch (markError) {
+            console.error('[PREMIERE] ❌ Error marking notifications as sent:', markError);
+            // Kontynuuj - nawet jeśli nie można zapisać flagi, zwróć sukces
         }
 
         return res.status(200).json({ 
