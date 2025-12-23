@@ -737,30 +737,6 @@ document.addEventListener('DOMContentLoaded', function() {
         statsObserver.observe(item);
     });
 
-    // ===== E-BOOK PROMO BUY BUTTON =====
-    const ebookPromoBuyBtn = document.getElementById('ebook-promo-buy-btn');
-    if (ebookPromoBuyBtn) {
-        // Sprawdź czy stripe-config.js jest załadowany
-        if (typeof ebook !== 'undefined' && ebook.paymentLink) {
-            ebookPromoBuyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (ebook.paymentLink && !ebook.paymentLink.includes('YOUR_EBOOK_PAYMENT_LINK_URL')) {
-                    // Otwórz w nowej karcie, żeby użytkownik mógł wrócić
-                    window.open(ebook.paymentLink, '_blank');
-                } else {
-                    // Fallback - przekieruj do strony e-booka
-                    window.location.href = 'pages/ebook.html';
-                }
-            });
-        } else {
-            // Jeśli stripe-config.js nie jest załadowany, użyj fallback
-            ebookPromoBuyBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                window.location.href = 'pages/ebook.html';
-            });
-        }
-    }
-
     // ===== NEWSLETTER FORM =====
     // Check for success message from FormSubmit
     const newsletterUrlParams = new URLSearchParams(window.location.search);
@@ -847,6 +823,59 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== LANGUAGE SWITCHER =====
+    let currentLang = localStorage.getItem('preferredLanguage') || 'pl';
+    
+    // Function to translate the page
+    function translatePage(lang) {
+        if (!window.translations || !window.translations[lang]) {
+            console.warn('Translations not loaded for language:', lang);
+            return;
+        }
+        
+        const t = window.translations[lang];
+        
+        // Update all elements with data-translate attribute
+        document.querySelectorAll('[data-translate]').forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (t[key]) {
+                if (element.tagName === 'INPUT' && element.type === 'email') {
+                    element.placeholder = t[key];
+                } else if (element.tagName === 'INPUT' && element.type === 'text') {
+                    element.value = t[key];
+                } else if (element.hasAttribute('data-translate-html')) {
+                    element.innerHTML = t[key];
+                } else {
+                    element.textContent = t[key];
+                }
+            }
+        });
+        
+        // Update aria-label attributes
+        document.querySelectorAll('[data-aria-label-translate]').forEach(element => {
+            const key = element.getAttribute('data-aria-label-translate');
+            if (t[key]) {
+                element.setAttribute('aria-label', t[key]);
+            }
+        });
+        
+        // Update lang attribute on html element
+        document.documentElement.setAttribute('lang', lang);
+        
+        // Update meta tags
+        const metaLang = document.querySelector('meta[name="language"]');
+        if (metaLang) {
+            metaLang.setAttribute('content', lang === 'pl' ? 'Polish' : 'English');
+        }
+        
+        const ogLocale = document.querySelector('meta[property="og:locale"]');
+        if (ogLocale) {
+            ogLocale.setAttribute('content', lang === 'pl' ? 'pl_PL' : 'en_US');
+        }
+        
+        currentLang = lang;
+        localStorage.setItem('preferredLanguage', lang);
+    }
+    
     const langButtons = document.querySelectorAll('.lang-btn');
     langButtons.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -857,19 +886,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add active to clicked
             this.classList.add('active');
             
-            // Here you would typically load language translations
-            // For now, just store preference
-            localStorage.setItem('preferredLanguage', lang);
-            
-            // Reload or update content based on language
-            if (lang === 'en') {
-                // Future: Load English translations
-                console.log('English version coming soon');
-            }
+            // Translate the page
+            translatePage(lang);
         });
     });
 
-    // Load saved language preference
+    // Load saved language preference and translate
     const savedLang = localStorage.getItem('preferredLanguage') || 'pl';
     langButtons.forEach(btn => {
         if (btn.getAttribute('data-lang') === savedLang) {
@@ -878,6 +900,11 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.classList.remove('active');
         }
     });
+    
+    // Translate page on load if translations are available
+    if (window.translations && window.translations[savedLang]) {
+        translatePage(savedLang);
+    }
 
     // ===== PERFORMANCE OPTIMIZATION =====
     // Use passive event listeners for scroll

@@ -50,11 +50,11 @@
                 <span></span>
             </button>
             <ul class="nav-menu">
-                <li><a href="../index.html">Strona główna</a></li>
-                <li><a href="szkolenia.html">Szkolenia</a></li>
-                <li><a href="o-mnie.html">O mnie</a></li>
-                <li><a href="ebook.html" class="active">E-book</a></li>
-                <li><a href="kontakt.html">Kontakt</a></li>
+                <li><a href="../index.html" data-translate="nav.home">Strona główna</a></li>
+                <li><a href="szkolenia.html" data-translate="nav.trainings">Szkolenia</a></li>
+                <li><a href="o-mnie.html" data-translate="nav.about">O mnie</a></li>
+                <li><a href="ebook.html" class="active" data-translate="nav.ebook">E-book</a></li>
+                <li><a href="kontakt.html" data-translate="nav.contact">Kontakt</a></li>
                 <li class="lang-switcher">
                     <button class="lang-btn active" data-lang="pl">PL</button>
                     <span class="lang-divider">/</span>
@@ -69,16 +69,16 @@
         <nav class="breadcrumbs" aria-label="Nawigacja okruszkowa">
             <div class="breadcrumbs-container">
                 <ol class="breadcrumbs-list">
-                    <li class="breadcrumbs-item"><a href="../index.html" class="breadcrumbs-link">Strona główna</a></li>
-                    <li class="breadcrumbs-item active"><span class="breadcrumbs-link">E-book</span></li>
+                    <li class="breadcrumbs-item"><a href="../index.html" class="breadcrumbs-link" data-translate="breadcrumbs.home">Strona główna</a></li>
+                    <li class="breadcrumbs-item active"><span class="breadcrumbs-link" data-translate="breadcrumbs.ebook">E-book</span></li>
                 </ol>
             </div>
         </nav>
 
         <section class="page-header" data-scroll-section>
             <div class="container">
-                <h1>E-BOOK</h1>
-                <p class="page-subtitle">Twoja kompleksowa baza wiedzy o stylizacji paznokci</p>
+                <h1 data-translate="ebook.page.title">E-BOOK</h1>
+                <p class="page-subtitle" data-translate="ebook.page.subtitle">Twoja kompleksowa baza wiedzy o stylizacji paznokci</p>
             </div>
         </section>
 
@@ -270,9 +270,9 @@
             <div class="container">
                 <div class="newsletter-wrapper">
                     <div class="newsletter-content" data-scroll data-scroll-opacity>
-                        <span class="section-label">NEWSLETTER</span>
-                        <h2>ZOSTAŃ W KONTAKCIE</h2>
-                        <p>Otrzymuj informacje o nowych kursach, ekskluzywnych ofertach i praktycznych wskazówkach dotyczących stylizacji paznokci. Dołącz do grona pasjonatek perfekcji.</p>
+                        <span class="section-label" data-translate="newsletter.label">NEWSLETTER</span>
+                        <h2 data-translate="newsletter.title">ZOSTAŃ W KONTAKCIE</h2>
+                        <p data-translate="newsletter.description">Otrzymuj informacje o nowych kursach, ekskluzywnych ofertach i praktycznych wskazówkach dotyczących stylizacji paznokci. Dołącz do grona pasjonatek perfekcji.</p>
                         <form class="newsletter-form" id="newsletter-form" action="https://formsubmit.co/juliajula08@icloud.com" method="POST">
                             <!-- FormSubmit configuration -->
                             <input type="hidden" name="_subject" value="Nowa subskrypcja newsletter - Julia Wójcik">
@@ -281,9 +281,9 @@
                             <input type="hidden" name="_template" value="box">
                             
                             <div class="newsletter-input-wrapper">
-                                <input type="email" id="newsletter-email" name="email" placeholder="Twój adres email" required>
+                                <input type="email" id="newsletter-email" name="email" placeholder="Twój adres email" data-translate="newsletter.placeholder" required>
                                 <button type="submit" class="btn btn-primary">
-                                    <span>Zapisz się</span>
+                                    <span data-translate="newsletter.btn">Zapisz się</span>
                                     <span class="btn-arrow">→</span>
                                 </button>
                             </div>
@@ -481,6 +481,7 @@
         </div>
     </div>
 
+    <script src="../assets/translations.js"></script>
     <script src="../assets/script.js"></script>
     <script src="../assets/stripe-config.js"></script>
 </body>
