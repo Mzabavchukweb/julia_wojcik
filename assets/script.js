@@ -9,6 +9,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
+    // Domyślnie pokaż main-content (jeśli nie jesteśmy na stronie głównej lub jeśli banner nie istnieje)
+    // JavaScript później zdecyduje czy go ukryć
+    if (!isHomePage || !premiereSplash) {
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+    }
+    
     // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
         method: 'GET',
@@ -348,11 +356,22 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
         console.error('❌ Błąd podczas pobierania czasu premiery:', error);
         // Fallback: pokaż główną treść jeśli nie można pobrać czasu
+        // TO JEST WAŻNE - jeśli API nie działa, zawsze pokaż treść strony
         if (mainContent) {
             mainContent.style.display = 'block';
         }
         if (premiereSplash) {
             premiereSplash.style.display = 'none';
+            premiereSplash.style.visibility = 'hidden';
+            premiereSplash.style.opacity = '0';
+        }
+        // Upewnij się że scroll jest odblokowany
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        // Upewnij się że navbar jest widoczny
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            navbar.style.display = '';
         }
     });
     // ===== NAVIGATION =====
