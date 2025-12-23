@@ -4,74 +4,94 @@ document.addEventListener('DOMContentLoaded', function() {
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
     
-    // Ustaw odliczanie na 4 minuty od teraz (sztywno)
-    const nowForBanner = new Date().getTime();
-    const bannerFourMinutesFromNow = nowForBanner + (4 * 60 * 1000); // 4 minuty w milisekundach
-    const bannerEndTime = bannerFourMinutesFromNow;
-    
-    // Funkcja aktualizująca odliczanie bannera
-    function updatePremiereCountdown() {
+    // Sprawdź czy banner już się zakończył
+    const bannerEnded = localStorage.getItem('premiere_banner_ended');
+    if (bannerEnded === 'true') {
+        // Banner już się zakończył - nie pokazuj go
+        if (premiereSplash) {
+            premiereSplash.style.display = 'none';
+        }
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+    } else {
+        // Sprawdź czy banner już się rozpoczął
+        let bannerStartTime = localStorage.getItem('premiere_banner_start');
         const now = new Date().getTime();
-        const distance = bannerEndTime - now;
-    
-        if (distance < 0) {
-            // 4 minuty minęły - ukryj banner
-            if (premiereSplash) {
-                premiereSplash.classList.add('hidden');
-                setTimeout(() => {
-                    premiereSplash.style.display = 'none';
-                }, 800);
+        
+        if (!bannerStartTime) {
+            // Pierwsze uruchomienie - zapisz czas rozpoczęcia
+            bannerStartTime = now.toString();
+            localStorage.setItem('premiere_banner_start', bannerStartTime);
+        }
+        
+        const startTime = parseInt(bannerStartTime);
+        const bannerEndTime = startTime + (4 * 60 * 1000); // 4 minuty od czasu rozpoczęcia
+        
+        // Funkcja aktualizująca odliczanie bannera
+        function updatePremiereCountdown() {
+            const currentTime = new Date().getTime();
+            const distance = bannerEndTime - currentTime;
+        
+            if (distance < 0) {
+                // 4 minuty minęły - ukryj banner
+                localStorage.setItem('premiere_banner_ended', 'true');
+                if (premiereSplash) {
+                    premiereSplash.classList.add('hidden');
+                    setTimeout(() => {
+                        premiereSplash.style.display = 'none';
+                    }, 800);
+                }
+                if (mainContent) {
+                    mainContent.style.display = 'block';
+                }
+                return;
             }
+            
+            // Oblicz minuty i sekundy
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            // Zaktualizuj wyświetlane wartości
+            const minutesEl = document.getElementById('premiere-minutes');
+            const secondsEl = document.getElementById('premiere-seconds');
+            
+            if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+            if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+            
+            // Dni i godziny zawsze 00 dla 4 minut
+            const daysEl = document.getElementById('premiere-days');
+            const hoursEl = document.getElementById('premiere-hours');
+            if (daysEl) daysEl.textContent = '00';
+            if (hoursEl) hoursEl.textContent = '00';
+        }
+        
+        // Pokaż banner i ukryj główną treść
+        if (premiereSplash) {
+            console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
+            premiereSplash.style.display = 'flex';
+            premiereSplash.style.visibility = 'visible';
+            premiereSplash.style.opacity = '1';
+            if (mainContent) {
+                mainContent.style.display = 'none';
+            }
+            
+            // Zaktualizuj odliczanie co sekundę
+            updatePremiereCountdown();
+            const premiereInterval = setInterval(() => {
+                updatePremiereCountdown();
+                const currentTime = new Date().getTime();
+                if (bannerEndTime - currentTime < 0) {
+                    clearInterval(premiereInterval);
+                    console.log('⏰ Banner zakończył odliczanie');
+                }
+            }, 1000);
+        } else {
+            console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
+            // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
-            return;
-        }
-        
-        // Oblicz minuty i sekundy
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        
-        // Zaktualizuj wyświetlane wartości
-        const minutesEl = document.getElementById('premiere-minutes');
-        const secondsEl = document.getElementById('premiere-seconds');
-        
-        if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
-        if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
-        
-        // Dni i godziny zawsze 00 dla 4 minut
-        const daysEl = document.getElementById('premiere-days');
-        const hoursEl = document.getElementById('premiere-hours');
-        if (daysEl) daysEl.textContent = '00';
-        if (hoursEl) hoursEl.textContent = '00';
-    }
-    
-    // Zawsze pokaż banner na 4 minuty (bez localStorage)
-    if (premiereSplash) {
-        console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
-        // Pokaż banner i ukryj główną treść
-        premiereSplash.style.display = 'flex';
-        premiereSplash.style.visibility = 'visible';
-        premiereSplash.style.opacity = '1';
-        if (mainContent) {
-            mainContent.style.display = 'none';
-        }
-        
-        // Zaktualizuj odliczanie co sekundę
-        updatePremiereCountdown();
-        const premiereInterval = setInterval(() => {
-            updatePremiereCountdown();
-            const now = new Date().getTime();
-            if (bannerEndTime - now < 0) {
-                clearInterval(premiereInterval);
-                console.log('⏰ Banner zakończył odliczanie');
-            }
-        }, 1000);
-    } else {
-        console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
-        // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
-        if (mainContent) {
-            mainContent.style.display = 'block';
         }
     }
     // ===== NAVIGATION =====
