@@ -1,3 +1,4 @@
+
 // Debug endpoint - sprawdza subskrybentów i konfigurację
 import { Redis } from '@upstash/redis';
 

@@ -269,6 +269,7 @@ export default async function handler(req, res) {
 
         let successCount = 0;
         let errorCount = 0;
+        const emailDetails = [];
 
         // Wyślij email do każdego subskrybenta
         for (const subscriberEmail of subscribers) {
@@ -289,6 +290,8 @@ export default async function handler(req, res) {
                     // Użyj domyślnego powitania
                 }
 
+                console.log(`[PREMIERE] 📧 Attempting to send email to: ${subscriberEmail} from: ${emailFrom}`);
+                
                 const emailResult = await resend.emails.send({
                     from: emailFrom,
                     to: subscriberEmail,
@@ -592,13 +595,32 @@ export default async function handler(req, res) {
                 if (emailResult && emailResult.id && !emailResult.error) {
                     successCount++;
                     console.log(`✅ Email sent to: ${subscriberEmail}, ID: ${emailResult.id}`);
+                    emailDetails.push({
+                        email: subscriberEmail,
+                        status: 'success',
+                        emailId: emailResult.id
+                    });
                 } else {
                     errorCount++;
-                    console.error(`❌ Failed to send to: ${subscriberEmail}`, JSON.stringify(emailResult));
+                    const errorInfo = {
+                        email: subscriberEmail,
+                        status: 'error',
+                        error: emailResult?.error || 'Unknown error',
+                        response: emailResult
+                    };
+                    console.error(`❌ Failed to send to: ${subscriberEmail}`, JSON.stringify(errorInfo));
+                    emailDetails.push(errorInfo);
                 }
             } catch (emailError) {
                 errorCount++;
-                console.error(`❌ Error sending to ${subscriberEmail}:`, emailError.message);
+                const errorInfo = {
+                    email: subscriberEmail,
+                    status: 'exception',
+                    error: emailError.message,
+                    stack: emailError.stack
+                };
+                console.error(`❌ Exception sending to ${subscriberEmail}:`, errorInfo);
+                emailDetails.push(errorInfo);
             }
         }
 
@@ -615,7 +637,9 @@ export default async function handler(req, res) {
             successCount: successCount,
             errorCount: errorCount,
             subscribersSent: subscribers,
-            emailFrom: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>'
+            emailFrom: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
+            emailDetails: emailDetails,
+            resendConfigured: !!resend
         });
 
     } catch (error) {
