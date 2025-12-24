@@ -63,8 +63,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
             if (distance < 0) {
                 // 1 minuta minęła - ukryj banner
-                // Oznacz w Redis że banner się zakończył (globalnie)
-                // Powiadomienia są automatycznie wysyłane przez cron job na backendzie
                 fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                     method: 'POST',
                     headers: {
@@ -83,8 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     mainContent.style.display = 'block';
                 }
                 
-                // Powiadomienia są automatycznie wysyłane przez cron job
-                console.log('⏰ Banner time expired - notifications will be sent automatically by cron job');
+                console.log('⏰ Banner time expired - hiding splash');
                 return;
             }
             
@@ -106,14 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
-        // Powiadomienia są teraz wysyłane automatycznie przez cron job na backendzie
-        // gdy czas bannera mija - nie trzeba wysyłać z frontendu
-        
         // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
         const currentTimeCheck = new Date().getTime();
         if (bannerEndTime - currentTimeCheck < 0) {
-            // Odliczanie już się zakończyło - powiadomienia są automatycznie wysyłane przez cron job
-            console.log('⏰ Banner already expired - notifications handled by cron job');
+            console.log('⏰ Banner already expired');
         }
         
         // Pokaż banner i ukryj główną treść
@@ -196,8 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.opacity = '';
                     });
                     
-                    // Powiadomienia są automatycznie wysyłane przez cron job
-                    console.log('⏰ Banner countdown finished - notifications handled by cron job');
+                    console.log('⏰ Banner countdown finished');
                 }
             }, 1000);
         } else {
