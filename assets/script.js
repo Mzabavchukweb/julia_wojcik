@@ -1,21 +1,8 @@
 // Advanced Scroll Animations and Interactions
 document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH BANNER =====
-    // Sprawdź czy jesteśmy na stronie głównej (index.html)
-    const isHomePage = window.location.pathname === '/' || 
-                       window.location.pathname.endsWith('index.html') ||
-                       window.location.pathname.endsWith('/');
-    
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
-    
-    // Domyślnie pokaż main-content (jeśli nie jesteśmy na stronie głównej lub jeśli banner nie istnieje)
-    // JavaScript później zdecyduje czy go ukryć
-    if (!isHomePage || !premiereSplash) {
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
-    }
     
     // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
@@ -27,119 +14,47 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(response => response.json())
     .then(data => {
         if (data.ended === true) {
-            // Banner już się zakończył globalnie - całkowicie usuń go z DOM
+            // Banner już się zakończył globalnie - nie pokazuj go
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
-                premiereSplash.style.visibility = 'hidden';
-                premiereSplash.style.opacity = '0';
-                // Usuń banner z DOM całkowicie
-                setTimeout(() => {
-                    if (premiereSplash && premiereSplash.parentNode) {
-                        premiereSplash.parentNode.removeChild(premiereSplash);
-                    }
-                }, 100);
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
-            // Upewnij się że scroll jest odblokowany
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            return;
-        }
-        
-        // Jeśli banner jest aktywny i NIE jesteśmy na stronie głównej - przekieruj na index.html
-        if (!isHomePage && data.startTime) {
-            const startTime = data.startTime;
-            const serverTimeOnLoad = data.currentTime || new Date().getTime();
-            const bannerEndTime = startTime + (2 * 60 * 1000);
-            const initialDistance = bannerEndTime - serverTimeOnLoad;
-            
-            if (initialDistance > 0) {
-                // Banner jest aktywny - przekieruj na stronę główną
-                console.log('🚫 Banner aktywny - przekierowanie na stronę główną');
-                // Użyj pełnego URL lub względnej ścieżki w zależności od struktury
-                const baseUrl = window.location.origin;
-                window.location.href = baseUrl + '/index.html';
-                return;
-            }
-        }
-        
-        if (!data.startTime) {
-            console.error('❌ Brak startTime w odpowiedzi API');
-            if (mainContent) {
-                mainContent.style.display = 'block';
-            }
-            if (premiereSplash) {
-                premiereSplash.style.display = 'none';
-                premiereSplash.style.visibility = 'hidden';
-                premiereSplash.style.opacity = '0';
-            }
-            // Upewnij się że scroll jest odblokowany
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            return;
-        }
-        
-        // Jeśli nie jesteśmy na stronie głównej, już przekierowaliśmy wyżej - tutaj tylko dla index.html
-        if (!isHomePage) {
             return;
         }
         
         const startTime = data.startTime;
-        const serverTimeOnLoad = data.currentTime || new Date().getTime();
-        const localTimeOnLoad = new Date().getTime();
-        let timeOffset = serverTimeOnLoad - localTimeOnLoad; // Różnica między czasem serwera a lokalnym (let, bo aktualizujemy)
-        const bannerEndTime = startTime + (2 * 60 * 1000); // 2 minuty od globalnego czasu rozpoczęcia
+        const bannerEndTime = startTime + (1 * 60 * 1000); // 1 minuta od globalnego czasu rozpoczęcia
         
         // Funkcja aktualizująca odliczanie bannera
-        // Używa czasu serwera (lokalny czas + offset) dla dokładności
-        let lastServerSync = localTimeOnLoad;
         function updatePremiereCountdown() {
-            // Synchronizuj z serwerem co 10 sekund (dla dokładności)
-            const now = new Date().getTime();
-            const timeSinceLastSync = now - lastServerSync;
-            
-            // Użyj lokalnego czasu + offset (synchronizuj z serwerem co 10 sekund)
-            let currentServerTime = now + timeOffset;
-            
-            // Synchronizuj z serwerem co 10 sekund
-            if (timeSinceLastSync > 10000) {
+            const currentTime = new Date().getTime();
+            const distance = bannerEndTime - currentTime;
+        
+            if (distance < 0) {
+                // 1 minuta minęła - ukryj banner i wyślij powiadomienia
+                // Oznacz w Redis że banner się zakończył (globalnie)
                 fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
-                    method: 'GET',
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const serverTime = data.currentTime || new Date().getTime();
-                    const localTime = new Date().getTime();
-                    timeOffset = serverTime - localTime;
-                    lastServerSync = localTime;
-                    currentServerTime = serverTime;
-                    updateCountdownDisplay(currentServerTime);
-                })
-                .catch(() => {
-                    // Fallback: użyj lokalnego czasu + offset
-                    updateCountdownDisplay(currentServerTime);
-                });
-            } else {
-                updateCountdownDisplay(currentServerTime);
-            }
-        }
-        
-        function updateCountdownDisplay(currentServerTime) {
-            const distance = bannerEndTime - currentServerTime;
-        
-            // NIE ukrywaj bannera tutaj - to jest tylko funkcja aktualizująca wyświetlanie
-            // Ukrywanie bannera jest obsługiwane w setInterval
-            if (distance < 0) {
-                // Czas minął - ustaw wartości na 00:00
-                const minutesEl = document.getElementById('premiere-minutes');
-                const secondsEl = document.getElementById('premiere-seconds');
-                if (minutesEl) minutesEl.textContent = '00';
-                if (secondsEl) secondsEl.textContent = '00';
+                    },
+                    body: JSON.stringify({ markEnded: true })
+                }).catch(err => console.error('Error marking banner as ended:', err));
+                
+                if (premiereSplash) {
+                    premiereSplash.classList.add('hidden');
+                    setTimeout(() => {
+                        premiereSplash.style.display = 'none';
+                    }, 800);
+                }
+                if (mainContent) {
+                    mainContent.style.display = 'block';
+                }
+                
+                // Wyślij powiadomienia o premierze do wszystkich subskrybentów
+                sendPremiereNotifications();
                 return;
             }
             
@@ -161,63 +76,44 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
-        // UWAGA: Powiadomienia są wysyłane TYLKO przez serwer (cron job)
-        // Frontend NIE wysyła powiadomień - tylko oznacza banner jako zakończony
-        // Cron job sprawdza co minutę i automatycznie wysyła powiadomienia gdy czas się kończy
-        
-        // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony (używając czasu serwera)
-        const initialServerTime = serverTimeOnLoad;
-        const initialDistance = bannerEndTime - initialServerTime;
-        
-        console.log('🔍 Debug info:', {
-            startTime: new Date(startTime).toISOString(),
-            bannerEndTime: new Date(bannerEndTime).toISOString(),
-            currentTime: new Date(initialServerTime).toISOString(),
-            distance: initialDistance,
-            distanceMinutes: Math.floor(initialDistance / 60000)
-        });
-        
-        if (initialDistance <= 0) {
-            // Czas już minął - całkowicie usuń banner z DOM
-            console.log('⏰ Czas odliczania już minął - usuwam banner całkowicie');
-            if (premiereSplash) {
-                premiereSplash.style.display = 'none';
-                premiereSplash.style.visibility = 'hidden';
-                premiereSplash.style.opacity = '0';
-                // Usuń banner z DOM całkowicie
-                setTimeout(() => {
-                    if (premiereSplash && premiereSplash.parentNode) {
-                        premiereSplash.parentNode.removeChild(premiereSplash);
-                    }
-                }, 100);
+        // Funkcja wysyłająca powiadomienia o premierze
+        let notificationsSent = false;
+        function sendPremiereNotifications() {
+            if (notificationsSent) {
+                console.log('📧 Powiadomienia już zostały wysłane');
+                return;
             }
-            if (mainContent) {
-                mainContent.style.display = 'block';
-            }
-            // Oznacz banner jako zakończony (powiadomienia wyśle automatycznie cron job)
-            fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
+            
+            console.log('📧 Wysyłanie powiadomień o premierze...');
+            fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ markEnded: true })
-            }).catch(err => console.error('Error marking banner as ended:', err));
-            // Upewnij się że scroll jest odblokowany
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            // Odblokuj navbar jeśli był ukryty
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                navbar.style.display = '';
-            }
-            console.log('⏰ Banner zakończony i usunięty - powiadomienia wyśle automatycznie serwer (cron job)');
-            return;
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('✅ Powiadomienia o premierze wysłane:', result);
+                notificationsSent = true;
+            })
+            .catch(error => {
+                console.error('❌ Błąd podczas wysyłania powiadomień:', error);
+            });
         }
         
-        // Czas jeszcze nie minął - pokaż banner
-        console.log(`⏱️ Banner będzie widoczny przez ${Math.floor(initialDistance / 60000)} minut i ${Math.floor((initialDistance % 60000) / 1000)} sekund`);
+        // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
+        const currentTimeCheck = new Date().getTime();
+        if (bannerEndTime - currentTimeCheck < 0) {
+            // Odliczanie już się zakończyło - wyślij powiadomienia jeśli jeszcze nie zostały wysłane
+            sendPremiereNotifications();
+        }
         
-        // Pokaż banner i ukryj główną treść (tylko jeśli czas jeszcze nie minął)
+        // Pokaż banner i ukryj główną treść
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
             premiereSplash.style.display = 'flex';
@@ -253,12 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
-            // Zaktualizuj odliczanie co sekundę
-            // Użyj czasu serwera dla dokładności (odliczanie działa nawet gdy okno jest zamknięte)
             let bannerActive = true;
-            let intervalCleared = false;
-            
-            // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
             window.addEventListener('beforeunload', function(e) {
                 if (bannerActive) {
                     e.preventDefault();
@@ -278,71 +169,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Dodaj stan do historii, aby zablokować przycisk "wstecz"
             window.history.pushState(null, null, window.location.href);
             
-            // Najpierw zaktualizuj wyświetlanie od razu
-            const initialCurrentTime = new Date().getTime() + timeOffset;
-            updateCountdownDisplay(initialCurrentTime);
-            
+            // Zaktualizuj odliczanie co sekundę
+            updatePremiereCountdown();
             const premiereInterval = setInterval(() => {
-                if (!bannerActive || intervalCleared) {
-                    clearInterval(premiereInterval);
-                    return;
-                }
-                
                 updatePremiereCountdown();
-                
-                // Sprawdź czy czas minął (używając czasu serwera z offsetem)
-                const currentServerTime = new Date().getTime() + timeOffset;
-                const distance = bannerEndTime - currentServerTime;
-                
-                if (distance <= 0) {
-                    intervalCleared = true;
+                const currentTime = new Date().getTime();
+                if (bannerEndTime - currentTime < 0) {
                     clearInterval(premiereInterval);
                     console.log('⏰ Banner zakończył odliczanie');
-                    
-                    // Oznacz w Redis że banner się zakończył (globalnie)
-                    fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ markEnded: true })
-                    }).catch(err => console.error('Error marking banner as ended:', err));
-                    
-                    // Wyślij powiadomienia do subskrybentów (backup - na wypadek gdyby cron job nie działał)
-                    // Serwer sprawdzi czy powiadomienia już zostały wysłane i nie wyśle duplikatów
-                    console.log('📧 Wysyłanie powiadomień do subskrybentów...');
-                    fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
-                        method: 'GET',
-                        headers: {
-                            'User-Agent': 'frontend-backup/1.0',
-                            'X-Vercel-Cron': '1'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('📧 Powiadomienia wysłane:', data);
-                    })
-                    .catch(err => console.error('❌ Błąd wysyłania powiadomień:', err));
-                    
-                    console.log('⏰ Banner zakończony');
-                    
-                    // Ukryj i całkowicie usuń banner z DOM
-                    if (premiereSplash) {
-                        premiereSplash.classList.add('hidden');
-                        premiereSplash.style.display = 'none';
-                        premiereSplash.style.visibility = 'hidden';
-                        premiereSplash.style.opacity = '0';
-                        // Usuń banner z DOM całkowicie po animacji
-                        setTimeout(() => {
-                            if (premiereSplash && premiereSplash.parentNode) {
-                                premiereSplash.parentNode.removeChild(premiereSplash);
-                                console.log('🗑️ Banner całkowicie usunięty z DOM');
-                            }
-                        }, 800);
-                    }
-                    if (mainContent) {
-                        mainContent.style.display = 'block';
-                    }
                     
                     // Odblokuj nawigację
                     bannerActive = false;
@@ -358,10 +192,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.cursor = '';
                         link.style.opacity = '';
                     });
+                    
+                    // Wyślij powiadomienia gdy odliczanie się kończy
+                    sendPremiereNotifications();
                 }
             }, 1000);
-        } else if (isHomePage) {
-            console.warn('⚠️ Banner premiere-splash nie został znaleziony na stronie głównej!');
+        } else {
+            console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
             // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
             if (mainContent) {
                 mainContent.style.display = 'block';
@@ -371,22 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
         console.error('❌ Błąd podczas pobierania czasu premiery:', error);
         // Fallback: pokaż główną treść jeśli nie można pobrać czasu
-        // TO JEST WAŻNE - jeśli API nie działa, zawsze pokaż treść strony
         if (mainContent) {
             mainContent.style.display = 'block';
         }
         if (premiereSplash) {
             premiereSplash.style.display = 'none';
-            premiereSplash.style.visibility = 'hidden';
-            premiereSplash.style.opacity = '0';
-        }
-        // Upewnij się że scroll jest odblokowany
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-        // Upewnij się że navbar jest widoczny
-        const navbar = document.querySelector('.navbar');
-        if (navbar) {
-            navbar.style.display = '';
         }
     });
     // ===== NAVIGATION =====
@@ -1503,10 +1329,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===== COUNTDOWN TIMER =====
-    // Ustaw odliczanie na 2 minuty od teraz (dla innych sekcji countdown na innych stronach)
+    // Ustaw odliczanie na 4 minuty od teraz (dla innych sekcji countdown na innych stronach)
     const nowForPremiere = new Date().getTime();
-    const ebookTwoMinutesFromNow = nowForPremiere + (2 * 60 * 1000); // 2 minuty w milisekundach
-    const ebookPremiereDate = ebookTwoMinutesFromNow;
+    const ebookFourMinutesFromNow = nowForPremiere + (4 * 60 * 1000); // 4 minuty w milisekundach
+    const ebookPremiereDate = ebookFourMinutesFromNow;
     
     function updateCountdown(timerId, premiereId, daysId, hoursId, minutesId, secondsId) {
         const now = new Date().getTime();

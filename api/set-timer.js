@@ -30,11 +30,11 @@ export default async function handler(req, res) {
         await redis.del(bannerEndedKey);
         
         // Oblicz startTime tak, żeby timer pokazywał X minut
-        // Timer pokazuje: (startTime + 4 minuty) - teraz
-        // Dla X minut: X = (startTime + 4 minuty) - teraz
-        // startTime = teraz - 4 minuty + X minut = teraz - (4 - X) minuty
+        // Timer pokazuje: (startTime + 1 minuta) - teraz
+        // Dla X minut: X = (startTime + 1 minuta) - teraz
+        // startTime = teraz - 1 minuta + X minut = teraz - (1 - X) minuty
         const now = new Date().getTime();
-        const timerDuration = 4 * 60 * 1000; // 4 minuty
+        const timerDuration = 1 * 60 * 1000; // 1 minuta
         const targetMinutes = minutes * 60 * 1000;
         const newStartTime = now - timerDuration + targetMinutes;
         

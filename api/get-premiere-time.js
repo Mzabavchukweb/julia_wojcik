@@ -36,12 +36,12 @@ export default async function handler(req, res) {
                 await redis.del(bannerEndedKey);
                 
                 // Jeśli podano minutes, ustaw startTime tak, żeby timer pokazywał X minut
-                // Timer pokazuje: (startTime + 4 minuty) - teraz
-                // Więc dla X minut: X = (startTime + 4 minuty) - teraz
-                // startTime = teraz - 4 minuty + X minut = teraz - (4 - X) minuty
+                // Timer pokazuje: (startTime + 1 minuta) - teraz
+                // Więc dla X minut: X = (startTime + 1 minuta) - teraz
+                // startTime = teraz - 1 minuta + X minut = teraz - (1 - X) minuty
                 let newStartTime = new Date().getTime();
                 if (body.minutes && typeof body.minutes === 'number' && body.minutes > 0) {
-                    const timerDuration = 4 * 60 * 1000; // 4 minuty w milisekundach (domyślny czas trwania timera)
+                    const timerDuration = 1 * 60 * 1000; // 1 minuta w milisekundach (domyślny czas trwania timera)
                     const targetMinutes = body.minutes * 60 * 1000; // Docelowa liczba minut do pokazania
                     newStartTime = newStartTime - timerDuration + targetMinutes;
                     console.log(`[PREMIERE] 🔄 Reset premiere time to show ${body.minutes} minutes on timer`);
