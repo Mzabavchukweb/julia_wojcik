@@ -13,12 +13,6 @@
       "maxDuration": 30
     }
   },
-  "crons": [
-    {
-      "path": "/api/send-premiere-notification",
-      "schedule": "* * * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/webhook",

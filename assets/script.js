@@ -963,55 +963,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // ===== PREMIERE NEWSLETTER FORM =====
-    const premiereNewsletterForm = document.getElementById('premiere-newsletter-form');
-    if (premiereNewsletterForm) {
-        premiereNewsletterForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('premiere-newsletter-email').value.trim();
-            const messageEl = document.getElementById('premiere-newsletter-message');
-            
-            if (!email) {
-                if (messageEl) {
-                    messageEl.textContent = 'Proszę podać adres email';
-                    messageEl.classList.remove('success');
-                    messageEl.classList.add('error');
-                }
-                return;
-            }
-            
-            try {
-                const response = await fetch('https://julia-wojcik.vercel.app/api/newsletter-subscribe', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email: email, source: 'premiere-splash' })
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    if (messageEl) {
-                        messageEl.textContent = 'Dziękuję za zapisanie się do newslettera!';
-                        messageEl.classList.remove('error');
-                        messageEl.classList.add('success');
-                    }
-                    premiereNewsletterForm.reset();
-                } else {
-                    throw new Error(result.error || 'Błąd podczas zapisywania');
-                }
-            } catch (error) {
-                console.error('❌ Error subscribing to newsletter:', error);
-                if (messageEl) {
-                    messageEl.textContent = 'Wystąpił błąd. Spróbuj ponownie.';
-                    messageEl.classList.remove('success');
-                    messageEl.classList.add('error');
-                }
-            }
-        });
-    }
-    
     const newsletterForm = document.getElementById('newsletter-form');
     if (newsletterForm) {
         // FormSubmit handles submission, we just show loading state
