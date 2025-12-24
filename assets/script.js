@@ -33,8 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const distance = bannerEndTime - currentTime;
         
             if (distance < 0) {
-                // 1 minuta minęła - ukryj banner i wyślij powiadomienia
+                // 1 minuta minęła - ukryj banner
                 // Oznacz w Redis że banner się zakończył (globalnie)
+                // Powiadomienia są automatycznie wysyłane przez cron job na backendzie
                 fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                     method: 'POST',
                     headers: {
@@ -53,8 +54,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     mainContent.style.display = 'block';
                 }
                 
-                // Wyślij powiadomienia o premierze do wszystkich subskrybentów
-                sendPremiereNotifications();
+                // Powiadomienia są automatycznie wysyłane przez cron job
+                console.log('⏰ Banner time expired - notifications will be sent automatically by cron job');
                 return;
             }
             
@@ -76,41 +77,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hoursEl) hoursEl.textContent = '00';
         }
         
-        // Funkcja wysyłająca powiadomienia o premierze
-        let notificationsSent = false;
-        function sendPremiereNotifications() {
-            if (notificationsSent) {
-                console.log('📧 Powiadomienia już zostały wysłane');
-                return;
-            }
-            
-            console.log('📧 Wysyłanie powiadomień o premierze...');
-            fetch('https://julia-wojcik.vercel.app/api/send-premiere-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                console.log('✅ Powiadomienia o premierze wysłane:', result);
-                notificationsSent = true;
-            })
-            .catch(error => {
-                console.error('❌ Błąd podczas wysyłania powiadomień:', error);
-            });
-        }
+        // Powiadomienia są teraz wysyłane automatycznie przez cron job na backendzie
+        // gdy czas bannera mija - nie trzeba wysyłać z frontendu
         
         // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
         const currentTimeCheck = new Date().getTime();
         if (bannerEndTime - currentTimeCheck < 0) {
-            // Odliczanie już się zakończyło - wyślij powiadomienia jeśli jeszcze nie zostały wysłane
-            sendPremiereNotifications();
+            // Odliczanie już się zakończyło - powiadomienia są automatycznie wysyłane przez cron job
+            console.log('⏰ Banner already expired - notifications handled by cron job');
         }
         
         // Pokaż banner i ukryj główną treść
@@ -193,8 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.opacity = '';
                     });
                     
-                    // Wyślij powiadomienia gdy odliczanie się kończy
-                    sendPremiereNotifications();
+                    // Powiadomienia są automatycznie wysyłane przez cron job
+                    console.log('⏰ Banner countdown finished - notifications handled by cron job');
                 }
             }, 1000);
         } else {

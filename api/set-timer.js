@@ -25,9 +25,11 @@ export default async function handler(req, res) {
         
         const premiereStartKey = 'premiere:banner:start:time';
         const bannerEndedKey = 'premiere:banner:ended';
+        const notificationsSentKey = 'premiere:notifications:sent';
         
-        // Usuń flagę zakończenia
+        // Usuń flagę zakończenia i powiadomień
         await redis.del(bannerEndedKey);
+        await redis.del(notificationsSentKey);
         
         // Oblicz startTime tak, żeby timer pokazywał X minut
         // Timer pokazuje: (startTime + 1 minuta) - teraz

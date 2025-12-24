@@ -32,8 +32,10 @@ export default async function handler(req, res) {
             
             // Reset czasu premiery
             if (body && body.reset === true) {
+                const notificationsSentKey = 'premiere:notifications:sent';
                 await redis.del(premiereStartKey);
                 await redis.del(bannerEndedKey);
+                await redis.del(notificationsSentKey); // Resetuj flagę powiadomień
                 
                 // Jeśli podano minutes, ustaw startTime tak, żeby timer pokazywał X minut
                 // Timer pokazuje: (startTime + 1 minuta) - teraz

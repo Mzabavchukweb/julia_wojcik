@@ -54,6 +54,50 @@ export default async function handler(req, res) {
     try {
         console.log('[PREMIERE] Processing notification request...');
 
+        // Sprawdź czy banner się zakończył (czy czas minął)
+        const premiereStartKey = 'premiere:banner:start:time';
+        const bannerEndedKey = 'premiere:banner:ended';
+        const notificationsSentKey = 'premiere:notifications:sent';
+        
+        // Pobierz czas rozpoczęcia bannera
+        let startTime = await redis.get(premiereStartKey);
+        if (!startTime) {
+            console.log('[PREMIERE] ⏸️ Banner not started yet, skipping notifications');
+            return res.status(200).json({ 
+                message: 'Banner not started yet',
+                sent: false
+            });
+        }
+        
+        startTime = parseInt(startTime);
+        const bannerEndTime = startTime + (1 * 60 * 1000); // 1 minuta
+        const now = new Date().getTime();
+        
+        // Sprawdź czy czas minął
+        if (now < bannerEndTime) {
+            console.log('[PREMIERE] ⏸️ Banner still active, time not expired yet');
+            return res.status(200).json({ 
+                message: 'Banner still active, notifications will be sent when time expires',
+                sent: false,
+                timeRemaining: bannerEndTime - now
+            });
+        }
+        
+        // Sprawdź czy powiadomienia już zostały wysłane (zapobieganie duplikatom)
+        const notificationsAlreadySent = await redis.get(notificationsSentKey);
+        if (notificationsAlreadySent === 'true') {
+            console.log('[PREMIERE] ✅ Notifications already sent, skipping');
+            return res.status(200).json({ 
+                message: 'Notifications already sent',
+                sent: true,
+                alreadySent: true
+            });
+        }
+        
+        // Oznacz banner jako zakończony
+        await redis.set(bannerEndedKey, 'true');
+        console.log('[PREMIERE] ✅ Banner time expired, proceeding with notifications...');
+
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
         try {
@@ -482,6 +526,10 @@ export default async function handler(req, res) {
                 const uniqueSentEmails = [...new Set(sentEmails)];
                 await redis.set(sentEmailsKey, uniqueSentEmails);
                 console.log(`💾 Saved ${uniqueSentEmails.length} sent emails to Redis`);
+                
+                // Oznacz że powiadomienia zostały wysłane (zapobieganie duplikatom)
+                await redis.set(notificationsSentKey, 'true');
+                console.log(`✅ Marked notifications as sent`);
             } catch (saveError) {
                 console.error('❌ Failed to save sent emails list:', saveError);
             }
@@ -492,7 +540,8 @@ export default async function handler(req, res) {
             message: 'Premiere notifications sent',
             total: subscribers.length,
             successCount: successCount,
-            errorCount: errorCount
+            errorCount: errorCount,
+            sent: true
         });
 
     } catch (error) {

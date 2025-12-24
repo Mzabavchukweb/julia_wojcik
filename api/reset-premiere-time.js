@@ -23,10 +23,12 @@ export default async function handler(req, res) {
     try {
         const premiereStartKey = 'premiere:banner:start:time';
         const bannerEndedKey = 'premiere:banner:ended';
+        const notificationsSentKey = 'premiere:notifications:sent';
         
-        // Usuń oba klucze aby zresetować timer
+        // Usuń wszystkie klucze aby zresetować timer i powiadomienia
         await redis.del(premiereStartKey);
         await redis.del(bannerEndedKey);
+        await redis.del(notificationsSentKey);
         
         // Ustaw nowy czas startowy na teraz
         const newStartTime = new Date().getTime();
