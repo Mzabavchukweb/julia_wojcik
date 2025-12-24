@@ -108,8 +108,43 @@ export default async function handler(req, res) {
         let successCount = 0;
         let errorCount = 0;
 
+        // Sprawdź które emaile już zostały wysłane (zapobiegaj duplikatom)
+        const sentEmailsKey = 'newsletter:premiere:sent';
+        let sentEmails = [];
+        try {
+            const sentEmailsData = await redis.get(sentEmailsKey);
+            if (Array.isArray(sentEmailsData)) {
+                sentEmails = sentEmailsData.map(e => e.toLowerCase().trim());
+            } else if (typeof sentEmailsData === 'string') {
+                try {
+                    sentEmails = JSON.parse(sentEmailsData).map(e => e.toLowerCase().trim());
+                } catch (e) {
+                    sentEmails = [];
+                }
+            }
+        } catch (e) {
+            console.warn('[PREMIERE] Could not get sent emails list, starting fresh');
+            sentEmails = [];
+        }
+
+        // Filtruj tylko te emaile, które jeszcze nie otrzymały powiadomienia
+        const emailsToSend = subscribers.filter(email => !sentEmails.includes(email.toLowerCase().trim()));
+        
+        if (emailsToSend.length === 0) {
+            console.log('✅ All subscribers have already been notified');
+            return res.status(200).json({ 
+                success: true,
+                message: 'All subscribers have already been notified',
+                total: subscribers.length,
+                alreadySent: subscribers.length,
+                sentNow: 0
+            });
+        }
+
+        console.log(`📧 Sending to ${emailsToSend.length} new subscribers (${subscribers.length - emailsToSend.length} already notified)`);
+
         // Wyślij email do każdego subskrybenta
-        for (const subscriberEmail of subscribers) {
+        for (const subscriberEmail of emailsToSend) {
             try {
                 if (!resend) {
                     throw new Error('Resend not initialized');
@@ -427,6 +462,8 @@ export default async function handler(req, res) {
 
                 if (emailResult && !emailResult.error) {
                     successCount++;
+                    // Oznacz email jako wysłany
+                    sentEmails.push(subscriberEmail.toLowerCase().trim());
                     console.log(`✅ Email sent to: ${subscriberEmail}`);
                 } else {
                     errorCount++;
@@ -435,6 +472,18 @@ export default async function handler(req, res) {
             } catch (emailError) {
                 errorCount++;
                 console.error(`❌ Error sending to ${subscriberEmail}:`, emailError.message);
+            }
+        }
+
+        // Zapisz listę wysłanych emaili do Redis (tylko te które zostały wysłane pomyślnie)
+        if (successCount > 0) {
+            try {
+                // Usuń duplikaty przed zapisaniem
+                const uniqueSentEmails = [...new Set(sentEmails)];
+                await redis.set(sentEmailsKey, uniqueSentEmails);
+                console.log(`💾 Saved ${uniqueSentEmails.length} sent emails to Redis`);
+            } catch (saveError) {
+                console.error('❌ Failed to save sent emails list:', saveError);
             }
         }
 
