@@ -13,19 +13,48 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .then(response => response.json())
     .then(data => {
+        // Sprawdź czy banner się zakończył (flaga lub czas minął)
         if (data.ended === true) {
             // Banner już się zakończył globalnie - nie pokazuj go
+            console.log('⏰ Banner already ended, hiding splash');
             if (premiereSplash) {
                 premiereSplash.style.display = 'none';
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
             }
+            // Odblokuj navbar
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = '';
+            }
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
             return;
         }
         
         const startTime = data.startTime;
         const bannerEndTime = startTime + (1 * 60 * 1000); // 1 minuta od globalnego czasu rozpoczęcia
+        const currentTime = new Date().getTime();
+        
+        // Sprawdź czy czas już minął (dodatkowe sprawdzenie)
+        if (currentTime >= bannerEndTime) {
+            console.log('⏰ Banner time expired, hiding splash');
+            if (premiereSplash) {
+                premiereSplash.style.display = 'none';
+            }
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            // Odblokuj navbar
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = '';
+            }
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            return;
+        }
         
         // Funkcja aktualizująca odliczanie bannera
         function updatePremiereCountdown() {

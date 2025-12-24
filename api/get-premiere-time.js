@@ -71,14 +71,8 @@ export default async function handler(req, res) {
             }
         }
         
-        // Sprawdź czy banner już się zakończył
-        const bannerEnded = await redis.get(bannerEndedKey);
-        if (bannerEnded === 'true') {
-            return res.status(200).json({
-                ended: true,
-                currentTime: new Date().getTime()
-            });
-        }
+        // Sprawdź czy banner już się zakończył (flaga)
+        let bannerEnded = await redis.get(bannerEndedKey);
         
         // Sprawdź czy czas rozpoczęcia już istnieje w Redis
         let startTime = await redis.get(premiereStartKey);
@@ -92,10 +86,31 @@ export default async function handler(req, res) {
             console.log(`[PREMIERE] ✅ Retrieved global premiere start time: ${startTime}`);
         }
         
+        // Automatycznie sprawdź czy czas minął (nawet jeśli flaga nie jest ustawiona)
+        startTime = parseInt(startTime);
+        const bannerEndTime = startTime + (1 * 60 * 1000); // 1 minuta
+        const now = new Date().getTime();
+        
+        if (now >= bannerEndTime) {
+            // Czas minął - automatycznie oznacz jako zakończony
+            if (bannerEnded !== 'true') {
+                await redis.set(bannerEndedKey, 'true');
+                console.log(`[PREMIERE] ✅ Banner time expired automatically, marked as ended`);
+            }
+            return res.status(200).json({
+                ended: true,
+                startTime: startTime,
+                currentTime: now,
+                expiredBy: now - bannerEndTime
+            });
+        }
+        
+        // Banner jeszcze aktywny
         return res.status(200).json({
-            startTime: parseInt(startTime),
+            startTime: startTime,
             ended: false,
-            currentTime: new Date().getTime()
+            currentTime: now,
+            timeRemaining: bannerEndTime - now
         });
     } catch (error) {
         console.error('[PREMIERE] ❌ Error:', error);
