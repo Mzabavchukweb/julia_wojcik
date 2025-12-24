@@ -1,5 +1,6 @@
 // Vercel Serverless Function - Zwraca globalny czas rozpoczęcia odliczania
 import { Redis } from '@upstash/redis';
+import { Resend } from 'resend';
 
 // Inicjalizuj Redis
 const redis = new Redis({
@@ -25,6 +26,56 @@ export default async function handler(req, res) {
         const premiereStartKey = 'premiere:banner:start:time';
         const bannerEndedKey = 'premiere:banner:ended';
         const notificationsSentKey = 'premiere:notifications:sent';
+        
+        // Debug mode - zwraca pełne informacje diagnostyczne
+        if (req.query?.debug === 'true') {
+            const subscribersList = await redis.get('newsletter:subscribers:list');
+            let subscribers = [];
+            
+            if (Array.isArray(subscribersList)) {
+                subscribers = subscribersList;
+            } else if (typeof subscribersList === 'string') {
+                try { subscribers = JSON.parse(subscribersList); } catch(e) {}
+            }
+            
+            // Test wysyłki email
+            let emailTest = null;
+            const testEmailAddr = req.query?.testEmail;
+            
+            if (testEmailAddr && process.env.RESEND_API_KEY) {
+                try {
+                    const resend = new Resend(process.env.RESEND_API_KEY);
+                    const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
+                    
+                    emailTest = await resend.emails.send({
+                        from: emailFrom,
+                        to: testEmailAddr,
+                        subject: 'TEST - E-book powiadomienie',
+                        html: '<h1>Test</h1><p>Testowy email z systemu powiadomień. Czas: ' + new Date().toISOString() + '</p>'
+                    });
+                } catch (emailError) {
+                    emailTest = { error: emailError.message, statusCode: emailError.statusCode };
+                }
+            }
+            
+            return res.status(200).json({
+                debug: true,
+                subscribers: subscribers,
+                subscribersCount: subscribers.length,
+                subscribersRaw: { type: typeof subscribersList, value: subscribersList },
+                bannerState: {
+                    startTime: await redis.get(premiereStartKey),
+                    bannerEnded: await redis.get(bannerEndedKey),
+                    notificationsSent: await redis.get(notificationsSentKey)
+                },
+                config: {
+                    resendApiKey: process.env.RESEND_API_KEY ? 'SET (' + process.env.RESEND_API_KEY.substring(0,8) + '...)' : 'NOT SET',
+                    emailFrom: process.env.EMAIL_FROM || 'NOT SET (default used)',
+                    redisConfigured: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+                },
+                emailTest: emailTest
+            });
+        }
         
         // Jeśli to POST z markEnded lub reset
         if (req.method === 'POST') {
