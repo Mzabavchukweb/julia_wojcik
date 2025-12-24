@@ -37,150 +37,22 @@ export default async function handler(req, res) {
     }
 
     // Sprawdź czy to wywołanie z cron job (Vercel dodaje header) lub ręczne z auth
-    // Vercel cron jobs mogą używać różnych headerów - sprawdź wszystkie możliwe
-    const userAgent = req.headers['user-agent'] || '';
-    const xVercelCron = req.headers['x-vercel-cron'];
-    const xVercelSignature = req.headers['x-vercel-signature'];
-    const authorization = req.headers['authorization'];
-    
-    // Wykryj cron job na podstawie różnych sygnałów
-    const isCronJob = userAgent.includes('vercel-cron') || 
-                      userAgent.includes('cron') ||
-                      xVercelCron === '1' ||
-                      !!xVercelSignature ||
-                      // Jeśli nie ma authorization i to GET request, prawdopodobnie to cron job
-                      (req.method === 'GET' && !authorization && !req.query?.manual);
-    
-    console.log('[PREMIERE] Cron detection:', {
-        userAgent,
-        xVercelCron,
-        xVercelSignature: xVercelSignature ? 'present' : 'missing',
-        method: req.method,
-        isCronJob
-    });
+    const isCronJob = req.headers['user-agent']?.includes('vercel-cron') || 
+                      req.headers['x-vercel-cron'] === '1' ||
+                      req.headers['x-vercel-signature']; // Vercel cron signature
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
-    try {
-        console.log('[PREMIERE] ========================================');
-        console.log('[PREMIERE] Processing notification request...');
-        console.log('[PREMIERE] Request info:', {
-            method: req.method,
-            isCronJob,
-            userAgent: req.headers['user-agent'],
-            timestamp: new Date().toISOString()
-        });
-        console.log('[PREMIERE] Service status:', {
-            resendInitialized: !!resend,
-            redisConfigured: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
-            emailFrom: process.env.EMAIL_FROM || 'default'
-        });
-        
-        // Sprawdź czy czas bannera się zakończył (dla wszystkich żądań - cron job lub frontend)
-        const premiereStartKey = 'premiere:banner:start:time';
-        const bannerEndedKey = 'premiere:banner:ended';
-        const notificationsSentKey = 'premiere:notifications:sent';
-        
-        const startTime = await redis.get(premiereStartKey);
-        const bannerEnded = await redis.get(bannerEndedKey);
-        const notificationsSent = await redis.get(notificationsSentKey);
-        
-        console.log('[PREMIERE] Redis state:', { startTime, bannerEnded, notificationsSent });
-        
-        // Jeśli powiadomienia już zostały wysłane, nie rób nic
-        if (notificationsSent === 'true') {
-            console.log('[PREMIERE] Powiadomienia już wysłane - pomijam');
-            return res.status(200).json({ 
-                message: 'Notifications already sent',
-                alreadySent: true
-            });
-        }
-        
-        // Sprawdź czy czas się zakończył
-        if (startTime !== null && startTime !== undefined) {
-            // Konwertuj na liczbę - może być string lub number z Redis
-            const startTimeNum = typeof startTime === 'number' ? startTime : Number(startTime);
-            
-            if (isNaN(startTimeNum)) {
-                console.error('[PREMIERE] ❌ Invalid startTime format:', startTime, typeof startTime);
-                return res.status(200).json({ 
-                    message: 'Invalid startTime format',
-                    error: true,
-                    startTimeValue: startTime,
-                    startTimeType: typeof startTime
-                });
-            }
-            
-            const bannerEndTime = startTimeNum + (2 * 60 * 1000); // 2 minuty
-            const now = Date.now();
-            const distance = bannerEndTime - now;
-            
-            console.log('[PREMIERE] Time check:', { 
-                startTimeRaw: startTime,
-                startTimeType: typeof startTime,
-                startTimeNum,
-                bannerEndTime,
-                now,
-                distance,
-                distanceSeconds: Math.floor(distance / 1000)
-            });
-            
-            if (distance > 0) {
-                // Czas jeszcze nie minął - nie wysyłaj powiadomień
-                console.log(`[PREMIERE] Czas jeszcze nie minął - pozostało ${Math.floor(distance / 60000)} minut i ${Math.floor((distance % 60000) / 1000)} sekund`);
-                return res.status(200).json({ 
-                    message: 'Banner time not ended yet',
-                    timeRemaining: distance,
-                    timeRemainingMinutes: Math.floor(distance / 60000),
-                    timeRemainingSeconds: Math.floor((distance % 60000) / 1000)
-                });
-            }
-            
-            // Czas minął - oznacz banner jako zakończony (jeśli jeszcze nie został oznaczony)
-            if (bannerEnded !== 'true') {
-                await redis.set(bannerEndedKey, 'true');
-                console.log('[PREMIERE] ✅ Banner time ended - marked as ended, proceeding with notifications');
-            } else {
-                console.log('[PREMIERE] Banner already marked as ended, proceeding with notifications');
-            }
-            
-            // WAŻNE: Kontynuuj dalej do wysyłania powiadomień (nie zwracaj tutaj!)
-            console.log('[PREMIERE] ⏰ Czas minął - przechodzę do wysyłania powiadomień');
-        } else {
-            // Brak czasu start - nie ma aktywnego bannera
-            console.log('[PREMIERE] No active banner - no start time found');
-            return res.status(200).json({ 
-                message: 'No active banner',
-                noBanner: true
-            });
-        }
+    // TEST MODE: Wyłączono sprawdzanie autoryzacji i daty premiery
+    // Dla produkcji odkomentuj poniższe linie:
+    // const premiereDate = new Date('2025-12-30T00:00:00').getTime();
+    // const now = new Date().getTime();
+    // if (now < premiereDate) {
+    //     return res.status(200).json({ message: 'Premiera jeszcze nie minęła' });
+    // }
 
-        // Ustaw flagę PRZED wysyłaniem (atomowo) - zapobiega podwójnym wysyłkom
-        // Użyj SETNX - ustaw tylko jeśli nie istnieje
-        console.log('[PREMIERE] Próba ustawienia flagi notificationsSent...');
-        try {
-            const setResult = await redis.set(notificationsSentKey, 'true', { ex: 86400, nx: true });
-            console.log('[PREMIERE] Set result:', setResult);
-            if (setResult === null || setResult === 0 || setResult === false) {
-                // Ktoś inny już ustawił flagę między GET a SET - sprawdź ponownie
-                const doubleCheck = await redis.get(notificationsSentKey);
-                if (doubleCheck === 'true') {
-                    console.log('📧 Powiadomienia już zostały wysłane (race condition detected) - pomijam wysyłkę');
-                    return res.status(200).json({ 
-                        success: true,
-                        message: 'Notifications already sent',
-                        alreadySent: true
-                    });
-                }
-            }
-        } catch (setError) {
-            // Jeśli SETNX nie działa, użyj zwykłego SET (fallback)
-            console.warn('⚠️ SETNX failed, using regular SET:', setError.message);
-            await redis.set(notificationsSentKey, 'true', { ex: 86400 });
-        }
-        
-        // Flaga została ustawiona - możemy wysłać powiadomienia
-        console.log('📧 Flaga ustawiona - rozpoczynam wysyłanie powiadomień');
+    try {
+        console.log('[PREMIERE] Processing notification request...');
 
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
@@ -189,70 +61,36 @@ export default async function handler(req, res) {
                 const subscribersListKey = 'newsletter:subscribers:list';
                 const subscribersList = await redis.get(subscribersListKey);
                 
-                console.log('[PREMIERE] Raw subscribers list from Redis:', {
-                    type: typeof subscribersList,
-                    value: subscribersList,
-                    isArray: Array.isArray(subscribersList),
-                    stringified: JSON.stringify(subscribersList)
-                });
-                
-                // Obsłuż różne formaty danych z Redis
-                if (subscribersList) {
-                    if (Array.isArray(subscribersList)) {
-                        // Jeśli to już tablica (biblioteka @upstash/redis automatycznie parsuje JSON)
-                        subscribers = subscribersList.filter(Boolean);
-                        console.log('[PREMIERE] ✅ Parsed as array directly:', subscribers);
-                    } else if (typeof subscribersList === 'string') {
-                        // Jeśli to JSON string, sparsuj
-                        try {
-                            const parsed = JSON.parse(subscribersList);
-                            if (Array.isArray(parsed)) {
-                                subscribers = parsed.filter(Boolean);
-                                console.log('[PREMIERE] ✅ Parsed JSON string to array:', subscribers);
-                            } else {
-                                console.warn('[PREMIERE] ⚠️ Parsed JSON is not an array:', typeof parsed, parsed);
-                            }
-                        } catch (e) {
-                            console.warn('[PREMIERE] ❌ Failed to parse subscribers list as JSON:', e.message);
-                            console.warn('[PREMIERE] Raw value that failed to parse:', subscribersList);
-                        }
-                    } else if (typeof subscribersList === 'object') {
-                        // Może być obiekt z innymi właściwościami
-                        console.warn('[PREMIERE] ⚠️ Subscribers list is an object (not array):', subscribersList);
-                    }
-                    
-                    if (subscribers.length > 0) {
-                        console.log(`[PREMIERE] ✅ Found ${subscribers.length} subscribers in Upstash Redis:`, subscribers);
-                    } else {
-                        console.log('[PREMIERE] ⚠️ Subscribers list is empty or invalid format');
-                    }
+                if (Array.isArray(subscribersList) && subscribersList.length > 0) {
+                    // Usuń duplikaty z listy przed wysyłką
+                    subscribers = [...new Set(subscribersList.map(e => e.toLowerCase().trim()))];
+                    console.log(`✅ Found ${subscribersList.length} subscribers in Upstash Redis (automatic), ${subscribers.length} unique after deduplication`);
                 } else {
-                    console.log('[PREMIERE] ⚠️ No subscribers list found in Redis (value is null/undefined)');
-                }
-                
-                // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
-                if (subscribers.length === 0 && process.env.NEWSLETTER_SUBSCRIBERS) {
-                    subscribers = process.env.NEWSLETTER_SUBSCRIBERS
-                        .split(',')
-                        .map(e => e.trim().toLowerCase())
-                        .filter(Boolean);
-                    console.log(`[PREMIERE] ⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+                    // Fallback: użyj zmiennej środowiskowej jeśli Redis jest pusty
+                    if (process.env.NEWSLETTER_SUBSCRIBERS) {
+                        subscribers = process.env.NEWSLETTER_SUBSCRIBERS
+                            .split(',')
+                            .map(e => e.trim().toLowerCase())
+                            .filter(Boolean);
+                        console.log(`⚠️ Redis empty, using NEWSLETTER_SUBSCRIBERS env var: ${subscribers.length} subscribers`);
+                    } else {
+                        console.log('⚠️ No subscribers found in Redis or NEWSLETTER_SUBSCRIBERS');
+                    }
                 }
             } else {
-                throw new Error('Upstash Redis not configured - missing env vars');
+                throw new Error('Upstash Redis not configured');
             }
         } catch (redisError) {
-            console.error('[PREMIERE] ❌ Redis Error:', redisError.message);
-            console.error('[PREMIERE] ❌ Redis Error Stack:', redisError.stack);
+            console.error('❌ Redis Error:', redisError);
             // Fallback: użyj zmiennej środowiskowej
             if (process.env.NEWSLETTER_SUBSCRIBERS) {
                 subscribers = process.env.NEWSLETTER_SUBSCRIBERS
                     .split(',')
                     .map(e => e.trim().toLowerCase())
                     .filter(Boolean);
-                console.log(`[PREMIERE] ⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
+                console.log(`⚠️ Using NEWSLETTER_SUBSCRIBERS fallback: ${subscribers.length} subscribers`);
             } else {
-                console.log('[PREMIERE] ⚠️ Redis not available and NEWSLETTER_SUBSCRIBERS not set');
+                console.log('⚠️ Redis not available and NEWSLETTER_SUBSCRIBERS not set');
             }
         }
 
@@ -269,7 +107,6 @@ export default async function handler(req, res) {
 
         let successCount = 0;
         let errorCount = 0;
-        const emailDetails = [];
 
         // Wyślij email do każdego subskrybenta
         for (const subscriberEmail of subscribers) {
@@ -290,8 +127,6 @@ export default async function handler(req, res) {
                     // Użyj domyślnego powitania
                 }
 
-                console.log(`[PREMIERE] 📧 Attempting to send email to: ${subscriberEmail} from: ${emailFrom}`);
-                
                 const emailResult = await resend.emails.send({
                     from: emailFrom,
                     to: subscriberEmail,
@@ -590,44 +425,17 @@ export default async function handler(req, res) {
                     `
                 });
 
-                console.log(`📧 Resend response for ${subscriberEmail}:`, JSON.stringify(emailResult));
-                
-                if (emailResult && emailResult.id && !emailResult.error) {
+                if (emailResult && !emailResult.error) {
                     successCount++;
-                    console.log(`✅ Email sent to: ${subscriberEmail}, ID: ${emailResult.id}`);
-                    emailDetails.push({
-                        email: subscriberEmail,
-                        status: 'success',
-                        emailId: emailResult.id
-                    });
+                    console.log(`✅ Email sent to: ${subscriberEmail}`);
                 } else {
                     errorCount++;
-                    const errorInfo = {
-                        email: subscriberEmail,
-                        status: 'error',
-                        error: emailResult?.error || 'Unknown error',
-                        response: emailResult
-                    };
-                    console.error(`❌ Failed to send to: ${subscriberEmail}`, JSON.stringify(errorInfo));
-                    emailDetails.push(errorInfo);
+                    console.error(`❌ Failed to send to: ${subscriberEmail}`, emailResult?.error);
                 }
             } catch (emailError) {
                 errorCount++;
-                const errorInfo = {
-                    email: subscriberEmail,
-                    status: 'exception',
-                    error: emailError.message,
-                    stack: emailError.stack
-                };
-                console.error(`❌ Exception sending to ${subscriberEmail}:`, errorInfo);
-                emailDetails.push(errorInfo);
+                console.error(`❌ Error sending to ${subscriberEmail}:`, emailError.message);
             }
-        }
-
-        // Oznacz w Redis, że powiadomienia zostały wysłane (zapobiegaj podwójnym wysyłkom)
-        if (successCount > 0) {
-            // Flaga już została ustawiona na początku (SETNX) - nie trzeba ponownie ustawiać
-            console.log('✅ Notifications sent successfully (flag was set at start)');
         }
 
         return res.status(200).json({ 
@@ -635,11 +443,7 @@ export default async function handler(req, res) {
             message: 'Premiere notifications sent',
             total: subscribers.length,
             successCount: successCount,
-            errorCount: errorCount,
-            subscribersSent: subscribers,
-            emailFrom: process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>',
-            emailDetails: emailDetails,
-            resendConfigured: !!resend
+            errorCount: errorCount
         });
 
     } catch (error) {

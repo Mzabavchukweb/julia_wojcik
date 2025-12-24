@@ -58,31 +58,8 @@ export default async function handler(req, res) {
                 const subscriberKey = `newsletter:${emailLower}`;
                 const subscribersListKey = 'newsletter:subscribers:list';
                 
-                // Sprawdź czy email już istnieje
-                const existingSubscriber = await redis.get(subscriberKey);
-                
-                if (existingSubscriber) {
-                    console.log('📧 Subscriber already exists:', email);
-                    return res.status(200).json({ 
-                        success: true,
-                        message: 'Email już jest zapisany. Otrzymasz powiadomienie o premierze!',
-                        email: email
-                    });
-                }
-                
-                // Zapisz subskrybenta
-                const subscriberData = {
-                    email: emailLower,
-                    subscribedAt: new Date().toISOString(),
-                    source: 'premiere-splash'
-                };
-                
-                await redis.set(subscriberKey, subscriberData);
-                
-                // Pobierz aktualną listę subskrybentów
+                // Pobierz aktualną listę subskrybentów PRZED sprawdzeniem
                 let subscribersList = await redis.get(subscribersListKey);
-                
-                console.log('[NEWSLETTER] Current subscribers list from Redis:', typeof subscribersList, subscribersList);
                 
                 // Obsłuż różne formaty danych
                 if (!subscribersList) {
@@ -101,17 +78,43 @@ export default async function handler(req, res) {
                     subscribersList = [];
                 }
                 
-                // Dodaj email jeśli jeszcze nie ma
-                if (!subscribersList.includes(emailLower)) {
-                    subscribersList.push(emailLower);
-                    
-                    // Zapisz zaktualizowaną listę - używamy set() z biblioteki @upstash/redis
-                    // która automatycznie serializuje tablice do JSON
-                    await redis.set(subscribersListKey, subscribersList);
-                    
-                    console.log('[NEWSLETTER] ✅ Added email to list:', emailLower);
-                    console.log('[NEWSLETTER] 📊 Updated subscribers list:', subscribersList);
+                // Sprawdź czy email już istnieje w liście LUB jako klucz
+                const existingInList = subscribersList.includes(emailLower);
+                const existingSubscriber = await redis.get(subscriberKey);
+                
+                if (existingInList || existingSubscriber) {
+                    console.log('📧 Subscriber already exists:', email);
+                    // Upewnij się że email jest w liście (napraw duplikaty)
+                    if (!existingInList && existingSubscriber) {
+                        subscribersList.push(emailLower);
+                        await redis.set(subscribersListKey, subscribersList);
+                        console.log('[NEWSLETTER] ✅ Fixed: Added existing subscriber to list');
+                    }
+                    return res.status(200).json({ 
+                        success: true,
+                        message: 'Email już jest zapisany. Otrzymasz powiadomienie o premierze!',
+                        email: email
+                    });
                 }
+                
+                // Zapisz subskrybenta
+                const subscriberData = {
+                    email: emailLower,
+                    subscribedAt: new Date().toISOString(),
+                    source: 'premiere-splash'
+                };
+                
+                await redis.set(subscriberKey, subscriberData);
+                
+                // Dodaj email do listy (już sprawdziliśmy że nie ma)
+                subscribersList.push(emailLower);
+                
+                // Zapisz zaktualizowaną listę - używamy set() z biblioteki @upstash/redis
+                // która automatycznie serializuje tablice do JSON
+                await redis.set(subscribersListKey, subscribersList);
+                
+                console.log('[NEWSLETTER] ✅ Added email to list:', emailLower);
+                console.log('[NEWSLETTER] 📊 Updated subscribers list length:', subscribersList.length);
                 
                 savedToRedis = true;
                 console.log('✅ Newsletter subscription saved to Upstash Redis:', email);

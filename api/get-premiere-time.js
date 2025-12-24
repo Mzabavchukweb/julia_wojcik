@@ -34,9 +34,19 @@ export default async function handler(req, res) {
             if (body && body.reset === true) {
                 await redis.del(premiereStartKey);
                 await redis.del(bannerEndedKey);
-                const newStartTime = new Date().getTime();
+                
+                // Jeśli podano minutes, ustaw czas na teraz + X minut
+                // W przeciwnym razie ustaw na teraz
+                let newStartTime = new Date().getTime();
+                if (body.minutes && typeof body.minutes === 'number' && body.minutes > 0) {
+                    newStartTime = newStartTime - (body.minutes * 60 * 1000);
+                    console.log(`[PREMIERE] 🔄 Reset premiere time to ${body.minutes} minutes from now`);
+                } else {
+                    console.log(`[PREMIERE] 🔄 Reset premiere time to now`);
+                }
+                
                 await redis.set(premiereStartKey, newStartTime.toString());
-                console.log(`[PREMIERE] 🔄 Reset premiere time to: ${newStartTime}`);
+                console.log(`[PREMIERE] ✅ Set premiere start time: ${newStartTime}`);
                 return res.status(200).json({ 
                     message: 'Premiere time has been reset',
                     success: true,
