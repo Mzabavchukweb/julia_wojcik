@@ -43,6 +43,9 @@ export default async function handler(req, res) {
     const authHeader = req.headers['authorization'];
     const cronSecret = process.env.CRON_SECRET || 'premiere-secret-change-in-production';
     
+    // Pozwól na ręczne wywołanie dla testów (query param force=true)
+    const forceSend = req.query?.force === 'true' || (req.method === 'POST' && typeof req.body === 'object' && req.body?.force === true);
+    
     // TEST MODE: Wyłączono sprawdzanie autoryzacji i daty premiery
     // Dla produkcji odkomentuj poniższe linie:
     // const premiereDate = new Date('2025-12-30T00:00:00').getTime();
@@ -52,7 +55,8 @@ export default async function handler(req, res) {
     // }
 
     try {
-        console.log('[PREMIERE] Processing notification request...');
+        const isCronCall = isCronJob || req.method === 'GET';
+        console.log(`[PREMIERE] Processing notification request... (method: ${req.method}, isCron: ${isCronCall})`);
 
         // Sprawdź czy banner się zakończył (czy czas minął)
         const premiereStartKey = 'premiere:banner:start:time';
@@ -72,15 +76,25 @@ export default async function handler(req, res) {
         startTime = parseInt(startTime);
         const bannerEndTime = startTime + (1 * 60 * 1000); // 1 minuta
         const now = new Date().getTime();
+        const timeRemaining = bannerEndTime - now;
         
-        // Sprawdź czy czas minął
-        if (now < bannerEndTime) {
-            console.log('[PREMIERE] ⏸️ Banner still active, time not expired yet');
+        console.log(`[PREMIERE] ⏱️ Time check: startTime=${new Date(startTime).toISOString()}, now=${new Date(now).toISOString()}, endTime=${new Date(bannerEndTime).toISOString()}, remaining=${Math.round(timeRemaining/1000)}s`);
+        
+        // Sprawdź czy czas minął (lub czy to wymuszone wywołanie dla testów)
+        if (now < bannerEndTime && !forceSend) {
+            console.log(`[PREMIERE] ⏸️ Banner still active, time not expired yet (${Math.round(timeRemaining/1000)}s remaining)`);
             return res.status(200).json({ 
                 message: 'Banner still active, notifications will be sent when time expires',
                 sent: false,
-                timeRemaining: bannerEndTime - now
+                timeRemaining: timeRemaining,
+                startTime: startTime,
+                endTime: bannerEndTime,
+                now: now
             });
+        }
+        
+        if (forceSend && now < bannerEndTime) {
+            console.log(`[PREMIERE] 🔧 Force send enabled - sending notifications even though time hasn't expired yet`);
         }
         
         // Sprawdź czy powiadomienia już zostały wysłane (zapobieganie duplikatom)
@@ -97,6 +111,7 @@ export default async function handler(req, res) {
         // Oznacz banner jako zakończony
         await redis.set(bannerEndedKey, 'true');
         console.log('[PREMIERE] ✅ Banner time expired, proceeding with notifications...');
+        console.log(`[PREMIERE] 📧 Time expired by ${Math.round((now - bannerEndTime)/1000)}s, sending notifications now...`);
 
         // Pobierz listę subskrybentów z Upstash Redis (automatyczne)
         let subscribers = [];
