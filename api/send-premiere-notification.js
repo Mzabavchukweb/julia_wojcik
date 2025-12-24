@@ -97,19 +97,22 @@ export default async function handler(req, res) {
             console.log(`[PREMIERE] 🔧 Force send enabled - sending notifications even though time hasn't expired yet`);
         }
         
-        // Sprawdź czy powiadomienia już zostały wysłane (zapobieganie duplikatom)
-        const notificationsAlreadySent = await redis.get(notificationsSentKey);
-        if (notificationsAlreadySent === 'true') {
-            console.log('[PREMIERE] ✅ Notifications already sent, skipping');
+        // Sprawdź czy powiadomienia już zostały wysłane lub są w trakcie wysyłania (zapobieganie duplikatom)
+        const notificationsStatus = await redis.get(notificationsSentKey);
+        if (notificationsStatus === 'true' || notificationsStatus === 'sending') {
+            console.log(`[PREMIERE] ⏸️ Notifications status: ${notificationsStatus}, skipping`);
             return res.status(200).json({ 
-                message: 'Notifications already sent',
-                sent: true,
-                alreadySent: true
+                message: notificationsStatus === 'true' ? 'Notifications already sent' : 'Notifications are being sent',
+                sent: notificationsStatus === 'true',
+                alreadySent: true,
+                status: notificationsStatus
             });
         }
         
-        // Oznacz banner jako zakończony
+        // Oznacz banner jako zakończony PRZED wysyłką (żeby inne wywołania nie próbowały wysyłać)
         await redis.set(bannerEndedKey, 'true');
+        // Oznacz że zaczynamy wysyłanie (żeby uniknąć równoczesnych wywołań)
+        await redis.set(notificationsSentKey, 'sending'); // Tymczasowa flaga
         console.log('[PREMIERE] ✅ Banner time expired, proceeding with notifications...');
         console.log(`[PREMIERE] 📧 Time expired by ${Math.round((now - bannerEndTime)/1000)}s, sending notifications now...`);
 
@@ -535,18 +538,24 @@ export default async function handler(req, res) {
         }
 
         // Zapisz listę wysłanych emaili do Redis (tylko te które zostały wysłane pomyślnie)
-        if (successCount > 0) {
-            try {
+        try {
+            if (successCount > 0) {
                 // Usuń duplikaty przed zapisaniem
                 const uniqueSentEmails = [...new Set(sentEmails)];
                 await redis.set(sentEmailsKey, uniqueSentEmails);
                 console.log(`💾 Saved ${uniqueSentEmails.length} sent emails to Redis`);
-                
-                // Oznacz że powiadomienia zostały wysłane (zapobieganie duplikatom)
+            }
+            
+            // Oznacz że powiadomienia zostały wysłane (nawet jeśli były błędy, żeby nie próbować ponownie)
+            await redis.set(notificationsSentKey, 'true');
+            console.log(`✅ Marked notifications as sent (success: ${successCount}, errors: ${errorCount})`);
+        } catch (saveError) {
+            console.error('❌ Failed to save sent emails list:', saveError);
+            // Spróbuj przynajmniej oznaczyć jako wysłane
+            try {
                 await redis.set(notificationsSentKey, 'true');
-                console.log(`✅ Marked notifications as sent`);
-            } catch (saveError) {
-                console.error('❌ Failed to save sent emails list:', saveError);
+            } catch (e) {
+                console.error('❌ Failed to mark notifications as sent:', e);
             }
         }
 

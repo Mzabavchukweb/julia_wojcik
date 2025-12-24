@@ -78,15 +78,23 @@ export default async function handler(req, res) {
                     subscribersList = [];
                 }
                 
+                // Usuń duplikaty z listy przed sprawdzeniem
+                subscribersList = [...new Set(subscribersList.map(e => e.toLowerCase().trim()))];
+                
                 // Sprawdź czy email już istnieje w liście LUB jako klucz
                 const existingInList = subscribersList.includes(emailLower);
                 const existingSubscriber = await redis.get(subscriberKey);
                 
                 if (existingInList || existingSubscriber) {
                     console.log('📧 Subscriber already exists:', email);
-                    // Upewnij się że email jest w liście (napraw duplikaty)
-                    if (!existingInList && existingSubscriber) {
+                    // Upewnij się że lista nie ma duplikatów
+                    if (existingInList) {
+                        // Email już jest w liście - zapisz listę bez duplikatów
+                        await redis.set(subscribersListKey, subscribersList);
+                    } else if (existingSubscriber) {
+                        // Email jest jako klucz ale nie w liście - dodaj do listy
                         subscribersList.push(emailLower);
+                        subscribersList = [...new Set(subscribersList)]; // Usuń duplikaty
                         await redis.set(subscribersListKey, subscribersList);
                         console.log('[NEWSLETTER] ✅ Fixed: Added existing subscriber to list');
                     }
@@ -101,13 +109,15 @@ export default async function handler(req, res) {
                 const subscriberData = {
                     email: emailLower,
                     subscribedAt: new Date().toISOString(),
-                    source: 'premiere-splash'
+                    source: body.source || 'premiere-splash'
                 };
                 
                 await redis.set(subscriberKey, subscriberData);
                 
                 // Dodaj email do listy (już sprawdziliśmy że nie ma)
                 subscribersList.push(emailLower);
+                // Usuń duplikaty przed zapisaniem
+                subscribersList = [...new Set(subscribersList.map(e => e.toLowerCase().trim()))];
                 
                 // Zapisz zaktualizowaną listę - używamy set() z biblioteki @upstash/redis
                 // która automatycznie serializuje tablice do JSON
