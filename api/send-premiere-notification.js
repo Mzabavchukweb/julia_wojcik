@@ -587,12 +587,14 @@ export default async function handler(req, res) {
                     `
                 });
 
-                if (emailResult && !emailResult.error) {
+                console.log(`📧 Resend response for ${subscriberEmail}:`, JSON.stringify(emailResult));
+                
+                if (emailResult && emailResult.id && !emailResult.error) {
                     successCount++;
-                    console.log(`✅ Email sent to: ${subscriberEmail}`);
+                    console.log(`✅ Email sent to: ${subscriberEmail}, ID: ${emailResult.id}`);
                 } else {
                     errorCount++;
-                    console.error(`❌ Failed to send to: ${subscriberEmail}`, emailResult?.error);
+                    console.error(`❌ Failed to send to: ${subscriberEmail}`, JSON.stringify(emailResult));
                 }
             } catch (emailError) {
                 errorCount++;
