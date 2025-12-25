@@ -85,7 +85,7 @@ const ebook = {
     id: 'ebook_1',
     name: 'E-book - Kompletny przewodnik po stylizacji paznokci',
     price: 300, // Cena w złotych
-    paymentLink: 'https://buy.stripe.com/test_8x24gz1Wo2jy1XX4yz8IU01',
+    paymentLink: 'https://buy.stripe.com/3cI5kFa4P9bA6YT8a0eAg00',
     description: 'Kompleksowy przewodnik po stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki.',
     format: 'PDF',
     access: 'na zawsze',
