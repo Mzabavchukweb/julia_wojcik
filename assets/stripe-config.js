@@ -86,7 +86,7 @@ const ebook = {
     name: 'E-book - Kompletny przewodnik po stylizacji paznokci',
     price: 279, // Cena przeceniona w złotych
     regularPrice: 349, // Cena regularna w złotych
-    paymentLink: 'https://buy.stripe.com/3cI5kFa4P9bA6YT8a0eAg00',
+    paymentLink: 'https://buy.stripe.com/00wfZjgtd5Zo971cqgeAg01',
     description: 'Kompleksowy przewodnik po stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki.',
     format: 'PDF',
     access: 'na zawsze',
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (priceContainer && ebook.regularPrice) {
                     priceValue.innerHTML = `<span class="price-regular" style="text-decoration: line-through; opacity: 0.6; margin-right: 8px;">${ebook.regularPrice} zł</span><span class="price-sale" style="color: #C5A572; font-weight: 600;">${ebook.price} zł</span>`;
                 } else {
-                    priceValue.textContent = `${ebook.price} zł`;
+                priceValue.textContent = `${ebook.price} zł`;
                 }
             }
             
