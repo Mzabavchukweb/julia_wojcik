@@ -335,15 +335,15 @@ export default async function handler(req, res) {
                 isEbookPurchase = true;
             }
             
-            // Metoda 3: Jeśli kwota to 279 zł (przecena) lub 350 zł (regularna), traktuj jako ebook (główna metoda dla ebooka)
+            // Metoda 3: Jeśli kwota to 279 zł (przecena) lub 349 zł (regularna), traktuj jako ebook (główna metoda dla ebooka)
             if (!isEbookPurchase) {
                 const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
                 console.log(`[${requestId}] 🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
-                if (session.currency === 'pln' && (amountInPLN === 279 || amountInPLN === 350)) {
+                if (session.currency === 'pln' && (amountInPLN === 279 || amountInPLN === 349)) {
                     console.log(`[${requestId}] ✅ Detected ebook by amount (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
                 } else {
-                    console.log(`[${requestId}] ❌ Amount doesn't match: ${amountInPLN} PLN (expected 279 or 350 PLN)`);
+                    console.log(`[${requestId}] ❌ Amount doesn't match: ${amountInPLN} PLN (expected 279 or 349 PLN)`);
                 }
             }
 
