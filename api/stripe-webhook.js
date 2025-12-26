@@ -335,16 +335,17 @@ export default async function handler(req, res) {
                 isEbookPurchase = true;
             }
             
-            // Metoda 3: Jeśli kwota jest w zakresie cen ebooka (99-399 PLN), traktuj jako ebook
+            // Metoda 3: Jeśli kwota pasuje do ceny ebooka (2 PLN test lub 279-349 PLN produkcja)
             if (!isEbookPurchase) {
                 const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
                 console.log(`[${requestId}] 🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
-                // Akceptuj kwoty od 99 do 399 PLN jako potencjalny ebook
-                if (session.currency === 'pln' && amountInPLN >= 99 && amountInPLN <= 399) {
-                    console.log(`[${requestId}] ✅ Detected ebook by amount range (${amountInPLN} PLN)`);
+                // Akceptuj: 2 PLN (test), 279 PLN (promocja), 349 PLN (regularna)
+                const validPrices = [2, 279, 349];
+                if (session.currency === 'pln' && validPrices.includes(amountInPLN)) {
+                    console.log(`[${requestId}] ✅ Detected ebook by price (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
                 } else {
-                    console.log(`[${requestId}] ❌ Amount doesn't match ebook range: ${amountInPLN} PLN (expected 99-399 PLN)`);
+                    console.log(`[${requestId}] ❌ Amount doesn't match: ${amountInPLN} PLN (expected: ${validPrices.join(', ')} PLN)`);
                 }
             }
 
