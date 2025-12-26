@@ -37,12 +37,22 @@ export default async function handler(req, res) {
                 await redis.del(bannerEndedKey);
                 await redis.del(notificationsSentKey); // Resetuj flagę powiadomień
                 
+                // Jeśli podano targetDate, ustaw startTime tak żeby banner zakończył się o tej dacie
                 // Jeśli podano minutes, ustaw startTime tak, żeby timer pokazywał X minut
-                // Timer pokazuje: (startTime + 1 minuta) - teraz
-                // Więc dla X minut: X = (startTime + 1 minuta) - teraz
-                // startTime = teraz - 1 minuta + X minut = teraz - (1 - X) minuty
                 let newStartTime = new Date().getTime();
-                if (body.minutes && typeof body.minutes === 'number' && body.minutes > 0) {
+                
+                if (body.targetDate) {
+                    // Ustaw konkretną datę premiery
+                    // bannerEndTime = startTime + 1 minuta
+                    // Więc startTime = targetDate - 1 minuta
+                    const targetDate = new Date(body.targetDate);
+                    const timerDuration = 1 * 60 * 1000; // 1 minuta
+                    newStartTime = targetDate.getTime() - timerDuration;
+                    console.log(`[PREMIERE] 🔄 Reset premiere time to target date: ${targetDate.toISOString()}`);
+                } else if (body.minutes && typeof body.minutes === 'number' && body.minutes > 0) {
+                    // Timer pokazuje: (startTime + 1 minuta) - teraz
+                    // Więc dla X minut: X = (startTime + 1 minuta) - teraz
+                    // startTime = teraz - 1 minuta + X minut = teraz - (1 - X) minuty
                     const timerDuration = 1 * 60 * 1000; // 1 minuta w milisekundach (domyślny czas trwania timera)
                     const targetMinutes = body.minutes * 60 * 1000; // Docelowa liczba minut do pokazania
                     newStartTime = newStartTime - timerDuration + targetMinutes;

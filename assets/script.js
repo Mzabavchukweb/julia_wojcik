@@ -1,23 +1,53 @@
 // Advanced Scroll Animations and Interactions
-// Natychmiast ukryj wszystko do czasu sprawdzenia bannera
-(function() {
-    const mainContent = document.getElementById('main-content');
-    const navbar = document.querySelector('.navbar');
-    if (mainContent) {
-        mainContent.style.display = 'none';
-    }
-    if (navbar) {
-        navbar.style.display = 'none';
-    }
-    // Zablokuj scrollowanie do czasu sprawdzenia
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-})();
-
 document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH BANNER =====
     const premiereSplash = document.getElementById('premiere-splash');
     const mainContent = document.getElementById('main-content');
+    const navbar = document.querySelector('.navbar');
+    
+    // Funkcja do pokazania głównej treści
+    function showMainContent() {
+        if (mainContent) {
+            mainContent.style.display = 'block';
+            mainContent.classList.add('visible');
+        }
+        if (navbar) {
+            navbar.style.display = '';
+            navbar.style.visibility = '';
+            navbar.style.opacity = '';
+            navbar.style.zIndex = '';
+            navbar.style.position = '';
+            navbar.classList.add('visible');
+        }
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+    }
+    
+    // Funkcja do ukrycia głównej treści (gdy banner jest aktywny)
+    function hideMainContent() {
+        if (mainContent) {
+            mainContent.style.display = 'none';
+        }
+        if (navbar) {
+            navbar.style.display = 'none';
+            navbar.style.visibility = 'hidden';
+            navbar.style.opacity = '0';
+        }
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+    }
+    
+    // NAJPIERW: Pokaż elementy DOM od razu (nie blokuj ich podczas ładowania)
+    showMainContent();
+    
+    // Jeśli nie ma bannera, zakończ tutaj
+    if (!premiereSplash) {
+        return;
+    }
     
     // Pobierz globalny czas rozpoczęcia z serwera (dla wszystkich użytkowników)
     fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
@@ -35,23 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (premiereSplash && premiereSplash.parentNode) {
                 premiereSplash.parentNode.removeChild(premiereSplash);
             }
-            if (mainContent) {
-                mainContent.style.display = 'block';
-                mainContent.classList.add('banner-checked');
-            }
-            // Odblokuj navbar
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                navbar.style.display = '';
-                navbar.style.visibility = '';
-                navbar.style.opacity = '';
-                navbar.style.zIndex = '';
-                navbar.classList.add('banner-checked');
-            }
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
+            showMainContent();
             return;
         }
         
@@ -65,25 +79,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (premiereSplash && premiereSplash.parentNode) {
                 premiereSplash.parentNode.removeChild(premiereSplash);
             }
-            if (mainContent) {
-                mainContent.style.display = 'block';
-                mainContent.classList.add('banner-checked');
-            }
-            // Odblokuj navbar
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                navbar.style.display = '';
-                navbar.style.visibility = '';
-                navbar.style.opacity = '';
-                navbar.style.zIndex = '';
-                navbar.classList.add('banner-checked');
-            }
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
+            showMainContent();
             return;
         }
+        
+        // Zmienne do zarządzania bannerem (muszą być dostępne w setInterval)
+        let blockedElements = new Map();
+        let navigationBlocker = null;
+        let blockKeyboardNavigation = null;
+        let bannerActive = true;
         
         // Funkcja aktualizująca odliczanie bannera
         function updatePremiereCountdown() {
@@ -108,46 +112,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log('⏰ Banner removed from DOM permanently');
                     }, 800);
                 }
-                if (mainContent) {
-                    mainContent.style.display = 'block';
-                    mainContent.classList.add('banner-checked');
-                }
-                
-                // Odblokuj navbar
-                const navbar = document.querySelector('.navbar');
-                if (navbar) {
-                    navbar.style.display = '';
-                    navbar.style.visibility = '';
-                    navbar.style.opacity = '';
-                    navbar.style.zIndex = '';
-                    navbar.style.position = '';
-                    navbar.classList.add('banner-checked');
-                }
-                document.body.style.overflow = '';
-                document.documentElement.style.overflow = '';
-                document.body.style.position = '';
-                document.body.style.width = '';
+                showMainContent();
                 
                 console.log('⏰ Banner time expired - removing from DOM');
                 return;
             }
             
-            // Oblicz minuty i sekundy
+            // Oblicz dni, godziny, minuty i sekundy
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
             
             // Zaktualizuj wyświetlane wartości
+            const daysEl = document.getElementById('premiere-days');
+            const hoursEl = document.getElementById('premiere-hours');
             const minutesEl = document.getElementById('premiere-minutes');
             const secondsEl = document.getElementById('premiere-seconds');
             
+            if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+            if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
             if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
             if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
-            
-            // Dni i godziny zawsze 00 dla 4 minut
-            const daysEl = document.getElementById('premiere-days');
-            const hoursEl = document.getElementById('premiere-hours');
-            if (daysEl) daysEl.textContent = '00';
-            if (hoursEl) hoursEl.textContent = '00';
         }
         
         // Sprawdź czy odliczanie już się zakończyło przy załadowaniu strony
@@ -159,32 +145,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Pokaż banner i ZABLOKUJ wszystko
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
+            // Pokaż banner
             premiereSplash.style.display = 'flex';
             premiereSplash.style.visibility = 'visible';
             premiereSplash.style.opacity = '1';
             // UKRYJ główną treść
-            if (mainContent) {
-                mainContent.style.display = 'none';
-                mainContent.classList.add('banner-checked');
-            }
+            hideMainContent();
             
-            // UKRYJ navbar - banner musi być pełnoekranowy
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                navbar.style.display = 'none';
-                navbar.style.visibility = 'hidden';
-                navbar.style.opacity = '0';
-                navbar.classList.add('banner-checked');
-            }
-            
-            // Zablokuj scrollowanie strony
-            document.body.style.overflow = 'hidden';
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
-            
-            // Przechowuj oryginalne event listeners do późniejszego usunięcia
-            const blockedElements = new Map();
+            // Resetuj Map dla tego wywołania
+            blockedElements = new Map();
             
             // Funkcja do blokowania wszystkich linków i przycisków
             const blockNavigation = (element) => {
@@ -251,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             [...allLinks, ...allButtons].forEach(blockNavigation);
             
             // MutationObserver - blokuj nowe linki/przyciski dodane dynamicznie
-            const navigationBlocker = new MutationObserver((mutations) => {
+            navigationBlocker = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === 1) { // Element node
@@ -273,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Zablokuj klawisze nawigacyjne
-            const blockKeyboardNavigation = (e) => {
+            blockKeyboardNavigation = (e) => {
                 // Tab, Enter, Space, Arrow keys - blokuj jeśli nie jesteś w bannerze
                 if (!e.target.closest('#premiere-splash')) {
                     if (['Tab', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -286,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.addEventListener('keydown', blockKeyboardNavigation, true);
             
             // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
-            let bannerActive = true;
+            bannerActive = true;
             window.addEventListener('beforeunload', function(e) {
                 if (bannerActive) {
                     e.preventDefault();
@@ -333,36 +302,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Usuń blokadę klawiatury
-                    document.removeEventListener('keydown', blockKeyboardNavigation, true);
-                    
-                    // Odblokuj navbar
-                    if (navbar) {
-                        navbar.style.display = '';
-                        navbar.style.visibility = '';
-                        navbar.style.opacity = '';
-                        navbar.style.zIndex = '';
-                        navbar.style.position = '';
+                    if (blockKeyboardNavigation) {
+                        document.removeEventListener('keydown', blockKeyboardNavigation, true);
                     }
                     
-                    // Odblokuj menu mobilne
-                    if (mobileMenu) {
-                        mobileMenu.style.display = '';
-                    }
-                    if (mobileMenuToggle) {
-                        mobileMenuToggle.style.display = '';
-                    }
-                    
-                    // Odblokuj scrollowanie
-                    document.body.style.overflow = '';
-                    document.documentElement.style.overflow = '';
-                    document.body.style.position = '';
-                    document.body.style.width = '';
-                    
-                    // Upewnij się że mainContent jest widoczny
-                    if (mainContent) {
-                        mainContent.style.display = 'block';
-                        mainContent.classList.add('banner-checked');
-                    }
+                    showMainContent();
                     
                     // Odblokuj wszystkie linki i przyciski - przywróć oryginalne style
                     blockedElements.forEach((originalStyles, element) => {
@@ -411,37 +355,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         } else {
             console.warn('⚠️ Banner premiere-splash nie został znaleziony!');
-            // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
-            if (mainContent) {
-                mainContent.style.display = 'block';
-                mainContent.classList.add('banner-checked');
-            }
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                navbar.style.display = '';
-                navbar.classList.add('banner-checked');
-            }
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
+            showMainContent();
         }
     })
     .catch(error => {
         console.error('❌ Błąd podczas pobierania czasu premiery:', error);
-        // Fallback: pokaż główną treść jeśli nie można pobrać czasu
-        if (mainContent) {
-            mainContent.style.display = 'block';
-            mainContent.classList.add('banner-checked');
-        }
-        const navbar = document.querySelector('.navbar');
-        if (navbar) {
-            navbar.style.display = '';
-            navbar.classList.add('banner-checked');
-        }
+        // Fallback: ukryj banner i pokaż główną treść jeśli nie można pobrać czasu
         if (premiereSplash) {
             premiereSplash.style.display = 'none';
+            if (premiereSplash.parentNode) {
+                premiereSplash.parentNode.removeChild(premiereSplash);
+            }
         }
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
+        showMainContent();
     });
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
@@ -467,7 +393,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Navbar scroll effect
-    const navbar = document.querySelector('.navbar');
     let lastScroll = 0;
     
     if (navbar) {
@@ -906,36 +831,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ===== BUTTON INTERACTIONS =====
-    const buttons = document.querySelectorAll('.btn');
-    buttons.forEach(button => {
-        button.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px)';
-        });
-
-        button.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-        });
-
-        // Ripple effect
-        button.addEventListener('click', function(e) {
-            const ripple = document.createElement('span');
-            const rect = this.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = x + 'px';
-            ripple.style.top = y + 'px';
-            ripple.classList.add('ripple');
-            
-            this.appendChild(ripple);
-            
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        });
-    });
+    // Usunięto wszystkie efekty - przyciski działają normalnie bez zniekształceń
 
     // ===== CONTACT FORM =====
     const contactForm = document.getElementById('contact-form');
@@ -1584,28 +1480,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== ADD RIPPLE STYLES =====
-const style = document.createElement('style');
-style.textContent = `
-    .btn {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .ripple {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
-        transform: scale(0);
-        animation: ripple-animation 0.6s ease-out;
-        pointer-events: none;
-    }
-    
-    @keyframes ripple-animation {
-        to {
-            transform: scale(4);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
+// Ripple effect usunięty - przyciski działają normalnie

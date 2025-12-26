@@ -6,15 +6,7 @@
 }
 
 /* ===== PREMIERE SPLASH SCREEN ===== */
-/* Ukryj main-content domyślnie - JavaScript zdecyduje co pokazać */
-#main-content:not(.banner-checked) {
-    display: none !important;
-}
-
-/* Ukryj navbar domyślnie - JavaScript zdecyduje co pokazać */
-.navbar:not(.banner-checked) {
-    display: none !important;
-}
+/* Elementy są widoczne domyślnie - JavaScript ukryje je tylko jeśli banner jest aktywny */
 
 .premiere-splash {
     position: fixed;
@@ -26,7 +18,7 @@
     max-height: 100vh;
     background: linear-gradient(135deg, var(--beige) 0%, var(--beige-light) 100%);
     z-index: 99999;
-    display: none; /* Domyślnie ukryty - JavaScript pokaże tylko jeśli czas jeszcze nie minął */
+    display: none; /* Domyślnie ukryty - JavaScript pokaże tylko jeśli jest aktywny */
     align-items: center;
     justify-content: center;
     overflow-y: auto;
@@ -37,6 +29,12 @@
     -webkit-overflow-scrolling: touch;
     /* Responsywność */
     box-sizing: border-box;
+}
+
+/* Ukryj banner jeśli ma klasę hidden lub jeśli czas minął */
+.premiere-splash.hidden,
+.premiere-splash[style*="display: none"] {
+    display: none !important;
 }
 
 .premiere-splash.hidden {
@@ -323,7 +321,7 @@
     }
     
     .premiere-splash-image {
-        max-width: 100%;
+        max-width: 240px;
         width: 100%;
         margin: 0 auto;
     }
@@ -335,14 +333,14 @@
     }
     
     .premiere-title {
-        font-size: 1.5rem;
-        line-height: 1.1;
-        margin-bottom: 1rem;
+        font-size: 2.25rem;
+        line-height: 1.2;
+        margin-bottom: 1.25rem;
         padding: 0;
     }
     
     .premiere-subtitle {
-        font-size: 0.9375rem;
+        font-size: 1.25rem;
         margin-bottom: 1.5rem;
         padding: 0;
     }
@@ -410,23 +408,35 @@
         min-height: auto;
     }
     
+    .premiere-splash-image {
+        max-width: 220px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .premiere-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+    
     .premiere-title {
-        font-size: 1.375rem;
-        margin-bottom: 0.875rem;
+        font-size: 2rem;
+        margin-bottom: 1rem;
         padding: 0;
         line-height: 1.2;
     }
     
     .premiere-subtitle {
-        font-size: 0.875rem;
+        font-size: 1.125rem;
         margin-bottom: 1.25rem;
         padding: 0;
         line-height: 1.6;
     }
     
     .premiere-label {
-        font-size: 0.625rem;
-        margin-bottom: 0.5rem;
+        font-size: 0.6875rem;
+        margin-bottom: 0.75rem;
     }
     
     .premiere-countdown {
@@ -435,22 +445,18 @@
     }
     
     .premiere-countdown-number {
-        font-size: 1.125rem;
-        min-width: 40px;
-        padding: 0.3rem 0.4rem;
+        font-size: 1.25rem;
+        min-width: 45px;
+        padding: 0.35rem 0.5rem;
     }
     
     .premiere-countdown-separator {
-        font-size: 1rem;
+        font-size: 1.125rem;
         margin: 0 0.05rem;
     }
     
     .premiere-countdown-label {
-        font-size: 0.5rem;
-    }
-    
-    .premiere-splash-image {
-        max-width: 100%;
+        font-size: 0.5625rem;
     }
 }
 
