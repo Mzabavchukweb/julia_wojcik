@@ -1,25 +1,50 @@
 # 📚 Folder na e-booki
 
-## Plik PDF z e-bookiem
+## ⚠️ WAŻNE - Konfiguracja e-booka
 
-Plik: `original-ebook.pdf` ✅ (znaleziony i przeniesiony z głównego folderu)
+**Problem:** Plik lokalny `original-ebook.pdf` ma tylko 456 bajtów - to jest pusty/testowy plik!
 
-**Ważne:**
-- Plik jest już w tym folderze
-- Nazwa pliku: `original-ebook.pdf`
-- Plik będzie automatycznie wysyłany klientom po zakupie przez Stripe
+**Rozwiązanie:** Użyj zmiennej środowiskowej `EBOOK_URL` w Vercel.
 
-## Jak dodać plik?
+## Jak skonfigurować prawdziwy e-book?
 
-1. Umieść swój plik PDF w tym folderze
-2. Zmień nazwę na `original-ebook.pdf`
-3. Wdróż na Vercel
+### Opcja 1: Przechowywanie w chmurze (ZALECANE)
 
-## Alternatywa: Przechowywanie w chmurze
+1. **Prześlij PDF do chmury:**
+   - **Cloudinary** (darmowe): https://cloudinary.com
+   - **AWS S3** (płatne)
+   - **Google Cloud Storage** (płatne)
+   - **Vercel Blob Storage** (płatne)
 
-Jeśli plik PDF jest zbyt duży lub chcesz użyć zewnętrznego storage:
+2. **Uzyskaj publiczny URL do pliku PDF**
 
-1. Prześlij PDF do S3, Cloudinary lub innego storage
-2. Zaktualizuj funkcję `stripe-webhook.js` aby pobierała PDF z URL zamiast z lokalnego pliku
-3. Dodaj URL do zmiennych środowiskowych: `EBOOK_URL=https://...`
+3. **Dodaj do Vercel Environment Variables:**
+   - Idź do: Vercel Dashboard → Project → Settings → Environment Variables
+   - Dodaj: `EBOOK_URL` = `https://twoj-url-do-pdf.pdf`
+   - Wybierz: All Environments (Production, Preview, Development)
+   - Kliknij: Save
+
+4. **Redeploy projekt** (Vercel automatycznie użyje nowej zmiennej)
+
+### Opcja 2: Lokalny plik (nie działa w Vercel)
+
+⚠️ **UWAGA:** Vercel Serverless Functions nie mają dostępu do plików statycznych w runtime!
+
+Jeśli chcesz użyć lokalnego pliku:
+1. Umieść **prawdziwy** plik PDF w folderze `ebooks/`
+2. Nazwa: `original-ebook.pdf`
+3. Plik musi mieć **minimum 1KB** (obecny ma tylko 456 bajtów - za mały!)
+
+## Weryfikacja
+
+Po konfiguracji sprawdź logi w Vercel:
+- Vercel Dashboard → Deployments → Functions → `download-ebook` → Logs
+- Powinno być: `✅ Fetched PDF from URL, size: [rozmiar] bytes`
+
+## Aktualny stan
+
+- ❌ Lokalny plik: `original-ebook.pdf` (456 bajtów - za mały!)
+- ✅ Kod obsługuje `EBOOK_URL` (priorytet 1)
+- ✅ Kod sprawdza rozmiar pliku (minimum 1KB)
+- ✅ Kod weryfikuje magic bytes PDF (`%PDF`)
 
