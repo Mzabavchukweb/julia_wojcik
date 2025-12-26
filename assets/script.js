@@ -133,26 +133,97 @@ document.addEventListener('DOMContentLoaded', function() {
             const navbar = document.querySelector('.navbar');
             if (navbar) {
                 navbar.style.display = 'none';
+                navbar.style.visibility = 'hidden';
+                navbar.style.opacity = '0';
+            }
+            
+            // Zablokuj menu mobilne
+            const mobileMenu = document.querySelector('.nav-menu');
+            const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+            if (mobileMenu) {
+                mobileMenu.style.display = 'none';
+                mobileMenu.classList.remove('active');
+            }
+            if (mobileMenuToggle) {
+                mobileMenuToggle.style.display = 'none';
             }
             
             // Zablokuj scrollowanie strony
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
             
-            // Zablokuj wszystkie linki nawigacyjne
-            const allLinks = document.querySelectorAll('a[href]');
-            allLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }, true);
+            // Funkcja do blokowania wszystkich linków i przycisków
+            const blockNavigation = (element) => {
+                if (!element || element.closest('#premiere-splash')) return; // Nie blokuj elementów w bannerze
                 
-                // Dodaj wizualną wskazówkę że link jest zablokowany
-                link.style.pointerEvents = 'none';
-                link.style.cursor = 'not-allowed';
-                link.style.opacity = '0.5';
+                // Blokuj linki
+                if (element.tagName === 'A' && element.hasAttribute('href')) {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }, true);
+                    element.style.pointerEvents = 'none';
+                    element.style.cursor = 'not-allowed';
+                    element.style.opacity = '0.5';
+                    element.setAttribute('tabindex', '-1');
+                }
+                
+                // Blokuj przyciski nawigacyjne
+                if (element.tagName === 'BUTTON' && !element.closest('#premiere-splash')) {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }, true);
+                    element.style.pointerEvents = 'none';
+                    element.setAttribute('tabindex', '-1');
+                }
+            };
+            
+            // Zablokuj wszystkie istniejące linki i przyciski
+            const allLinks = document.querySelectorAll('a[href]');
+            const allButtons = document.querySelectorAll('button');
+            [...allLinks, ...allButtons].forEach(blockNavigation);
+            
+            // MutationObserver - blokuj nowe linki/przyciski dodane dynamicznie
+            const navigationBlocker = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) { // Element node
+                            // Sprawdź sam node
+                            blockNavigation(node);
+                            // Sprawdź wszystkie linki i przyciski w node
+                            if (node.querySelectorAll) {
+                                node.querySelectorAll('a[href], button').forEach(blockNavigation);
+                            }
+                        }
+                    });
+                });
             });
+            
+            // Obserwuj zmiany w całym dokumencie
+            navigationBlocker.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+            
+            // Zablokuj klawisze nawigacyjne
+            const blockKeyboardNavigation = (e) => {
+                // Tab, Enter, Space, Arrow keys - blokuj jeśli nie jesteś w bannerze
+                if (!e.target.closest('#premiere-splash')) {
+                    if (['Tab', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+            };
+            document.addEventListener('keydown', blockKeyboardNavigation, true);
             
             // Zablokuj możliwość przejścia na inne strony (przed wyjściem)
             let bannerActive = true;
@@ -195,17 +266,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Odblokuj nawigację
                     bannerActive = false;
+                    
+                    // Zatrzymaj MutationObserver
+                    if (navigationBlocker) {
+                        navigationBlocker.disconnect();
+                    }
+                    
+                    // Usuń blokadę klawiatury
+                    document.removeEventListener('keydown', blockKeyboardNavigation, true);
+                    
+                    // Odblokuj navbar
                     if (navbar) {
                         navbar.style.display = '';
+                        navbar.style.visibility = '';
+                        navbar.style.opacity = '';
                     }
+                    
+                    // Odblokuj menu mobilne
+                    if (mobileMenu) {
+                        mobileMenu.style.display = '';
+                    }
+                    if (mobileMenuToggle) {
+                        mobileMenuToggle.style.display = '';
+                    }
+                    
+                    // Odblokuj scrollowanie
                     document.body.style.overflow = '';
                     document.documentElement.style.overflow = '';
+                    document.body.style.position = '';
+                    document.body.style.width = '';
                     
-                    // Odblokuj wszystkie linki
-                    allLinks.forEach(link => {
-                        link.style.pointerEvents = '';
-                        link.style.cursor = '';
-                        link.style.opacity = '';
+                    // Odblokuj wszystkie linki i przyciski
+                    const allElements = document.querySelectorAll('a[href], button');
+                    allElements.forEach(element => {
+                        if (!element.closest('#premiere-splash')) {
+                            element.style.pointerEvents = '';
+                            element.style.cursor = '';
+                            element.style.opacity = '';
+                            element.removeAttribute('tabindex');
+                        }
                     });
                     
                     // Oznacz banner jako zakończony na serwerze
