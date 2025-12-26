@@ -154,34 +154,63 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.position = 'fixed';
             document.body.style.width = '100%';
             
+            // Przechowuj oryginalne event listeners do późniejszego usunięcia
+            const blockedElements = new Map();
+            
             // Funkcja do blokowania wszystkich linków i przycisków
             const blockNavigation = (element) => {
                 if (!element || element.closest('#premiere-splash')) return; // Nie blokuj elementów w bannerze
                 
+                // Zapisz oryginalne style przed blokadą
+                if (!blockedElements.has(element)) {
+                    blockedElements.set(element, {
+                        pointerEvents: element.style.pointerEvents || '',
+                        cursor: element.style.cursor || '',
+                        opacity: element.style.opacity || '',
+                        tabindex: element.getAttribute('tabindex') || ''
+                    });
+                }
+                
                 // Blokuj linki
                 if (element.tagName === 'A' && element.hasAttribute('href')) {
-                    element.addEventListener('click', function(e) {
+                    const clickHandler = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
                         return false;
-                    }, true);
+                    };
+                    element.addEventListener('click', clickHandler, true);
                     element.style.pointerEvents = 'none';
                     element.style.cursor = 'not-allowed';
                     element.style.opacity = '0.5';
                     element.setAttribute('tabindex', '-1');
+                    
+                    // Zapisz handler do późniejszego usunięcia
+                    if (!blockedElements.has(element)) {
+                        blockedElements.set(element, { clickHandler });
+                    } else {
+                        blockedElements.get(element).clickHandler = clickHandler;
+                    }
                 }
                 
                 // Blokuj przyciski nawigacyjne
                 if (element.tagName === 'BUTTON' && !element.closest('#premiere-splash')) {
-                    element.addEventListener('click', function(e) {
+                    const clickHandler = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
                         return false;
-                    }, true);
+                    };
+                    element.addEventListener('click', clickHandler, true);
                     element.style.pointerEvents = 'none';
                     element.setAttribute('tabindex', '-1');
+                    
+                    // Zapisz handler do późniejszego usunięcia
+                    if (!blockedElements.has(element)) {
+                        blockedElements.set(element, { clickHandler });
+                    } else {
+                        blockedElements.get(element).clickHandler = clickHandler;
+                    }
                 }
             };
             
@@ -296,14 +325,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.body.style.position = '';
                     document.body.style.width = '';
                     
-                    // Odblokuj wszystkie linki i przyciski
+                    // Odblokuj wszystkie linki i przyciski - przywróć oryginalne style
+                    blockedElements.forEach((originalStyles, element) => {
+                        if (element && element.parentNode && !element.closest('#premiere-splash')) {
+                            // Usuń event listener
+                            if (originalStyles.clickHandler) {
+                                element.removeEventListener('click', originalStyles.clickHandler, true);
+                            }
+                            // Przywróć oryginalne style
+                            element.style.pointerEvents = originalStyles.pointerEvents || '';
+                            element.style.cursor = originalStyles.cursor || '';
+                            element.style.opacity = originalStyles.opacity || '';
+                            if (originalStyles.tabindex) {
+                                element.setAttribute('tabindex', originalStyles.tabindex);
+                            } else {
+                                element.removeAttribute('tabindex');
+                            }
+                        }
+                    });
+                    blockedElements.clear();
+                    
+                    // Dodatkowo odblokuj wszystkie elementy na wypadek gdyby coś zostało
                     const allElements = document.querySelectorAll('a[href], button');
                     allElements.forEach(element => {
                         if (!element.closest('#premiere-splash')) {
                             element.style.pointerEvents = '';
                             element.style.cursor = '';
                             element.style.opacity = '';
-                            element.removeAttribute('tabindex');
+                            if (!element.hasAttribute('tabindex') || element.getAttribute('tabindex') === '-1') {
+                                element.removeAttribute('tabindex');
+                            }
                         }
                     });
                     

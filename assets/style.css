@@ -1043,6 +1043,10 @@ a {
     position: relative;
     overflow: hidden;
     text-decoration: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .btn span {
@@ -2147,6 +2151,15 @@ a {
     flex-wrap: wrap;
 }
 
+.ebook-cta-buttons .btn {
+    position: relative;
+    z-index: 10;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    pointer-events: auto !important;
+}
+
 @media (max-width: 1024px) {
     .ebook-cta-section {
         padding: 6rem 0;
@@ -2180,6 +2193,12 @@ a {
     .ebook-cta-buttons .btn {
         width: 100%;
         max-width: 300px;
+        min-height: 48px; /* Minimum touch target size */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto !important;
+        touch-action: manipulation;
     }
 }
 
@@ -2198,6 +2217,9 @@ a {
     
     .ebook-cta-buttons .btn {
         max-width: 100%;
+        min-height: 48px; /* Minimum touch target size */
+        pointer-events: auto !important;
+        touch-action: manipulation;
     }
 }
 
