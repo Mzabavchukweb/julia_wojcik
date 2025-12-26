@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
         // Sprawdź czy banner się zakończył (flaga lub czas minął)
         if (data.ended === true) {
-            // Banner już się zakończył globalnie - nie pokazuj go
-            console.log('⏰ Banner already ended, hiding splash');
-            if (premiereSplash) {
-                premiereSplash.style.display = 'none';
+            // Banner już się zakończył globalnie - USUŃ GO Z DOM NA ZAWSZE
+            console.log('⏰ Banner already ended, removing from DOM');
+            if (premiereSplash && premiereSplash.parentNode) {
+                premiereSplash.parentNode.removeChild(premiereSplash);
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Sprawdź czy czas już minął (dodatkowe sprawdzenie)
         if (currentTime >= bannerEndTime) {
-            console.log('⏰ Banner time expired, hiding splash');
-            if (premiereSplash) {
-                premiereSplash.style.display = 'none';
+            console.log('⏰ Banner time expired, removing from DOM');
+            if (premiereSplash && premiereSplash.parentNode) {
+                premiereSplash.parentNode.removeChild(premiereSplash);
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const distance = bannerEndTime - currentTime;
         
             if (distance < 0) {
-                // 1 minuta minęła - ukryj banner
+                // 1 minuta minęła - USUŃ BANNER Z DOM NA ZAWSZE
                 fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
                     method: 'POST',
                     headers: {
@@ -71,17 +71,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ markEnded: true })
                 }).catch(err => console.error('Error marking banner as ended:', err));
                 
-                if (premiereSplash) {
+                if (premiereSplash && premiereSplash.parentNode) {
+                    // Animacja fade-out przed usunięciem
                     premiereSplash.classList.add('hidden');
                     setTimeout(() => {
-                        premiereSplash.style.display = 'none';
+                        premiereSplash.parentNode.removeChild(premiereSplash);
+                        console.log('⏰ Banner removed from DOM permanently');
                     }, 800);
                 }
                 if (mainContent) {
                     mainContent.style.display = 'block';
                 }
                 
-                console.log('⏰ Banner time expired - hiding splash');
+                // Odblokuj navbar
+                const navbar = document.querySelector('.navbar');
+                if (navbar) {
+                    navbar.style.display = '';
+                }
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+                
+                console.log('⏰ Banner time expired - removing from DOM');
                 return;
             }
             
@@ -172,7 +182,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentTime = new Date().getTime();
                 if (bannerEndTime - currentTime < 0) {
                     clearInterval(premiereInterval);
-                    console.log('⏰ Banner zakończył odliczanie');
+                    console.log('⏰ Banner zakończył odliczanie - removing from DOM');
+                    
+                    // USUŃ BANNER Z DOM NA ZAWSZE
+                    if (premiereSplash && premiereSplash.parentNode) {
+                        premiereSplash.classList.add('hidden');
+                        setTimeout(() => {
+                            premiereSplash.parentNode.removeChild(premiereSplash);
+                            console.log('⏰ Banner removed from DOM permanently');
+                        }, 800);
+                    }
                     
                     // Odblokuj nawigację
                     bannerActive = false;
@@ -189,7 +208,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         link.style.opacity = '';
                     });
                     
-                    console.log('⏰ Banner countdown finished');
+                    // Oznacz banner jako zakończony na serwerze
+                    fetch('https://julia-wojcik.vercel.app/api/get-premiere-time', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ markEnded: true })
+                    }).catch(err => console.error('Error marking banner as ended:', err));
+                    
+                    console.log('⏰ Banner countdown finished and removed from DOM');
                 }
             }, 1000);
         } else {
