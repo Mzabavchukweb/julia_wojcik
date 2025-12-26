@@ -116,73 +116,19 @@ export default async function handler(req, res) {
             return res.status(429).send(errorPage('Limit pobrań', `Osiągnąłeś maksymalną liczbę pobrań (${maxDownloads}).<br>Jeśli potrzebujesz nowego linku, skontaktuj się ze mną na Instagramie.`));
         }
 
-        // Znajdź plik PDF
+        // Pobierz plik PDF - bezpośrednio z lokalnego pliku
+        const ebookPath = path.join(process.cwd(), 'ebooks', 'original-ebook.pdf');
+        console.log('📄 Loading PDF from:', ebookPath);
+        
         let pdfBuffer = null;
         
-        // PRIORYTET 1: Pobierz z URL jeśli skonfigurowano (najlepsze rozwiązanie dla Vercel)
-        if (process.env.EBOOK_URL) {
-            console.log('📥 Trying to fetch PDF from URL:', process.env.EBOOK_URL);
-            try {
-                const response = await fetch(process.env.EBOOK_URL);
-                if (response.ok) {
-                    const arrayBuffer = await response.arrayBuffer();
-                    pdfBuffer = Buffer.from(arrayBuffer);
-                    console.log('✅ Fetched PDF from URL, size:', pdfBuffer.length, 'bytes');
-                    
-                    // Sprawdź czy plik nie jest pusty (minimum 1KB dla prawdziwego PDF)
-                    if (pdfBuffer.length < 1024) {
-                        console.warn('⚠️ PDF from URL is too small (' + pdfBuffer.length + ' bytes), might be empty/test file');
-                    }
-                } else {
-                    console.error('❌ Failed to fetch from URL - HTTP status:', response.status);
-                }
-            } catch (fetchError) {
-                console.error('❌ Failed to fetch from URL:', fetchError.message);
-            }
-        }
-        
-        // PRIORYTET 2: Sprawdź lokalne pliki (tylko jeśli URL nie zadziałał)
-        if (!pdfBuffer) {
-            const possiblePaths = [
-                path.join(process.cwd(), 'ebooks', 'original-ebook.pdf'),
-                path.join(process.cwd(), '..', 'ebooks', 'original-ebook.pdf'),
-                process.env.EBOOK_PATH ? path.join(process.cwd(), process.env.EBOOK_PATH) : null
-            ].filter(Boolean);
-            
-            console.log('📁 Looking for PDF in local paths:', possiblePaths);
-            
-            for (const ebookPath of possiblePaths) {
-                console.log('Checking path:', ebookPath);
-                if (fs.existsSync(ebookPath)) {
-                    const fileBuffer = fs.readFileSync(ebookPath);
-                    console.log('📄 Found local PDF at:', ebookPath, 'Size:', fileBuffer.length, 'bytes');
-                    
-                    // Sprawdź czy plik nie jest pusty (minimum 1KB dla prawdziwego PDF)
-                    if (fileBuffer.length < 1024) {
-                        console.warn('⚠️ Local PDF is too small (' + fileBuffer.length + ' bytes), might be empty/test file - skipping');
-                        continue; // Pomiń pusty plik, spróbuj następnej ścieżki
-                    }
-                    
-                    pdfBuffer = fileBuffer;
-                    console.log('✅ Using local PDF file');
-                    break;
-                }
-            }
-        }
-        
-        if (!pdfBuffer) {
-            console.error('❌ PDF file not found - neither URL nor local file available');
+        if (fs.existsSync(ebookPath)) {
+            pdfBuffer = fs.readFileSync(ebookPath);
+            console.log('✅ PDF loaded, size:', pdfBuffer.length, 'bytes');
+        } else {
+            console.error('❌ PDF file not found at:', ebookPath);
             return res.status(500).send(errorPage('Błąd serwera', 'Nie udało się pobrać pliku e-booka.<br><br>Skontaktuj się z nami, a pomożemy rozwiązać problem.<br><br>Email: juliajula08@icloud.com'));
         }
-        
-        // Ostatnia walidacja - sprawdź czy to prawdziwy PDF (sprawdź magic bytes)
-        const pdfMagicBytes = pdfBuffer.slice(0, 4).toString();
-        if (pdfMagicBytes !== '%PDF') {
-            console.error('❌ File is not a valid PDF (magic bytes:', pdfMagicBytes, ')');
-            return res.status(500).send(errorPage('Błąd pliku', 'Znaleziony plik nie jest prawidłowym plikiem PDF.<br><br>Skontaktuj się z nami, a pomożemy rozwiązać problem.'));
-        }
-        
-        console.log('✅ Valid PDF file ready, size:', pdfBuffer.length, 'bytes');
 
         // Zwiększ licznik pobrań w tokenie (dla informacji, ale nie zapisujemy - token jest read-only)
         tokenData.downloadCount = downloadCount + 1;
