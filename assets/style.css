@@ -6,21 +6,37 @@
 }
 
 /* ===== PREMIERE SPLASH SCREEN ===== */
+/* Ukryj main-content domyślnie - JavaScript zdecyduje co pokazać */
+#main-content:not(.banner-checked) {
+    display: none !important;
+}
+
+/* Ukryj navbar domyślnie - JavaScript zdecyduje co pokazać */
+.navbar:not(.banner-checked) {
+    display: none !important;
+}
+
 .premiere-splash {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
     background: linear-gradient(135deg, var(--beige) 0%, var(--beige-light) 100%);
     z-index: 99999;
     display: none; /* Domyślnie ukryty - JavaScript pokaże tylko jeśli czas jeszcze nie minął */
     align-items: center;
     justify-content: center;
     overflow-y: auto;
+    overflow-x: hidden;
     transition: opacity 0.8s ease, visibility 0.8s ease;
     /* Blokuj wszystkie interakcje poza bannerem */
     pointer-events: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Responsywność */
+    box-sizing: border-box;
 }
 
 .premiere-splash.hidden {
@@ -37,6 +53,9 @@
     grid-template-columns: 1fr 1.5fr;
     gap: 4rem;
     align-items: center;
+    margin: 0 auto;
+    box-sizing: border-box;
+    min-height: auto;
 }
 
 .premiere-splash-image {
@@ -75,6 +94,8 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     line-height: 1.2;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 .premiere-subtitle {
@@ -82,6 +103,7 @@
     color: var(--gray);
     margin-bottom: 3rem;
     line-height: 1.8;
+    word-wrap: break-word;
 }
 
 .premiere-countdown {
@@ -220,78 +242,148 @@
 }
 
 @media (max-width: 968px) {
+    .premiere-splash {
+        padding: 1rem;
+        height: 100vh;
+        max-height: 100vh;
+    }
+    
     .premiere-splash-content {
         grid-template-columns: 1fr;
-        gap: 3rem;
+        gap: 2.5rem;
+        padding: 2rem 1.5rem;
+        max-width: 100%;
     }
     
     .premiere-splash-image {
         max-width: 400px;
         margin: 0 auto;
+        width: 100%;
+    }
+    
+    .premiere-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
     }
     
     .premiere-title {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+    }
+    
+    .premiere-subtitle {
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
     }
     
     .premiere-countdown {
         gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 2rem;
     }
     
     .premiere-countdown-number {
-        font-size: 2rem;
-        min-width: 60px;
+        font-size: 1.875rem;
+        min-width: 55px;
         padding: 0.5rem 0.75rem;
     }
     
     .premiere-countdown-separator {
-        font-size: 1.75rem;
-        margin: 0 0.15rem;
-    }
-    
-    .premiere-countdown-label {
-        font-size: 0.75rem;
-    }
-    
-    .premiere-countdown-item {
-        gap: 0.35rem;
-    }
-}
-
-@media (max-width: 640px) {
-    .premiere-splash-content {
-        padding: 2rem 1rem;
-    }
-    
-    .premiere-title {
-        font-size: 2rem;
-    }
-    
-    .premiere-countdown {
-        gap: 0.35rem;
-    }
-    
-    .premiere-countdown-number {
-        font-size: 1.75rem;
-        min-width: 55px;
-        padding: 0.4rem 0.6rem;
-    }
-    
-    .premiere-countdown-separator {
         font-size: 1.5rem;
-        margin: 0 0.1rem;
-    }
-    
-    .premiere-countdown-item {
-        gap: 0.25rem;
+        margin: 0 0.15rem;
     }
     
     .premiere-countdown-label {
         font-size: 0.6875rem;
     }
     
+    .premiere-countdown-item {
+        gap: 0.35rem;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .premiere-splash {
+        padding: 0.5rem;
+        height: 100vh;
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .premiere-splash-content {
+        padding: 1.5rem 1rem;
+        gap: 1.5rem;
+        max-width: 100%;
+        min-height: auto;
+    }
+    
+    .premiere-splash-image {
+        max-width: 100%;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .premiere-image {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .premiere-title {
+        font-size: 1.5rem;
+        line-height: 1.1;
+        margin-bottom: 1rem;
+        padding: 0;
+    }
+    
+    .premiere-subtitle {
+        font-size: 0.9375rem;
+        margin-bottom: 1.5rem;
+        padding: 0;
+    }
+    
+    .premiere-label {
+        font-size: 0.6875rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .premiere-countdown {
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .premiere-countdown-number {
+        font-size: 1.375rem;
+        min-width: 45px;
+        padding: 0.35rem 0.5rem;
+    }
+    
+    .premiere-countdown-separator {
+        font-size: 1.125rem;
+        margin: 0 0.05rem;
+    }
+    
+    .premiere-countdown-item {
+        gap: 0.2rem;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .premiere-countdown-label {
+        font-size: 0.5625rem;
+        text-align: center;
+    }
+    
     .premiere-newsletter-input-wrapper {
         flex-direction: column;
+        gap: 0.75rem;
     }
     
     .premiere-newsletter-input-wrapper input[type="email"] {
@@ -301,6 +393,64 @@
     
     .premiere-newsletter-input-wrapper .btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .premiere-splash {
+        padding: 0.5rem;
+        height: 100vh;
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .premiere-splash-content {
+        padding: 1.25rem 0.75rem;
+        gap: 1.25rem;
+        min-height: auto;
+    }
+    
+    .premiere-title {
+        font-size: 1.375rem;
+        margin-bottom: 0.875rem;
+        padding: 0;
+        line-height: 1.2;
+    }
+    
+    .premiere-subtitle {
+        font-size: 0.875rem;
+        margin-bottom: 1.25rem;
+        padding: 0;
+        line-height: 1.6;
+    }
+    
+    .premiere-label {
+        font-size: 0.625rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .premiere-countdown {
+        gap: 0.2rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .premiere-countdown-number {
+        font-size: 1.125rem;
+        min-width: 40px;
+        padding: 0.3rem 0.4rem;
+    }
+    
+    .premiere-countdown-separator {
+        font-size: 1rem;
+        margin: 0 0.05rem;
+    }
+    
+    .premiere-countdown-label {
+        font-size: 0.5rem;
+    }
+    
+    .premiere-splash-image {
+        max-width: 100%;
     }
 }
 

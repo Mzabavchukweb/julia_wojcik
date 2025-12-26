@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 import getRawBody from 'raw-body';
+import { Redis } from '@upstash/redis';
 
 // Inicjalizuj Stripe tylko jeśli klucz jest dostępny
 let stripe = null;
@@ -31,6 +32,22 @@ if (process.env.RESEND_API_KEY) {
     } catch (error) {
     console.error('[INIT] ❌ ERROR: Failed to initialize Resend:', error.message, error.stack);
             }
+
+// Inicjalizuj Redis dla idempotencji (zapobieganie wielokrotnemu wysyłaniu emaili)
+let redis = null;
+try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        redis = new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        console.log('[INIT] ✅ Redis initialized for idempotency');
+    } else {
+        console.warn('[INIT] ⚠️ Redis not configured - idempotency disabled (emails may be sent multiple times)');
+    }
+} catch (error) {
+    console.error('[INIT] ❌ ERROR: Failed to initialize Redis:', error.message, error.stack);
+}
     
 console.log('[INIT] ✅ Module stripe-webhook.js loaded successfully');
 
@@ -362,6 +379,37 @@ export default async function handler(req, res) {
 
             if (isEbookPurchase && customerEmail) {
                 console.log(`[${requestId}] ✅ Ebook purchase detected - processing...`);
+                
+                // IDEMPOTENCY: Sprawdź czy email został już wysłany dla tego sessionId
+                const emailSentKey = `ebook:email:sent:${session.id}`;
+                let emailAlreadySent = false;
+                
+                if (redis) {
+                    try {
+                        const emailSentStatus = await redis.get(emailSentKey);
+                        if (emailSentStatus === 'sent') {
+                            emailAlreadySent = true;
+                            console.log(`[${requestId}] ⚠️ Email already sent for session ${session.id} - skipping to prevent duplicates`);
+                        }
+                    } catch (redisError) {
+                        console.warn(`[${requestId}] ⚠️ Redis check failed:`, redisError.message);
+                        // Kontynuuj - lepiej wysłać duplikat niż nie wysłać wcale
+                    }
+                }
+                
+                if (emailAlreadySent) {
+                    // Email już został wysłany - zwróć sukces ale nie wysyłaj ponownie
+                    console.log(`[${requestId}] ✅ Webhook processed (email already sent previously)`);
+                    return res.status(200).json({ 
+                        received: true,
+                        emailSent: false,
+                        alreadySent: true,
+                        sessionId: session.id,
+                        message: 'Email was already sent for this purchase',
+                        requestId: requestId
+                    });
+                }
+                
                 try {
                     // Generuj zakodowany token (zawiera dane w samym tokenie - nie potrzebujemy storage!)
                     // To rozwiązuje problem z Vercel KV - token jest samowystarczalny
@@ -843,6 +891,17 @@ export default async function handler(req, res) {
                             downloadUrl: downloadUrl,
                             warning: 'Email could not be sent, but download link is available'
                         });
+                    }
+
+                    // IDEMPOTENCY: Zapisz że email został wysłany (ważne przez 30 dni)
+                    if (redis) {
+                        try {
+                            await redis.set(emailSentKey, 'sent', { ex: 30 * 24 * 60 * 60 }); // 30 dni
+                            console.log(`[${requestId}] ✅ Email sent status saved to Redis for idempotency`);
+                        } catch (redisError) {
+                            console.warn(`[${requestId}] ⚠️ Failed to save email sent status to Redis:`, redisError.message);
+                            // Nie blokuj - email został wysłany
+                        }
                     }
 
                     return res.status(200).json({ 

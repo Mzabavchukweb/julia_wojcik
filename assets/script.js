@@ -1,4 +1,19 @@
 // Advanced Scroll Animations and Interactions
+// Natychmiast ukryj wszystko do czasu sprawdzenia bannera
+(function() {
+    const mainContent = document.getElementById('main-content');
+    const navbar = document.querySelector('.navbar');
+    if (mainContent) {
+        mainContent.style.display = 'none';
+    }
+    if (navbar) {
+        navbar.style.display = 'none';
+    }
+    // Zablokuj scrollowanie do czasu sprawdzenia
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
     // ===== PREMIERE SPLASH BANNER =====
     const premiereSplash = document.getElementById('premiere-splash');
@@ -22,14 +37,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
+                mainContent.classList.add('banner-checked');
             }
             // Odblokuj navbar
             const navbar = document.querySelector('.navbar');
             if (navbar) {
                 navbar.style.display = '';
+                navbar.style.visibility = '';
+                navbar.style.opacity = '';
+                navbar.style.zIndex = '';
+                navbar.classList.add('banner-checked');
             }
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
             return;
         }
         
@@ -45,14 +67,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (mainContent) {
                 mainContent.style.display = 'block';
+                mainContent.classList.add('banner-checked');
             }
             // Odblokuj navbar
             const navbar = document.querySelector('.navbar');
             if (navbar) {
                 navbar.style.display = '';
+                navbar.style.visibility = '';
+                navbar.style.opacity = '';
+                navbar.style.zIndex = '';
+                navbar.classList.add('banner-checked');
             }
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
             return;
         }
         
@@ -81,15 +110,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if (mainContent) {
                     mainContent.style.display = 'block';
+                    mainContent.classList.add('banner-checked');
                 }
                 
                 // Odblokuj navbar
                 const navbar = document.querySelector('.navbar');
                 if (navbar) {
                     navbar.style.display = '';
+                    navbar.style.visibility = '';
+                    navbar.style.opacity = '';
+                    navbar.style.zIndex = '';
+                    navbar.style.position = '';
+                    navbar.classList.add('banner-checked');
                 }
                 document.body.style.overflow = '';
                 document.documentElement.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
                 
                 console.log('⏰ Banner time expired - removing from DOM');
                 return;
@@ -119,33 +156,25 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('⏰ Banner already expired');
         }
         
-        // Pokaż banner i ukryj główną treść
+        // Pokaż banner i ZABLOKUJ wszystko
         if (premiereSplash) {
             console.log('🎬 Banner premiere-splash znaleziony, pokazuję...');
             premiereSplash.style.display = 'flex';
             premiereSplash.style.visibility = 'visible';
             premiereSplash.style.opacity = '1';
+            // UKRYJ główną treść
             if (mainContent) {
                 mainContent.style.display = 'none';
+                mainContent.classList.add('banner-checked');
             }
             
-            // Zablokuj nawigację - ukryj navbar
+            // UKRYJ navbar - banner musi być pełnoekranowy
             const navbar = document.querySelector('.navbar');
             if (navbar) {
                 navbar.style.display = 'none';
                 navbar.style.visibility = 'hidden';
                 navbar.style.opacity = '0';
-            }
-            
-            // Zablokuj menu mobilne
-            const mobileMenu = document.querySelector('.nav-menu');
-            const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-            if (mobileMenu) {
-                mobileMenu.style.display = 'none';
-                mobileMenu.classList.remove('active');
-            }
-            if (mobileMenuToggle) {
-                mobileMenuToggle.style.display = 'none';
+                navbar.classList.add('banner-checked');
             }
             
             // Zablokuj scrollowanie strony
@@ -160,6 +189,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Funkcja do blokowania wszystkich linków i przycisków
             const blockNavigation = (element) => {
                 if (!element || element.closest('#premiere-splash')) return; // Nie blokuj elementów w bannerze
+                
+                // BLOKUJ WSZYSTKO - również navbar i wszystkie linki
                 
                 // Zapisz oryginalne style przed blokadą
                 if (!blockedElements.has(element)) {
@@ -309,6 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         navbar.style.display = '';
                         navbar.style.visibility = '';
                         navbar.style.opacity = '';
+                        navbar.style.zIndex = '';
+                        navbar.style.position = '';
                     }
                     
                     // Odblokuj menu mobilne
@@ -324,6 +357,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.documentElement.style.overflow = '';
                     document.body.style.position = '';
                     document.body.style.width = '';
+                    
+                    // Upewnij się że mainContent jest widoczny
+                    if (mainContent) {
+                        mainContent.style.display = 'block';
+                        mainContent.classList.add('banner-checked');
+                    }
                     
                     // Odblokuj wszystkie linki i przyciski - przywróć oryginalne style
                     blockedElements.forEach((originalStyles, element) => {
@@ -375,7 +414,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Jeśli nie ma bannera, upewnij się że main-content jest widoczny
             if (mainContent) {
                 mainContent.style.display = 'block';
+                mainContent.classList.add('banner-checked');
             }
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = '';
+                navbar.classList.add('banner-checked');
+            }
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
         }
     })
     .catch(error => {
@@ -383,10 +430,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fallback: pokaż główną treść jeśli nie można pobrać czasu
         if (mainContent) {
             mainContent.style.display = 'block';
+            mainContent.classList.add('banner-checked');
+        }
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            navbar.style.display = '';
+            navbar.classList.add('banner-checked');
         }
         if (premiereSplash) {
             premiereSplash.style.display = 'none';
         }
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
     });
     // ===== NAVIGATION =====
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
