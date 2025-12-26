@@ -27,7 +27,7 @@ const courses = [
         id: 'course_1',
         name: 'Podstawowy Kurs Stylizacji Paznokci',
         price: 899,
-        paymentLink: 'https://buy.stripe.com/test_8x24gz1Wo2jy1XX4yz8IU01',
+        paymentLink: 'https://buy.stripe.com/3cI5kFa4P9bA6YT8a0eAg00',
         description: 'Kompleksowy kurs podstaw stylizacji paznokci. Idealny dla początkujących.',
         features: [
             '8 godzin praktycznych zajęć',
@@ -86,7 +86,7 @@ const ebook = {
     name: 'E-book - Kompletny przewodnik po stylizacji paznokci',
     price: 279, // Cena przeceniona w złotych
     regularPrice: 349, // Cena regularna w złotych
-    paymentLink: 'https://buy.stripe.com/00wfZjgtd5Zo971cqgeAg01',
+    paymentLink: 'https://buy.stripe.com/3cI5kFa4P9bA6YT8a0eAg00',
     description: 'Kompleksowy przewodnik po stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki.',
     format: 'PDF',
     access: 'na zawsze',
