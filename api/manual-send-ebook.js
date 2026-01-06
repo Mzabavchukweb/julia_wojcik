@@ -43,10 +43,12 @@ export default async function handler(req, res) {
         const signature = hmac.digest('hex').substring(0, 32);
         const token = `${payloadBase64}.${signature}`;
         
-        // URL do pobrania
+        // URL do pobrania - używamy Vercel URL (działa na pewno)
+        const vercelUrl = 'https://julia-wojcik.vercel.app';
         const baseUrl = process.env.PUBLIC_URL || 'https://juliawojcikszkolenia.pl';
         const encodedToken = encodeURIComponent(token);
-        const downloadUrl = `${baseUrl}/api/download-ebook?token=${encodedToken}`;
+        // Używamy Vercel URL bo domena główna może mieć problemy z routingiem
+        const downloadUrl = `${vercelUrl}/api/download-ebook?token=${encodedToken}`;
         
         // Wyślij email
         const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';

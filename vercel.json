@@ -5,6 +5,9 @@
     },
     "api/download-ebook.js": {
       "maxDuration": 30
+    },
+    "api/manual-send-ebook.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
