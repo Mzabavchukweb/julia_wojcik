@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function checkPremiereStatus(buyBtn, buySection, countdownSection, priceValue) {
     try {
-        const response = await fetch('/api/get-payment-link');
+        const response = await fetch('https://julia-wojcik.vercel.app/api/get-payment-link');
         const data = await response.json();
         
         if (data.locked) {
@@ -193,7 +193,7 @@ function updateCountdown(premiereTime, serverOffset) {
 
 async function fetchAndActivate(buyBtn, priceValue, countdownSection) {
     try {
-        const response = await fetch('/api/get-payment-link');
+        const response = await fetch('https://julia-wojcik.vercel.app/api/get-payment-link');
         const data = await response.json();
         
         if (!data.locked && data.paymentLink) {
