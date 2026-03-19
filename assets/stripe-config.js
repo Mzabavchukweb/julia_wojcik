@@ -132,7 +132,7 @@ async function checkPremiereStatus(buyBtn, buySection, countdownSection, priceVa
 function showPremiereCountdown(buyBtn, buySection, countdownSection, priceValue, data) {
     // Zablokuj przycisk
     buyBtn.disabled = true;
-    buyBtn.innerHTML = '<span>Premiera o 19:00</span>';
+    buyBtn.innerHTML = '<span>Już wkrótce</span>';
     buyBtn.classList.add('disabled');
     buyBtn.style.pointerEvents = 'none';
     buyBtn.onclick = function(e) { e.preventDefault(); return false; };

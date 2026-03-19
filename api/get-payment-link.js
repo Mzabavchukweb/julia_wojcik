@@ -38,7 +38,7 @@ export default async function handler(req, res) {
                 serverTime: now,
                 timeRemaining: timeRemaining,
                 price: 299,
-                message: 'Premiera o 19:00'
+                message: 'Już wkrótce'
             });
         }
         
