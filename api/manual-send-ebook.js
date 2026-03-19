@@ -53,6 +53,10 @@ export default async function handler(req, res) {
         // Wyślij email
         const emailFrom = process.env.EMAIL_FROM || 'Julia Wójcik <ebook@juliawojcikszkolenia.pl>';
         
+        console.log('[MANUAL-SEND] 📧 Sending email to:', email);
+        console.log('[MANUAL-SEND] From:', emailFrom);
+        console.log('[MANUAL-SEND] Download URL:', downloadUrl);
+        
         const emailResult = await resend.emails.send({
             from: emailFrom,
             to: email,
@@ -80,12 +84,31 @@ export default async function handler(req, res) {
             `
         });
         
+        console.log('[MANUAL-SEND] 📧 Full Resend response:', JSON.stringify(emailResult, null, 2));
+        
+        // Sprawdź czy Resend zwrócił błąd
+        if (emailResult?.error) {
+            console.error('[MANUAL-SEND] ❌ Resend error:', emailResult.error);
+            return res.status(200).json({
+                success: false,
+                message: 'Email sending failed',
+                email: email,
+                downloadUrl: downloadUrl,
+                error: emailResult.error,
+                hint: emailResult.error.message?.includes('verify') 
+                    ? 'Domain verification required in Resend dashboard: https://resend.com/domains'
+                    : undefined
+            });
+        }
+        
+        console.log('[MANUAL-SEND] ✅ Email sent! ID:', emailResult?.data?.id);
+        
         return res.status(200).json({
             success: true,
             message: 'Email sent successfully',
             email: email,
             downloadUrl: downloadUrl,
-            emailId: emailResult?.id
+            emailId: emailResult?.data?.id || emailResult?.id
         });
         
     } catch (error) {
