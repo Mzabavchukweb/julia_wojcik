@@ -75,7 +75,7 @@ export default async function handler(req, res) {
                 <body>
                     <div class="container">
                         <h1>Dziękuję za zakup!</h1>
-                        <p>Twój e-book "Podstawy Hybrydowe ze Wzmocnieniem" jest gotowy do pobrania.</p>
+                        <p>Twój e-book "Sekret czystej skóry" jest gotowy do pobrania.</p>
                         <a href="${downloadUrl}" class="button">POBIERZ E-BOOK</a>
                         <p>Link jest ważny przez 7 dni.</p>
                     </div>

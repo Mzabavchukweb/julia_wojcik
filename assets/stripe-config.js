@@ -74,7 +74,7 @@ function contactAboutCourse(courseName) {
 // Konfiguracja e-booka (BEZ payment link - pobierany z serwera!)
 const ebook = {
     id: 'ebook_1',
-    name: 'E-book - Podstawy hybrydowe ze wzmocnieniem',
+    name: 'E-book - Sekret czystej skóry',
     price: 299,
     description: 'Kompleksowy przewodnik po stylizacji paznokci.',
     format: 'PDF',

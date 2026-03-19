@@ -139,7 +139,7 @@ export default async function handler(req, res) {
         if (req.query?.download === 'true') {
             console.log('✅ Returning PDF file directly');
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="PODSTAWY-HYBRYDOWE-ZE-WZMOCNIENIEM-Julia-Wojcik.pdf"');
+        res.setHeader('Content-Disposition', 'attachment; filename="Sekret-czystej-skory-Julia-Wojcik.pdf"');
         res.setHeader('Content-Length', pdfBuffer.length.toString());
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return res.send(pdfBuffer);
@@ -350,7 +350,7 @@ function downloadPage(downloadUrl, downloadCount, maxDownloads) {
                         <div class="info">
                             <p class="info-title">Informacje</p>
                             <p class="info-text">
-                                Plik: Podstawy Hybrydowe ze Wzmocnieniem (PDF)<br>
+                                Plik: Sekret czystej skóry (PDF)<br>
                                 Pobranie: ${downloadCount} z ${maxDownloads}<br>
                                 Link ważny przez 7 dni
                             </p>

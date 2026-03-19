@@ -332,7 +332,9 @@ export default async function handler(req, res) {
                                 product.name.toLowerCase().includes('e-book') ||
                                 product.name.toLowerCase().includes('korekta') ||
                                 product.name.toLowerCase().includes('hybrydowe') ||
-                                product.name.toLowerCase().includes('wzmocnieniem')
+                                product.name.toLowerCase().includes('wzmocnieniem') ||
+                                product.name.toLowerCase().includes('sekret') ||
+                                product.name.toLowerCase().includes('skóry')
                             )) {
                                 console.log(`[${requestId}] ✅ Detected ebook by product name: "${product.name}"`);
                                 return true;
@@ -775,7 +777,7 @@ export default async function handler(req, res) {
                                         <!-- Content -->
                                         <div class="content">
                                             <p>${greeting}!</p>
-                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Podstawy Hybrydowe ze Wzmocnieniem</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
+                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Sekret czystej skóry</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
                                             <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
                                             
                                             <div class="button-wrapper">
