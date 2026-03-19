@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const PAYMENT_LINK = 'https://buy.stripe.com/fZucN7el587w3MH8a0eAg02';
+        const PAYMENT_LINK = 'https://buy.stripe.com/14AbJ31yj4Vk1Ez75WeAg03';
         
         console.log('[PAYMENT-LINK] ✅ Returning payment link');
         return res.status(200).json({
