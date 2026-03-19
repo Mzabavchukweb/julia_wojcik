@@ -1,57 +1,43 @@
 // Stripe Payment Configuration for Julia Wójcik
-// Prosty system zakupu e-booka - bez countdownu
-
-// PREMIERE_TIME is no longer used - e-book is available immediately
-
-// Konfiguracja e-booka
-const ebook = {
-    id: 'ebook_1',
-    name: 'E-book - Sekret czystej skóry',
-    price: 299,
-    description: 'Kompleksowy przewodnik po stylizacji paznokci.',
-    format: 'PDF',
-    access: 'lifetime'
-};
+// Obsługa dwóch e-booków
 
 document.addEventListener('DOMContentLoaded', function() {
-    const ebookBuyBtn = document.getElementById('ebook-buy-btn');
-    const priceValue = document.querySelector('.price-value');
+    const ebookBuyBtn1 = document.getElementById('ebook-buy-btn');
+    const ebookBuyBtn2 = document.getElementById('ebook-buy-btn-2');
     
-    if (!ebookBuyBtn) return;
+    if (!ebookBuyBtn1 && !ebookBuyBtn2) return;
     
-    // Pobierz link płatności z serwera i aktywuj przycisk
-    fetchPaymentLink(ebookBuyBtn, priceValue);
+    // Pobierz linki płatności z serwera
+    fetchPaymentLinks(ebookBuyBtn1, ebookBuyBtn2);
 });
 
-async function fetchPaymentLink(buyBtn, priceValue) {
+async function fetchPaymentLinks(btn1, btn2) {
     try {
         const response = await fetch('https://julia-wojcik.vercel.app/api/get-payment-link');
         const data = await response.json();
         
-        if (data.paymentLink) {
-            activateBuyButton(buyBtn, priceValue, data);
+        if (data.ebooks && data.ebooks.length >= 2) {
+            // Nowy format z dwoma e-bookami
+            if (btn1) activateButton(btn1, data.ebooks[0].paymentLink);
+            if (btn2) activateButton(btn2, data.ebooks[1].paymentLink);
+        } else if (data.paymentLink) {
+            // Fallback - stary format
+            if (btn1) activateButton(btn1, data.paymentLink);
         }
     } catch (error) {
-        console.error('Błąd pobierania linku:', error);
-        // Retry po 3 sekundach
-        setTimeout(() => fetchPaymentLink(buyBtn, priceValue), 3000);
+        console.error('Błąd pobierania linków:', error);
+        setTimeout(() => fetchPaymentLinks(btn1, btn2), 3000);
     }
 }
 
-function activateBuyButton(buyBtn, priceValue, data) {
-    const price = data.price || 299;
+function activateButton(btn, paymentLink) {
+    btn.disabled = false;
+    btn.classList.remove('disabled');
+    btn.style.pointerEvents = 'auto';
+    btn.innerHTML = '<span>Kup teraz</span><span class="btn-arrow">→</span>';
     
-    if (priceValue) {
-        priceValue.innerHTML = `<span style="color: #C5A572; font-weight: 600;">${price} zł</span>`;
-    }
-    
-    buyBtn.disabled = false;
-    buyBtn.classList.remove('disabled');
-    buyBtn.style.pointerEvents = 'auto';
-    buyBtn.innerHTML = '<span>Kup teraz</span><span class="btn-arrow">→</span>';
-    
-    buyBtn.onclick = function(e) {
+    btn.onclick = function(e) {
         e.preventDefault();
-        window.open(data.paymentLink, '_blank');
+        window.open(paymentLink, '_blank');
     };
 }

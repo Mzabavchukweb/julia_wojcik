@@ -1,4 +1,4 @@
-// Vercel Serverless Function - Zwraca payment link
+// Vercel Serverless Function - Zwraca payment links dla obu e-booków
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,12 +15,25 @@ export default async function handler(req, res) {
     }
 
     try {
-        const PAYMENT_LINK = 'https://buy.stripe.com/14AbJ31yj4Vk1Ez75WeAg03';
-        
-        console.log('[PAYMENT-LINK] ✅ Returning payment link');
+        console.log('[PAYMENT-LINK] ✅ Returning payment links');
         return res.status(200).json({
             locked: false,
-            paymentLink: PAYMENT_LINK,
+            ebooks: [
+                {
+                    id: 'sekret-czystej-skory',
+                    name: 'Sekret czystej skóry',
+                    price: 299,
+                    paymentLink: 'https://buy.stripe.com/14AbJ31yj4Vk1Ez75WeAg03'
+                },
+                {
+                    id: 'korekta-bez-skrotow',
+                    name: 'Korekta bez skrótów',
+                    price: 350,
+                    paymentLink: 'https://buy.stripe.com/00waEZ7WHbjIgzt75WeAg05'
+                }
+            ],
+            // Backward compatibility
+            paymentLink: 'https://buy.stripe.com/14AbJ31yj4Vk1Ez75WeAg03',
             price: 299
         });
         
