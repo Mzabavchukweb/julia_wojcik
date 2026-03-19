@@ -118,53 +118,37 @@ export default async function handler(req, res) {
 
         // Wybierz odpowiedni plik PDF na podstawie ebookId w tokenie
         const ebookId = tokenData.ebookId || 'sekret-czystej-skory';
-        let ebookFile, ebookName, ebookDownloadName;
+        let ebookStaticPath, ebookName;
         
         if (ebookId === 'korekta-bez-skrotow') {
-            ebookFile = 'E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf';
+            ebookStaticPath = '/ebooks/E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf';
             ebookName = 'Korekta bez skrótów';
-            ebookDownloadName = 'Korekta-bez-skrotow-Julia-Wojcik.pdf';
         } else {
-            ebookFile = 'PODSTAWY HYBRYDOWE ZE WZMOCNIENIEM.pdf';
+            ebookStaticPath = '/ebooks/PODSTAWY%20HYBRYDOWE%20ZE%20WZMOCNIENIEM.pdf';
             ebookName = 'Sekret czystej skóry';
-            ebookDownloadName = 'Sekret-czystej-skory-Julia-Wojcik.pdf';
         }
         
-        const ebookPath = path.join(process.cwd(), 'ebooks', ebookFile);
-        console.log('📄 Loading PDF from:', ebookPath);
-        
-        let pdfBuffer = null;
-        
-        if (fs.existsSync(ebookPath)) {
-            pdfBuffer = fs.readFileSync(ebookPath);
-            console.log('✅ PDF loaded, size:', pdfBuffer.length, 'bytes');
-        } else {
-            console.error('❌ PDF file not found at:', ebookPath);
-            return res.status(500).send(errorPage('Błąd serwera', 'Nie udało się pobrać pliku e-booka.<br><br>Skontaktuj się z nami, a pomożemy rozwiązać problem.<br><br>Email: juliajula08@icloud.com'));
-        }
+        console.log('📄 Ebook:', ebookName, '→', ebookStaticPath);
 
-        // Zwiększ licznik pobrań w tokenie (dla informacji, ale nie zapisujemy - token jest read-only)
+        // Zwiększ licznik pobrań w tokenie
         tokenData.downloadCount = downloadCount + 1;
         tokenData.lastDownloadAt = new Date().toISOString();
         console.log('✅ Download count:', downloadCount + 1, 'of', maxDownloads);
 
         // Sprawdź czy to request do pobrania pliku bezpośrednio
         if (req.query?.download === 'true') {
-            console.log('✅ Returning PDF file directly');
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${ebookDownloadName}"`);
-        res.setHeader('Content-Length', pdfBuffer.length.toString());
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        return res.send(pdfBuffer);
+            // Przekieruj na statyczny plik PDF (Vercel serwuje statycznie bez limitu rozmiaru)
+            const staticUrl = `https://julia-wojcik.vercel.app${ebookStaticPath}`;
+            console.log('✅ Redirecting to static PDF:', staticUrl);
+            return res.redirect(302, staticUrl);
         }
         
-        // Pokaż stronę HTML z przyciskiem do pobrania (ładuje się natychmiast!)
+        // Pokaż stronę HTML z przyciskiem do pobrania
         console.log('✅ Returning HTML page with download button');
         
-        // Utwórz URL do bezpośredniego pobrania (ten sam token + download=true)
         const downloadDirectUrl = `${req.url}${req.url.includes('?') ? '&' : '?'}download=true`;
         
-        return res.send(downloadPage(downloadDirectUrl, downloadCount + 1, maxDownloads));
+        return res.send(downloadPage(downloadDirectUrl, downloadCount + 1, maxDownloads, ebookName));
 
     } catch (error) {
         console.error('❌ Error in download-ebook:', error);
@@ -173,7 +157,7 @@ export default async function handler(req, res) {
     }
 }
 
-function downloadPage(downloadUrl, downloadCount, maxDownloads) {
+function downloadPage(downloadUrl, downloadCount, maxDownloads, ebookName = 'Sekret czystej skóry') {
     return `
         <!DOCTYPE html>
         <html lang="pl">
