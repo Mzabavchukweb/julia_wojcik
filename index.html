@@ -671,6 +671,53 @@
         </div>
     </div>
 
+    <!-- Popup: Nowy E-book -->
+    <div id="ebook-popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; backdrop-filter:blur(4px); opacity:0; transition:opacity 0.4s ease;">
+        <div id="ebook-popup" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9); background:#fff; border-radius:12px; max-width:420px; width:90%; box-shadow:0 25px 80px rgba(0,0,0,0.3); overflow:hidden; transition:transform 0.4s cubic-bezier(0.23,1,0.32,1), opacity 0.4s ease; opacity:0;">
+            <button id="ebook-popup-close" style="position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.9); border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:18px; color:#333; z-index:2; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.15); transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">✕</button>
+            <div style="text-align:center; padding:2rem 2rem 0;">
+                <img src="images/profile/Kopia – PODSTAWY HYBRYDOWE ZE WZMOCNIENIEM.png" alt="Sekret czystej skóry" style="max-width:200px; width:100%; height:auto; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,0.12);">
+            </div>
+            <div style="padding:1.5rem 2rem 2rem; text-align:center;">
+                <span style="display:inline-block; font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:#C5A572; margin-bottom:0.5rem; font-weight:500;">NOWOŚĆ</span>
+                <h3 style="font-family:'Instrument Serif',Georgia,serif; font-size:1.5rem; font-weight:400; color:#212121; margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">Sekret czystej skóry</h3>
+                <p style="font-size:0.9rem; color:#666; line-height:1.6; margin-bottom:1.5rem;">Nowy e-book już dostępny wkrótce!<br>Schemat, technika i powtarzalność — wszystko, czego potrzebujesz.</p>
+                <a href="pages/ebook.html" style="display:inline-block; background:#212121; color:#fff; padding:14px 32px; text-decoration:none; font-size:0.85rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:500; transition:all 0.3s ease; border-radius:2px;" onmouseover="this.style.background='#C5A572'" onmouseout="this.style.background='#212121'">Sprawdź e-book →</a>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        if (sessionStorage.getItem('ebook-popup-dismissed')) return;
+        setTimeout(function() {
+            var overlay = document.getElementById('ebook-popup-overlay');
+            var popup = document.getElementById('ebook-popup');
+            if (!overlay || !popup) return;
+            overlay.style.display = 'block';
+            requestAnimationFrame(function() {
+                overlay.style.opacity = '1';
+                popup.style.opacity = '1';
+                popup.style.transform = 'translate(-50%, -50%) scale(1)';
+            });
+        }, 2000);
+        function closePopup() {
+            var overlay = document.getElementById('ebook-popup-overlay');
+            var popup = document.getElementById('ebook-popup');
+            overlay.style.opacity = '0';
+            popup.style.transform = 'translate(-50%, -50%) scale(0.9)';
+            popup.style.opacity = '0';
+            setTimeout(function() { overlay.style.display = 'none'; }, 400);
+            sessionStorage.setItem('ebook-popup-dismissed', 'true');
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('ebook-popup-close').addEventListener('click', closePopup);
+            document.getElementById('ebook-popup-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closePopup();
+            });
+        });
+    })();
+    </script>
+
     <script src="assets/translations.js"></script>
     <script src="assets/script.js" defer></script>
 </body>
