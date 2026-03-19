@@ -116,8 +116,21 @@ export default async function handler(req, res) {
             return res.status(429).send(errorPage('Limit pobrań', `Osiągnąłeś maksymalną liczbę pobrań (${maxDownloads}).<br>Jeśli potrzebujesz nowego linku, skontaktuj się ze mną na Instagramie.`));
         }
 
-        // Pobierz plik PDF - bezpośrednio z lokalnego pliku
-        const ebookPath = path.join(process.cwd(), 'ebooks', 'PODSTAWY HYBRYDOWE ZE WZMOCNIENIEM.pdf');
+        // Wybierz odpowiedni plik PDF na podstawie ebookId w tokenie
+        const ebookId = tokenData.ebookId || 'sekret-czystej-skory';
+        let ebookFile, ebookName, ebookDownloadName;
+        
+        if (ebookId === 'korekta-bez-skrotow') {
+            ebookFile = 'E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf';
+            ebookName = 'Korekta bez skrótów';
+            ebookDownloadName = 'Korekta-bez-skrotow-Julia-Wojcik.pdf';
+        } else {
+            ebookFile = 'PODSTAWY HYBRYDOWE ZE WZMOCNIENIEM.pdf';
+            ebookName = 'Sekret czystej skóry';
+            ebookDownloadName = 'Sekret-czystej-skory-Julia-Wojcik.pdf';
+        }
+        
+        const ebookPath = path.join(process.cwd(), 'ebooks', ebookFile);
         console.log('📄 Loading PDF from:', ebookPath);
         
         let pdfBuffer = null;
@@ -139,7 +152,7 @@ export default async function handler(req, res) {
         if (req.query?.download === 'true') {
             console.log('✅ Returning PDF file directly');
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="Sekret-czystej-skory-Julia-Wojcik.pdf"');
+        res.setHeader('Content-Disposition', `attachment; filename="${ebookDownloadName}"`);
         res.setHeader('Content-Length', pdfBuffer.length.toString());
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return res.send(pdfBuffer);
@@ -350,7 +363,7 @@ function downloadPage(downloadUrl, downloadCount, maxDownloads) {
                         <div class="info">
                             <p class="info-title">Informacje</p>
                             <p class="info-text">
-                                Plik: Sekret czystej skóry (PDF)<br>
+                                Plik: ${ebookName} (PDF)<br>
                                 Pobranie: ${downloadCount} z ${maxDownloads}<br>
                                 Link ważny przez 7 dni
                             </p>

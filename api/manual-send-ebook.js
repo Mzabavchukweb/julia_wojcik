@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
     
     try {
-        const { email, sessionId } = req.body;
+        const { email, sessionId, ebookId } = req.body;
         
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
@@ -22,12 +22,18 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Resend not configured' });
         }
         
+        // Określ który ebook
+        const selectedEbook = ebookId === 'korekta-bez-skrotow' 
+            ? { id: 'korekta-bez-skrotow', name: 'Korekta bez skrótów' }
+            : { id: 'sekret-czystej-skory', name: 'Sekret czystej skóry' };
+        
         // Generuj token
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
         
         const tokenPayload = {
             email: email,
+            ebookId: selectedEbook.id,
             sessionId: sessionId || 'manual-' + Date.now(),
             createdAt: new Date().toISOString(),
             expiresAt: expiresAt.toISOString(),
@@ -75,7 +81,7 @@ export default async function handler(req, res) {
                 <body>
                     <div class="container">
                         <h1>Dziękuję za zakup!</h1>
-                        <p>Twój e-book "Sekret czystej skóry" jest gotowy do pobrania.</p>
+                        <p>Twój e-book "${selectedEbook.name}" jest gotowy do pobrania.</p>
                         <a href="${downloadUrl}" class="button">POBIERZ E-BOOK</a>
                         <p>Link jest ważny przez 7 dni.</p>
                     </div>
