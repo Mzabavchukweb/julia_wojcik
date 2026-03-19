@@ -6031,6 +6031,8 @@ a {
 .ebook-buy-section .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    text-align: center;
+    justify-content: center;
 }
 
 .ebook-buy-section .btn:disabled:hover {
