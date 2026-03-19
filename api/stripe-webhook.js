@@ -415,14 +415,23 @@ export default async function handler(req, res) {
                 }
                 
                 try {
-                    // Generuj zakodowany token (zawiera dane w samym tokenie - nie potrzebujemy storage!)
-                    // To rozwiązuje problem z Vercel KV - token jest samowystarczalny
-                    const expiresAt = new Date();
-                    expiresAt.setDate(expiresAt.getDate() + 7); // 7 dni ważności
+                    // Wykryj który ebook na podstawie kwoty
+                    const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
+                    let purchasedEbookId = 'sekret-czystej-skory';
+                    let purchasedEbookName = 'Sekret czystej skóry';
                     
-                    // Dane do zakodowania w tokenie
+                    if (amountInPLN === 350) {
+                        purchasedEbookId = 'korekta-bez-skrotow';
+                        purchasedEbookName = 'Korekta bez skrótów';
+                    }
+                    console.log(`[${requestId}] 📚 Detected ebook: ${purchasedEbookName} (${amountInPLN} PLN)`);
+                    
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + 7);
+                    
                     const tokenPayload = {
                         email: customerEmail,
+                        ebookId: purchasedEbookId,
                         sessionId: session.id,
                         createdAt: new Date().toISOString(),
                         expiresAt: expiresAt.toISOString(),
@@ -777,7 +786,7 @@ export default async function handler(req, res) {
                                         <!-- Content -->
                                         <div class="content">
                                             <p>${greeting}!</p>
-                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Sekret czystej skóry</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
+                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">${purchasedEbookName}</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
                                             <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
                                             
                                             <div class="button-wrapper">
