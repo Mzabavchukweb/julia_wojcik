@@ -8,6 +8,9 @@
     },
     "api/manual-send-ebook.js": {
       "maxDuration": 30
+    },
+    "api/get-payment-link.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [

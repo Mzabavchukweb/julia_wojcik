@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-book - Julia Wójcik | Przewodnik po Stylizacji Paznokci</title>
+    <title>E-book - Julia Wójcik | Podstawy Hybrydowe ze Wzmocnieniem</title>
     <meta name="description" content="Kompleksowy e-book o stylizacji paznokci. Sprawdzone techniki, schematy i praktyczne wskazówki od Julii Wójcik. PDF do pobrania - dostęp na zawsze.">
     <meta name="keywords" content="e-book stylizacja paznokci, poradnik paznokcie, ebook manicure, Julia Wójcik ebook, PDF stylizacja, przewodnik paznokcie, ebook korekta paznokci, ebook migdał, ebook kwadrat, poradnik przedłużanie paznokci, ebook stylizacja PDF, przewodnik stylizacji, schematy stylizacji paznokci">
     <meta name="author" content="Julia Wójcik">
@@ -21,7 +21,7 @@
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="E-book - Przewodnik po Stylizacji Paznokci">
     <meta property="og:locale" content="pl_PL">
-    <meta property="product:price:amount" content="279.00">
+    <meta property="product:price:amount" content="299.00">
     <meta property="product:price:currency" content="PLN">
     <meta property="product:availability" content="in stock">
     <meta property="product:condition" content="new">
@@ -43,41 +43,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:wght@400&family=Avenir+Next:wght@400;500&family=Roboto+Condensed:wght@400&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Premiere Splash Banner -->
-    <div class="premiere-splash" id="premiere-splash">
-        <div class="premiere-splash-content">
-            <div class="premiere-splash-image">
-                <img src="../images/profile/julia1.webp" alt="Julia Wójcik" class="premiere-image">
-            </div>
-            <div class="premiere-splash-text">
-                <span class="premiere-label">Julia Wójcik</span>
-                <h1 class="premiere-title">PREMIERA E-BOOK<br>WKRÓTCE DOSTĘPNY</h1>
-                <p class="premiere-subtitle">Premiera e-booka już za:</p>
-                <div class="premiere-countdown" id="premiere-countdown">
-                    <div class="premiere-countdown-item">
-                        <span class="premiere-countdown-number" id="premiere-days">00</span>
-                        <span class="premiere-countdown-label">Dni</span>
-                    </div>
-                    <span class="premiere-countdown-separator">:</span>
-                    <div class="premiere-countdown-item">
-                        <span class="premiere-countdown-number" id="premiere-hours">00</span>
-                        <span class="premiere-countdown-label">Godzin</span>
-                    </div>
-                    <span class="premiere-countdown-separator">:</span>
-                    <div class="premiere-countdown-item">
-                        <span class="premiere-countdown-number" id="premiere-minutes">01</span>
-                        <span class="premiere-countdown-label">Minut</span>
-                    </div>
-                    <span class="premiere-countdown-separator">:</span>
-                    <div class="premiere-countdown-item">
-                        <span class="premiere-countdown-number" id="premiere-seconds">00</span>
-                        <span class="premiere-countdown-label">Sekund</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <div class="scroll-progress"></div>
     <nav class="navbar">
         <div class="nav-container">
@@ -196,13 +161,37 @@
                                 
                                 <div class="ebook-price">
                                     <span class="price-label" data-translate="ebook.page.price">Cena:</span>
-                                    <span class="price-value"><span class="price-regular" style="text-decoration: line-through; opacity: 0.6; margin-right: 8px;">349 zł</span><span class="price-sale" style="color: #C5A572; font-weight: 600;">279 zł</span></span>
+                                    <span class="price-value" style="color: #C5A572; font-weight: 600;">299 zł</span>
                                 </div>
+
+                                <!-- Countdown Timer - widoczny przed premierą -->
+                                <div id="premiere-countdown" style="display: none; margin: 2rem 0;">
+                                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                                        <span class="countdown-label">PREMIERA</span>
+                                        <p class="countdown-title" style="font-size: 1.5rem; margin-bottom: 1rem;">DOSTĘPNY JUŻ DZIŚ O 19:00</p>
+                                    </div>
+                                    <div class="countdown-timer" style="margin-bottom: 1.5rem;">
+                                        <div class="countdown-item">
+                                            <span class="countdown-number" id="countdown-hours">00</span>
+                                            <span class="countdown-label-small">godz</span>
+                                        </div>
+                                        <span class="countdown-separator">:</span>
+                                        <div class="countdown-item">
+                                            <span class="countdown-number" id="countdown-minutes">00</span>
+                                            <span class="countdown-label-small">min</span>
+                                        </div>
+                                        <span class="countdown-separator">:</span>
+                                        <div class="countdown-item">
+                                            <span class="countdown-number" id="countdown-seconds">00</span>
+                                            <span class="countdown-label-small">sek</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="ebook-buy-section" id="ebook-buy-section">
-                                    <!-- Przycisk do zakupu przez Stripe -->
-                                    <button class="btn btn-primary" id="ebook-buy-btn">
-                                        <span data-translate="ebook.page.buy">Kup teraz</span>
-                                        <span class="btn-arrow">→</span>
+                                    <!-- Przycisk do zakupu - zablokowany przed premierą -->
+                                    <button class="btn btn-primary" id="ebook-buy-btn" disabled>
+                                        <span>Premiera o 19:00</span>
                                     </button>
                                 </div>
                             </div>
@@ -388,7 +377,7 @@
             "@type": "Offer",
             "url": "https://juliawojcikszkolenia.pl/pages/ebook.html",
             "priceCurrency": "PLN",
-            "price": "279.00",
+            "price": "299.00",
             "priceValidUntil": "2025-12-31",
             "availability": "https://schema.org/InStock",
             "itemCondition": "https://schema.org/NewCondition",

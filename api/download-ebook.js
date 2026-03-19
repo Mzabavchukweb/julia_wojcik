@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         }
 
         // Pobierz plik PDF - bezpośrednio z lokalnego pliku
-        const ebookPath = path.join(process.cwd(), 'ebooks', 'original-ebook.pdf');
+        const ebookPath = path.join(process.cwd(), 'ebooks', 'PODSTAWY HYBRYDOWE ZE WZMOCNIENIEM.pdf');
         console.log('📄 Loading PDF from:', ebookPath);
         
         let pdfBuffer = null;
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
         if (req.query?.download === 'true') {
             console.log('✅ Returning PDF file directly');
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="E-book-Korekta-bez-skrotow-Julia-Wojcik.pdf"');
+        res.setHeader('Content-Disposition', 'attachment; filename="PODSTAWY-HYBRYDOWE-ZE-WZMOCNIENIEM-Julia-Wojcik.pdf"');
         res.setHeader('Content-Length', pdfBuffer.length.toString());
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return res.send(pdfBuffer);
@@ -350,7 +350,7 @@ function downloadPage(downloadUrl, downloadCount, maxDownloads) {
                         <div class="info">
                             <p class="info-title">Informacje</p>
                             <p class="info-text">
-                                Plik: Korekta bez skrótów (PDF)<br>
+                                Plik: Podstawy Hybrydowe ze Wzmocnieniem (PDF)<br>
                                 Pobranie: ${downloadCount} z ${maxDownloads}<br>
                                 Link ważny przez 7 dni
                             </p>

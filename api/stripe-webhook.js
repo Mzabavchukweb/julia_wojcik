@@ -330,7 +330,9 @@ export default async function handler(req, res) {
                             if (product.name && (
                                 product.name.toLowerCase().includes('ebook') || 
                                 product.name.toLowerCase().includes('e-book') ||
-                                product.name.toLowerCase().includes('korekta')
+                                product.name.toLowerCase().includes('korekta') ||
+                                product.name.toLowerCase().includes('hybrydowe') ||
+                                product.name.toLowerCase().includes('wzmocnieniem')
                             )) {
                                 console.log(`[${requestId}] ✅ Detected ebook by product name: "${product.name}"`);
                                 return true;
@@ -352,12 +354,12 @@ export default async function handler(req, res) {
                 isEbookPurchase = true;
             }
             
-            // Metoda 3: Jeśli kwota pasuje do ceny ebooka (2 PLN test lub 279-349 PLN produkcja)
+            // Metoda 3: Jeśli kwota pasuje do ceny ebooka (2 PLN test lub 350 PLN produkcja)
             if (!isEbookPurchase) {
                 const amountInPLN = session.amount_total ? (session.amount_total / 100) : 0;
                 console.log(`[${requestId}] 🔍 Checking amount: ${amountInPLN} PLN, currency: ${session.currency}`);
-                // Akceptuj: 2 PLN (test), 279 PLN (promocja), 349 PLN (regularna)
-                const validPrices = [2, 279, 349];
+                // Akceptuj: 2 PLN (test), 350 PLN (produkcja)
+                const validPrices = [2, 299, 350, 399];
                 if (session.currency === 'pln' && validPrices.includes(amountInPLN)) {
                     console.log(`[${requestId}] ✅ Detected ebook by price (${amountInPLN} PLN)`);
                     isEbookPurchase = true;
@@ -773,7 +775,7 @@ export default async function handler(req, res) {
                                         <!-- Content -->
                                         <div class="content">
                                             <p>${greeting}!</p>
-                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Korekta bez skrótów</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
+                                            <p>Dziękuję za zakup e-booka <strong style="color: #212121;">Podstawy Hybrydowe ze Wzmocnieniem</strong>. Cieszę się, że zdecydowałaś się na tę inwestycję w swój rozwój.</p>
                                             <p>Kliknij poniższy przycisk, aby pobrać Twój e-book w formacie PDF:</p>
                                             
                                             <div class="button-wrapper">
