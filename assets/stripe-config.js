@@ -135,6 +135,8 @@ function showPremiereCountdown(buyBtn, buySection, countdownSection, priceValue,
     buyBtn.innerHTML = '<span>Już wkrótce</span>';
     buyBtn.classList.add('disabled');
     buyBtn.style.pointerEvents = 'none';
+    buyBtn.style.textAlign = 'center';
+    buyBtn.style.justifyContent = 'center';
     buyBtn.onclick = function(e) { e.preventDefault(); return false; };
     
     // Ustaw cenę
